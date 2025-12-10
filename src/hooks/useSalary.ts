@@ -1,69 +1,55 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
 import { SalaryConfig, SalaryRecord, SalaryPeriod } from '@/types';
 import { format } from 'date-fns';
+import { useLocalData } from '@/lib/local-data';
+import { useMemo } from 'react';
 
 export function useGetSalaryConfig(employeeId: string) {
-  return useQuery({
-    queryKey: ['salaryConfig', employeeId],
-    queryFn: async (): Promise<SalaryConfig | null> => {
-      const { data, error } = await supabase
-        .from('salary_config')
-        .select('*')
-        .eq('employee_id', employeeId)
-        .is('effective_to', null)
-        .maybeSingle();
+  const { salaryConfigs } = useLocalData();
 
-      if (error) throw error;
-      return data;
-    },
-    staleTime: 600000,
-  });
+  const data = useMemo(
+    () => salaryConfigs.find((config) => config.employee_id === employeeId) || null,
+    [employeeId, salaryConfigs]
+  );
+
+  return { data, isLoading: false, error: null as unknown };
 }
 
 export function useGetAvailablePeriods(employeeId: string) {
-  return useQuery({
-    queryKey: ['salaryPeriods', employeeId],
-    queryFn: async (): Promise<SalaryPeriod[]> => {
-      const { data, error } = await supabase
-        .from('salary_records')
-        .select('period_month, period_year')
-        .eq('employee_id', employeeId)
-        .order('period_year', { ascending: false })
-        .order('period_month', { ascending: false });
+  const { salaryRecords } = useLocalData();
 
-      if (error) throw error;
-
-      if (!data || data.length === 0) return [];
-
-      return data.map((record) => ({
+  const data = useMemo(() => {
+    return salaryRecords
+      .filter((record) => record.employee_id === employeeId)
+      .sort((a, b) => {
+        if (a.period_year === b.period_year) return b.period_month - a.period_month;
+        return b.period_year - a.period_year;
+      })
+      .map((record) => ({
         month: record.period_month,
         year: record.period_year,
         label: format(new Date(record.period_year, record.period_month - 1), 'MMMM yyyy'),
       }));
-    },
-    staleTime: 300000,
-  });
+  }, [employeeId, salaryRecords]);
+
+  return { data, isLoading: false, error: null as unknown };
 }
 
 export function useGetSalaryRecord(employeeId: string, month: number, year: number) {
-  return useQuery({
-    queryKey: ['salaryRecord', employeeId, month, year],
-    queryFn: async (): Promise<SalaryRecord | null> => {
-      const { data, error } = await supabase
-        .from('salary_records')
-        .select('*')
-        .eq('employee_id', employeeId)
-        .eq('period_month', month)
-        .eq('period_year', year)
-        .maybeSingle();
+  const { salaryRecords } = useLocalData();
 
-      if (error) throw error;
-      return data;
-    },
-    enabled: month > 0 && year > 0,
-    staleTime: 60000,
-  });
+  const data = useMemo(() => {
+    if (month <= 0 || year <= 0) return null;
+    return (
+      salaryRecords.find(
+        (record) =>
+          record.employee_id === employeeId &&
+          record.period_month === month &&
+          record.period_year === year
+      ) || null
+    );
+  }, [employeeId, month, salaryRecords, year]);
+
+  return { data, isLoading: false, error: null as unknown };
 }
 
 export function formatCurrency(amount: number, currency: string = 'USD'): string {

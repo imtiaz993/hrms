@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
 import { LeaveRequest } from '@/types';
+import { useLocalData } from '@/lib/local-data';
+import { useEffect, useMemo, useState } from 'react';
 
 export interface LeaveRequestWithEmployee extends LeaveRequest {
   employee: {
@@ -18,106 +18,88 @@ export function useGetAllLeaveRequests(
   statusFilter?: string,
   searchQuery?: string
 ) {
-  return useQuery({
-    queryKey: ['admin', 'leave-requests', typeFilter, statusFilter, searchQuery],
-    queryFn: async (): Promise<LeaveRequestWithEmployee[]> => {
-      let query = supabase
-        .from('leave_requests')
-        .select(
-          `
-          *,
-          employee:employees(id, first_name, last_name, email, department, employee_id)
-        `
-        )
-        .order('created_at', { ascending: false });
+  const { leaveRequests, employees } = useLocalData();
+  const [data, setData] = useState<LeaveRequestWithEmployee[]>([]);
 
-      if (typeFilter && typeFilter !== 'all') {
-        query = query.eq('leave_type', typeFilter);
-      }
+  useEffect(() => {
+    let results = leaveRequests
+      .filter((req) => (typeFilter && typeFilter !== 'all' ? req.leave_type === typeFilter : true))
+      .filter((req) => (statusFilter && statusFilter !== 'all' ? req.status === statusFilter : true))
+      .map((req) => {
+        const employee = employees.find((emp) => emp.id === req.employee_id)!;
+        return {
+          ...req,
+          employee: {
+            id: employee.id,
+            first_name: employee.first_name,
+            last_name: employee.last_name,
+            email: employee.email,
+            department: employee.department,
+            employee_id: employee.employee_id || null,
+          },
+        };
+      })
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
-      if (statusFilter && statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
+    if (searchQuery && searchQuery.trim() !== '') {
+      const lowerQuery = searchQuery.toLowerCase();
+      results = results.filter((req) => {
+        const fullName = `${req.employee.first_name} ${req.employee.last_name}`.toLowerCase();
+        const empId = (req.employee.employee_id || '').toLowerCase();
+        return fullName.includes(lowerQuery) || empId.includes(lowerQuery);
+      });
+    }
 
-      const { data, error } = await query;
+    setData(results);
+  }, [employees, leaveRequests, searchQuery, statusFilter, typeFilter]);
 
-      if (error) throw error;
-
-      let results = (data || []) as LeaveRequestWithEmployee[];
-
-      if (searchQuery && searchQuery.trim() !== '') {
-        const lowerQuery = searchQuery.toLowerCase();
-        results = results.filter((req) => {
-          const fullName = `${req.employee.first_name} ${req.employee.last_name}`.toLowerCase();
-          const empId = (req.employee.employee_id || '').toLowerCase();
-          return fullName.includes(lowerQuery) || empId.includes(lowerQuery);
-        });
-      }
-
-      return results;
-    },
-    staleTime: 30000,
-  });
+  return { data, isLoading: false, error: null as unknown };
 }
 
 export function useApproveLeaveRequest() {
-  const queryClient = useQueryClient();
+  const { updateLeaveStatus } = useLocalData();
+  const [isPending, setIsPending] = useState(false);
 
-  return useMutation({
-    mutationFn: async ({
-      requestId,
-      adminComment,
-    }: {
-      requestId: string;
-      adminComment?: string;
-    }) => {
-      const { data, error } = await supabase
-        .from('leave_requests')
-        .update({
-          status: 'approved',
-          approver_comment: adminComment || null,
-        })
-        .eq('id', requestId)
-        .select()
-        .single();
+  const mutateAsync = async ({
+    requestId,
+    adminComment,
+  }: {
+    requestId: string;
+    adminComment?: string;
+  }) => {
+    setIsPending(true);
+    try {
+      const updated = updateLeaveStatus(requestId, 'approved', adminComment);
+      if (!updated) throw new Error('Leave request not found');
+      return updated;
+    } finally {
+      setIsPending(false);
+    }
+  };
 
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'leave-requests'] });
-      queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
-    },
-  });
+  return { mutateAsync, isPending };
 }
 
 export function useRejectLeaveRequest() {
-  const queryClient = useQueryClient();
+  const { updateLeaveStatus } = useLocalData();
+  const [isPending, setIsPending] = useState(false);
 
-  return useMutation({
-    mutationFn: async ({
-      requestId,
-      adminComment,
-    }: {
-      requestId: string;
-      adminComment?: string;
-    }) => {
-      const { data, error } = await supabase
-        .from('leave_requests')
-        .update({
-          status: 'rejected',
-          approver_comment: adminComment || null,
-        })
-        .eq('id', requestId)
-        .select()
-        .single();
+  const mutateAsync = async ({
+    requestId,
+    adminComment,
+  }: {
+    requestId: string;
+    adminComment?: string;
+  }) => {
+    setIsPending(true);
+    try {
+      const updated = updateLeaveStatus(requestId, 'rejected', adminComment);
+      if (!updated) throw new Error('Leave request not found');
+      return updated;
+    } finally {
+      setIsPending(false);
+    }
+  };
 
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'leave-requests'] });
-      queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
-    },
-  });
+  return { mutateAsync, isPending };
 }

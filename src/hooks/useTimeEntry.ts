@@ -1,5 +1,3 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
 import { TimeEntry, TodayStatus, AttendanceRow } from '@/types';
 import {
   mapTimeEntryToTodayStatus,
@@ -10,134 +8,91 @@ import {
   isEarlyLeave,
 } from '@/lib/time-utils';
 import { format } from 'date-fns';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocalData } from '@/lib/local-data';
 
 export function useGetTodayStatus(
   employeeId: string,
   standardHours: number,
   standardShiftStart: string
 ) {
-  return useQuery({
-    queryKey: ['timeEntry', 'today', employeeId],
-    queryFn: async (): Promise<TodayStatus> => {
-      const today = format(new Date(), 'yyyy-MM-dd');
+  const { timeEntries } = useLocalData();
+  const [data, setData] = useState<TodayStatus | null>(null);
 
-      const { data, error } = await supabase
-        .from('time_entries')
-        .select('*')
-        .eq('employee_id', employeeId)
-        .eq('date', today)
-        .maybeSingle();
+  useEffect(() => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const entry = timeEntries.find(
+      (item) => item.employee_id === employeeId && item.date === today
+    );
+    setData(mapTimeEntryToTodayStatus(entry || null, standardHours, standardShiftStart));
+  }, [employeeId, standardHours, standardShiftStart, timeEntries]);
 
-      if (error) throw error;
-
-      return mapTimeEntryToTodayStatus(data, standardHours, standardShiftStart);
-    },
-    refetchInterval: 60000,
-    staleTime: 30000,
-  });
+  return { data, isLoading: false, error: null as unknown };
 }
 
 export function useGetRecentAttendance(employeeId: string, days: number = 7) {
-  return useQuery({
-    queryKey: ['timeEntry', 'recent', employeeId, days],
-    queryFn: async (): Promise<AttendanceRow[]> => {
-      const { data, error } = await supabase
-        .from('time_entries')
-        .select('*')
-        .eq('employee_id', employeeId)
-        .order('date', { ascending: false })
-        .limit(days);
+  const { timeEntries } = useLocalData();
 
-      if (error) throw error;
+  const data = useMemo(() => {
+    return timeEntries
+      .filter((entry) => entry.employee_id === employeeId)
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, days)
+      .map(mapTimeEntryToAttendanceRow);
+  }, [days, employeeId, timeEntries]);
 
-      return (data || []).map(mapTimeEntryToAttendanceRow);
-    },
-    staleTime: 300000,
-  });
+  return { data, isLoading: false, error: null as unknown };
 }
 
 export function useClockIn() {
-  const queryClient = useQueryClient();
+  const { clockIn } = useLocalData();
+  const [isPending, setIsPending] = useState(false);
 
-  return useMutation({
-    mutationFn: async ({ employeeId, standardHours, standardShiftStart }: {
-      employeeId: string;
-      standardHours: number;
-      standardShiftStart: string;
-    }) => {
-      const timestamp = new Date().toISOString();
-      const date = format(new Date(), 'yyyy-MM-dd');
+  const mutateAsync = async ({
+    employeeId,
+    standardHours,
+    standardShiftStart,
+  }: {
+    employeeId: string;
+    standardHours: number;
+    standardShiftStart: string;
+  }) => {
+    setIsPending(true);
+    try {
+      return clockIn({ employeeId, standardHours, standardShiftStart });
+    } finally {
+      setIsPending(false);
+    }
+  };
 
-      const isLate = isEmployeeLate(timestamp, standardShiftStart);
-
-      const { data, error } = await supabase
-        .from('time_entries')
-        .insert({
-          employee_id: employeeId,
-          date,
-          time_in: timestamp,
-          is_late: isLate,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['timeEntry', 'today', variables.employeeId] });
-      queryClient.invalidateQueries({ queryKey: ['timeEntry', 'recent', variables.employeeId] });
-    },
-  });
+  return { mutateAsync, isPending };
 }
 
 export function useClockOut() {
-  const queryClient = useQueryClient();
+  const { clockOut, timeEntries } = useLocalData();
+  const [isPending, setIsPending] = useState(false);
 
-  return useMutation({
-    mutationFn: async ({
-      timeEntryId,
-      employeeId,
-      standardHours,
-      standardShiftEnd
-    }: {
-      timeEntryId: string;
-      employeeId: string;
-      standardHours: number;
-      standardShiftEnd: string;
-    }) => {
-      const timestamp = new Date().toISOString();
+  const mutateAsync = async ({
+    timeEntryId,
+    employeeId,
+    standardHours,
+    standardShiftEnd,
+  }: {
+    timeEntryId: string;
+    employeeId: string;
+    standardHours: number;
+    standardShiftEnd: string;
+  }) => {
+    setIsPending(true);
+    try {
+      const existing = timeEntries.find((entry) => entry.id === timeEntryId);
+      if (!existing) throw new Error('Time entry not found');
 
-      const { data: entry } = await supabase
-        .from('time_entries')
-        .select('time_in')
-        .eq('id', timeEntryId)
-        .single();
+      return clockOut({ timeEntryId, employeeId, standardHours, standardShiftEnd });
+    } finally {
+      setIsPending(false);
+    }
+  };
 
-      if (!entry) throw new Error('Time entry not found');
-
-      const totalHours = calculateTotalHours(entry.time_in, timestamp);
-      const overtimeHours = calculateOvertimeHours(totalHours, standardHours);
-      const isEarlyLeaveFlag = isEarlyLeave(timestamp, standardShiftEnd);
-
-      const { data, error } = await supabase
-        .from('time_entries')
-        .update({
-          time_out: timestamp,
-          total_hours: totalHours,
-          overtime_hours: overtimeHours,
-          is_early_leave: isEarlyLeaveFlag,
-        })
-        .eq('id', timeEntryId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['timeEntry', 'today', variables.employeeId] });
-      queryClient.invalidateQueries({ queryKey: ['timeEntry', 'recent', variables.employeeId] });
-    },
-  });
+  return { mutateAsync, isPending };
 }

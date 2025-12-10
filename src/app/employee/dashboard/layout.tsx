@@ -3,16 +3,17 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useAppSelector } from '@/store/hooks';
-import { supabase } from '@/lib/supabase';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Button } from '@/components/ui/button';
 import { LogOut, Clock, Calendar, DollarSign, BarChart3, PartyPopper, User as UserIcon, ClipboardList } from 'lucide-react';
+import { logout as logoutAction } from '@/store/authSlice';
 
 export default function EmployeeDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const dispatch = useAppDispatch();
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, isLoading, currentUser } = useAppSelector((state) => state.auth);
@@ -24,7 +25,8 @@ export default function EmployeeDashboardLayout({
   }, [isAuthenticated, isLoading, router]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    localStorage.removeItem('hrmsCurrentUser');
+    dispatch(logoutAction());
     router.push('/login');
   };
 

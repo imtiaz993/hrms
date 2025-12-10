@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
 import { Employee, TimeEntry } from '@/types';
 import { format, parseISO } from 'date-fns';
+import { useLocalData } from '@/lib/local-data';
+import { useMemo } from 'react';
 
 export interface TodayAttendanceRecord {
   employee: Employee;
@@ -27,127 +27,110 @@ export function useGetTodayAttendanceOverview(
   department?: string,
   statusFilter?: string
 ) {
-  return useQuery({
-    queryKey: ['admin', 'attendance', 'today', searchQuery, department, statusFilter],
-    queryFn: async (): Promise<{
-      records: TodayAttendanceRecord[];
-      stats: AttendanceOverviewStats;
-    }> => {
-      const today = format(new Date(), 'yyyy-MM-dd');
+  const { employees, timeEntries } = useLocalData();
 
-      const [employeesResult, entriesResult] = await Promise.all([
-        supabase
-          .from('employees')
-          .select('*')
-          .eq('is_active', true)
-          .order('first_name'),
-        supabase.from('time_entries').select('*').eq('date', today),
-      ]);
+  const data = useMemo(() => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    let filteredEmployees = employees.filter((emp) => emp.is_active);
+    const entriesMap = new Map<string, TimeEntry>();
+    timeEntries
+      .filter((entry) => entry.date === today)
+      .forEach((entry) => entriesMap.set(entry.employee_id, entry));
 
-      if (employeesResult.error) throw employeesResult.error;
-      if (entriesResult.error) throw entriesResult.error;
+    if (department && department !== 'all') {
+      filteredEmployees = filteredEmployees.filter((emp) => emp.department === department);
+    }
 
-      let employees = employeesResult.data || [];
-      const entriesMap = new Map<string, TimeEntry>();
-
-      (entriesResult.data || []).forEach((entry) => {
-        entriesMap.set(entry.employee_id, entry);
+    if (searchQuery && searchQuery.trim() !== '') {
+      const lowerQuery = searchQuery.toLowerCase();
+      filteredEmployees = filteredEmployees.filter((emp) => {
+        const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
+        const empId = (emp.employee_id || '').toLowerCase();
+        return fullName.includes(lowerQuery) || empId.includes(lowerQuery);
       });
+    }
 
-      if (department && department !== 'all') {
-        employees = employees.filter((emp) => emp.department === department);
-      }
+    let totalEmployees = 0;
+    let presentToday = 0;
+    let absentToday = 0;
+    let lateArrivals = 0;
+    let earlyLeaves = 0;
+    let incompletePunches = 0;
 
-      if (searchQuery && searchQuery.trim() !== '') {
-        const lowerQuery = searchQuery.toLowerCase();
-        employees = employees.filter((emp) => {
-          const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
-          const empId = (emp.employee_id || '').toLowerCase();
-          return fullName.includes(lowerQuery) || empId.includes(lowerQuery);
-        });
-      }
+    const records: TodayAttendanceRecord[] = filteredEmployees.map((employee) => {
+      const entry = entriesMap.get(employee.id) || null;
 
-      let totalEmployees = 0;
-      let presentToday = 0;
-      let absentToday = 0;
-      let lateArrivals = 0;
-      let earlyLeaves = 0;
-      let incompletePunches = 0;
+      let status: TodayAttendanceRecord['status'] = 'absent';
+      let isLate = false;
+      let isEarlyLeave = false;
+      let minutesLate: number | null = null;
 
-      const records: TodayAttendanceRecord[] = employees.map((employee) => {
-        const entry = entriesMap.get(employee.id) || null;
-
-        let status: TodayAttendanceRecord['status'] = 'absent';
-        let isLate = false;
-        let isEarlyLeave = false;
-        let minutesLate: number | null = null;
-
-        if (entry) {
-          if (!entry.time_out) {
-            status = 'incomplete';
-            incompletePunches++;
-            presentToday++;
-          } else if (entry.is_late && entry.is_early_leave) {
-            status = 'late';
-            isLate = true;
-            isEarlyLeave = true;
-            lateArrivals++;
-            earlyLeaves++;
-            presentToday++;
-          } else if (entry.is_late) {
-            status = 'late';
-            isLate = true;
-            lateArrivals++;
-            presentToday++;
-          } else if (entry.is_early_leave) {
-            status = 'early_leave';
-            isEarlyLeave = true;
-            earlyLeaves++;
-            presentToday++;
-          } else {
-            status = 'present';
-            presentToday++;
-          }
-
-          if (isLate && entry.time_in) {
-            const timeIn = parseISO(`${today}T${entry.time_in}`);
-            const standardStart = parseISO(`${today}T${employee.standard_shift_start}`);
-            minutesLate = Math.floor((timeIn.getTime() - standardStart.getTime()) / 60000);
-          }
+      if (entry) {
+        if (!entry.time_out) {
+          status = 'incomplete';
+          incompletePunches++;
+          presentToday++;
+        } else if (entry.is_late && entry.is_early_leave) {
+          status = 'late';
+          isLate = true;
+          isEarlyLeave = true;
+          lateArrivals++;
+          earlyLeaves++;
+          presentToday++;
+        } else if (entry.is_late) {
+          status = 'late';
+          isLate = true;
+          lateArrivals++;
+          presentToday++;
+        } else if (entry.is_early_leave) {
+          status = 'early_leave';
+          isEarlyLeave = true;
+          earlyLeaves++;
+          presentToday++;
         } else {
-          absentToday++;
+          status = 'present';
+          presentToday++;
         }
 
-        totalEmployees++;
-
-        return {
-          employee,
-          timeEntry: entry,
-          status,
-          isLate,
-          isEarlyLeave,
-          hoursWorked: entry?.total_hours || null,
-          minutesLate,
-        };
-      });
-
-      let filteredRecords = records;
-      if (statusFilter && statusFilter !== 'all') {
-        filteredRecords = records.filter((record) => record.status === statusFilter);
+        if (isLate && entry.time_in) {
+          const timeIn = parseISO(entry.time_in);
+          const standardStart = new Date(`${today}T${employee.standard_shift_start}`);
+          const minutesDiff = Math.floor((timeIn.getTime() - standardStart.getTime()) / 60000);
+          minutesLate = minutesDiff > 0 ? minutesDiff : null;
+        }
+      } else {
+        absentToday++;
       }
 
-      const stats: AttendanceOverviewStats = {
-        totalEmployees,
-        presentToday,
-        absentToday,
-        lateArrivals,
-        earlyLeaves,
-        incompletePunches,
-      };
+      totalEmployees++;
 
-      return { records: filteredRecords, stats };
-    },
-    refetchInterval: 30000,
-    staleTime: 10000,
-  });
+      return {
+        employee,
+        timeEntry: entry,
+        status,
+        isLate,
+        isEarlyLeave,
+        hoursWorked: entry?.total_hours || null,
+        minutesLate,
+      };
+    });
+
+    let filteredRecords = records;
+    if (statusFilter && statusFilter !== 'all') {
+      filteredRecords = records.filter((record) => record.status === statusFilter);
+    }
+
+    const stats: AttendanceOverviewStats = {
+      totalEmployees,
+      presentToday,
+      absentToday,
+      lateArrivals,
+      earlyLeaves,
+      incompletePunches,
+    };
+
+    return { records: filteredRecords, stats };
+  }, [department, employees, searchQuery, statusFilter, timeEntries]);
+
+  return { data, isLoading: false, error: null as unknown };
 }

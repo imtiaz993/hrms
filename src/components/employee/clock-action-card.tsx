@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TodayStatus } from '@/types';
 import { useClockIn, useClockOut } from '@/hooks/useTimeEntry';
-import { supabase } from '@/lib/supabase';
 import { format } from 'date-fns';
 import { Clock, CheckCircle2 } from 'lucide-react';
+import { useLocalData } from '@/lib/local-data';
 
 interface ClockActionCardProps {
   status: TodayStatus;
@@ -25,6 +25,7 @@ export function ClockActionCard({
   standardShiftStart,
   standardShiftEnd,
 }: ClockActionCardProps) {
+  const { timeEntries } = useLocalData();
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const clockInMutation = useClockIn();
@@ -47,20 +48,18 @@ export function ClockActionCard({
   const handleClockOut = async () => {
     setMessage(null);
     try {
-      const { data } = await supabase
-        .from('time_entries')
-        .select('id')
-        .eq('employee_id', employeeId)
-        .eq('date', format(new Date(), 'yyyy-MM-dd'))
-        .maybeSingle();
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const entry = timeEntries.find(
+        (item) => item.employee_id === employeeId && item.date === todayStr
+      );
 
-      if (!data) {
+      if (!entry) {
         setMessage({ type: 'error', text: 'No time entry found for today.' });
         return;
       }
 
       await clockOutMutation.mutateAsync({
-        timeEntryId: data.id,
+        timeEntryId: entry.id,
         employeeId,
         standardHours,
         standardShiftEnd,

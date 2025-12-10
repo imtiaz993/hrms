@@ -170,3 +170,33 @@ export interface SalaryPeriod {
   year: number;
   label: string;
 }
+
+export interface PayrollSettings {
+  id: string;
+  hourly_rate: number;
+  overtime_multiplier: number;
+  standard_working_days_per_month: number;
+  deduction_type: 'hourly' | 'daily';
+  daily_deduction_rate: number;
+  currency: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmployeeSalaryCalculation {
+  employee_id: string;
+  employee_name: string;
+  department: string;
+  employee_id_number: string | null;
+  month: number;
+  year: number;
+  total_hours_worked: number;
+  overtime_hours: number;
+  unpaid_leave_days: number;
+  unpaid_leave_hours: number;
+  base_pay: number;
+  overtime_pay: number;
+  gross_salary: number;
+  unpaid_leave_deduction: number;
+  net_salary: number;
+}

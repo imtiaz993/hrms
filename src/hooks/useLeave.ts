@@ -1,110 +1,111 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
 import { LeaveBalance, Holiday, LeaveRequest, CreateLeaveRequest } from '@/types';
 import { differenceInCalendarDays, parseISO, isAfter, isBefore, startOfDay } from 'date-fns';
+import { useLocalData } from '@/lib/local-data';
+import { useMemo, useState } from 'react';
+
+function generateId(prefix: string) {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 export function useGetLeaveBalances(employeeId: string) {
-  return useQuery({
-    queryKey: ['leaveBalances', employeeId],
-    queryFn: async (): Promise<LeaveBalance[]> => {
-      const currentYear = new Date().getFullYear();
+  const { leaveBalances } = useLocalData();
+  const currentYear = new Date().getFullYear();
 
-      const { data, error } = await supabase
-        .from('leave_balances')
-        .select('*')
-        .eq('employee_id', employeeId)
-        .eq('year', currentYear)
-        .order('leave_type');
+  const balances = useMemo(
+    () =>
+      leaveBalances
+        .filter((balance) => balance.employee_id === employeeId && balance.year === currentYear)
+        .sort((a, b) => a.leave_type.localeCompare(b.leave_type)),
+    [employeeId, leaveBalances, currentYear]
+  );
 
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: 300000,
-  });
+  return { data: balances, isLoading: false, error: null as unknown };
 }
 
 export function useGetUpcomingHolidays(daysAhead: number = 90) {
-  return useQuery({
-    queryKey: ['holidays', 'upcoming', daysAhead],
-    queryFn: async (): Promise<Holiday[]> => {
-      const today = new Date().toISOString().split('T')[0];
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + daysAhead);
-      const futureDateStr = futureDate.toISOString().split('T')[0];
+  const { holidays } = useLocalData();
 
-      const { data, error } = await supabase
-        .from('holidays')
-        .select('*')
-        .gte('date', today)
-        .lte('date', futureDateStr)
-        .order('date');
+  const data = useMemo(() => {
+    const today = new Date();
+    const startStr = today.toISOString().split('T')[0];
+    const future = new Date(today);
+    future.setDate(future.getDate() + daysAhead);
+    const futureStr = future.toISOString().split('T')[0];
 
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: 3600000,
-  });
+    return holidays
+      .filter((holiday) => holiday.date >= startStr && holiday.date <= futureStr)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [holidays, daysAhead]);
+
+  return { data, isLoading: false, error: null as unknown };
 }
 
 export function useGetLeaveRequests(employeeId: string) {
-  return useQuery({
-    queryKey: ['leaveRequests', employeeId],
-    queryFn: async (): Promise<LeaveRequest[]> => {
-      const { data, error } = await supabase
-        .from('leave_requests')
-        .select('*')
-        .eq('employee_id', employeeId)
-        .order('start_date', { ascending: false });
+  const { leaveRequests } = useLocalData();
 
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: 60000,
-  });
+  const data = useMemo(
+    () =>
+      leaveRequests
+        .filter((req) => req.employee_id === employeeId)
+        .sort((a, b) => b.start_date.localeCompare(a.start_date)),
+    [employeeId, leaveRequests]
+  );
+
+  return { data, isLoading: false, error: null as unknown };
 }
 
 export function useCreateLeaveRequest() {
-  const queryClient = useQueryClient();
+  const { createLeaveRequest } = useLocalData();
+  const [isPending, setIsPending] = useState(false);
 
-  return useMutation({
-    mutationFn: async (request: CreateLeaveRequest) => {
-      const { data, error } = await supabase
-        .from('leave_requests')
-        .insert(request)
-        .select()
-        .single();
+  const mutateAsync = async (request: CreateLeaveRequest) => {
+    setIsPending(true);
+    try {
+      const now = new Date().toISOString();
+      const newRequest: LeaveRequest = {
+        id: generateId('lr'),
+        employee_id: request.employee_id,
+        leave_type: request.leave_type,
+        start_date: request.start_date,
+        end_date: request.end_date,
+        is_half_day: request.is_half_day,
+        total_days: request.total_days,
+        reason: request.reason,
+        status: 'pending',
+        approver_id: undefined,
+        approver_comment: undefined,
+        approved_at: undefined,
+        created_at: now,
+        updated_at: now,
+      };
+      return createLeaveRequest(newRequest);
+    } finally {
+      setIsPending(false);
+    }
+  };
 
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['leaveRequests', variables.employee_id] });
-      queryClient.invalidateQueries({ queryKey: ['leaveBalances', variables.employee_id] });
-    },
-  });
+  return { mutateAsync, isPending };
 }
 
 export function useCancelLeaveRequest() {
-  const queryClient = useQueryClient();
+  const { cancelLeaveRequest } = useLocalData();
+  const [isPending, setIsPending] = useState(false);
 
-  return useMutation({
-    mutationFn: async ({ requestId, employeeId }: { requestId: string; employeeId: string }) => {
-      const { data, error } = await supabase
-        .from('leave_requests')
-        .update({ status: 'rejected' })
-        .eq('id', requestId)
-        .eq('employee_id', employeeId)
-        .eq('status', 'pending')
-        .select()
-        .single();
+  const mutateAsync = async ({ requestId }: { requestId: string; employeeId: string }) => {
+    setIsPending(true);
+    try {
+      const updated = cancelLeaveRequest(requestId);
+      if (!updated) throw new Error('Leave request not found');
+      return updated;
+    } finally {
+      setIsPending(false);
+    }
+  };
 
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['leaveRequests', variables.employeeId] });
-    },
-  });
+  return { mutateAsync, isPending };
 }
 
 export function calculateLeaveDays(startDate: string, endDate: string, isHalfDay: boolean): number {

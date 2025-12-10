@@ -1,104 +1,77 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
 import { Employee } from '@/types';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocalData } from '@/lib/local-data';
 
 export function useGetAllEmployees(searchQuery?: string, department?: string, status?: string) {
-  return useQuery({
-    queryKey: ['admin', 'employees', searchQuery, department, status],
-    queryFn: async (): Promise<Employee[]> => {
-      let query = supabase.from('employees').select('*').order('created_at', { ascending: false });
+  const { employees } = useLocalData();
+  const [data, setData] = useState<Employee[]>([]);
 
-      if (status === 'active') {
-        query = query.eq('is_active', true);
-      } else if (status === 'inactive') {
-        query = query.eq('is_active', false);
-      }
+  useEffect(() => {
+    let results = [...employees].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
 
-      if (department && department !== 'all') {
-        query = query.eq('department', department);
-      }
+    if (status === 'active') {
+      results = results.filter((emp) => emp.is_active);
+    } else if (status === 'inactive') {
+      results = results.filter((emp) => !emp.is_active);
+    }
 
-      const { data, error } = await query;
+    if (department && department !== 'all') {
+      results = results.filter((emp) => emp.department === department);
+    }
 
-      if (error) throw error;
+    if (searchQuery && searchQuery.trim() !== '') {
+      const lowerQuery = searchQuery.toLowerCase();
+      results = results.filter((emp) => {
+        const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
+        const email = emp.email.toLowerCase();
+        const empId = (emp.employee_id || '').toLowerCase();
+        return fullName.includes(lowerQuery) || email.includes(lowerQuery) || empId.includes(lowerQuery);
+      });
+    }
 
-      let filteredData = data || [];
+    setData(results);
+  }, [employees, searchQuery, department, status]);
 
-      if (searchQuery && searchQuery.trim() !== '') {
-        const lowerQuery = searchQuery.toLowerCase();
-        filteredData = filteredData.filter((emp) => {
-          const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
-          const email = emp.email.toLowerCase();
-          const empId = (emp.employee_id || '').toLowerCase();
-          return (
-            fullName.includes(lowerQuery) ||
-            email.includes(lowerQuery) ||
-            empId.includes(lowerQuery)
-          );
-        });
-      }
-
-      return filteredData;
-    },
-    staleTime: 30000,
-  });
+  return { data, isLoading: false, error: null as unknown };
 }
 
 export function useGetEmployeeById(employeeId: string) {
-  return useQuery({
-    queryKey: ['admin', 'employee', employeeId],
-    queryFn: async (): Promise<Employee> => {
-      const { data, error } = await supabase
-        .from('employees')
-        .select('*')
-        .eq('id', employeeId)
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!employeeId,
-    staleTime: 30000,
-  });
+  const { employees } = useLocalData();
+  const employee = useMemo(
+    () => employees.find((emp) => emp.id === employeeId),
+    [employees, employeeId]
+  );
+  return { data: employee || null, isLoading: false, error: null as unknown };
 }
 
 export function useGetDepartments() {
-  return useQuery({
-    queryKey: ['admin', 'departments'],
-    queryFn: async (): Promise<string[]> => {
-      const { data, error } = await supabase.from('employees').select('department');
+  const { employees } = useLocalData();
+  const departments = useMemo(() => {
+    const unique = Array.from(new Set(employees.map((emp) => emp.department))).filter(Boolean);
+    return unique.sort();
+  }, [employees]);
 
-      if (error) throw error;
-
-      const uniqueDepts = Array.from(new Set(data.map((emp) => emp.department))).filter(
-        Boolean
-      );
-      return uniqueDepts.sort();
-    },
-    staleTime: 300000,
-  });
+  return { data: departments, isLoading: false, error: null as unknown };
 }
 
 export function useUpdateEmployeeStatus() {
-  const queryClient = useQueryClient();
+  const { updateEmployeeStatus } = useLocalData();
+  const [isPending, setIsPending] = useState(false);
 
-  return useMutation({
-    mutationFn: async ({ employeeId, isActive }: { employeeId: string; isActive: boolean }) => {
-      const { data, error } = await supabase
-        .from('employees')
-        .update({ is_active: isActive })
-        .eq('id', employeeId)
-        .select()
-        .single();
+  const mutateAsync = async ({ employeeId, isActive }: { employeeId: string; isActive: boolean }) => {
+    setIsPending(true);
+    try {
+      const updated = updateEmployeeStatus(employeeId, isActive);
+      if (!updated) throw new Error('Employee not found');
+      return updated;
+    } finally {
+      setIsPending(false);
+    }
+  };
 
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'employees'] });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'employee'] });
-    },
-  });
+  return { mutateAsync, isPending };
 }
 
 export interface CreateEmployeeInput {
@@ -124,23 +97,22 @@ export interface CreateEmployeeInput {
 }
 
 export function useCreateEmployee() {
-  const queryClient = useQueryClient();
+  const { addEmployee } = useLocalData();
+  const [isPending, setIsPending] = useState(false);
 
-  return useMutation({
-    mutationFn: async (input: CreateEmployeeInput) => {
-      const { data, error } = await supabase
-        .from('employees')
-        .insert([input])
-        .select()
-        .single();
+  const mutateAsync = async (input: CreateEmployeeInput) => {
+    setIsPending(true);
+    try {
+      return addEmployee({
+        ...input,
+        is_active: true,
+      } as Omit<Employee, 'id' | 'created_at' | 'updated_at'>);
+    } finally {
+      setIsPending(false);
+    }
+  };
 
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'employees'] });
-    },
-  });
+  return { mutateAsync, isPending };
 }
 
 export interface UpdateEmployeeInput {
@@ -162,23 +134,19 @@ export interface UpdateEmployeeInput {
 }
 
 export function useUpdateEmployee() {
-  const queryClient = useQueryClient();
+  const { updateEmployee } = useLocalData();
+  const [isPending, setIsPending] = useState(false);
 
-  return useMutation({
-    mutationFn: async ({ employeeId, input }: { employeeId: string; input: UpdateEmployeeInput }) => {
-      const { data, error } = await supabase
-        .from('employees')
-        .update(input)
-        .eq('id', employeeId)
-        .select()
-        .single();
+  const mutateAsync = async ({ employeeId, input }: { employeeId: string; input: UpdateEmployeeInput }) => {
+    setIsPending(true);
+    try {
+      const updated = updateEmployee(employeeId, input);
+      if (!updated) throw new Error('Employee not found');
+      return updated;
+    } finally {
+      setIsPending(false);
+    }
+  };
 
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'employees'] });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'employee'] });
-    },
-  });
+  return { mutateAsync, isPending };
 }

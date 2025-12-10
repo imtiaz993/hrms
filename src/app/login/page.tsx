@@ -3,15 +3,19 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useLocalData } from '@/lib/local-data';
+import { useAppDispatch } from '@/store/hooks';
+import { setUser } from '@/store/authSlice';
 
 export default function LoginPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { authenticate } = useLocalData();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -23,25 +27,18 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const user = authenticate(email, password);
+      if (!user) {
+        throw new Error('Invalid credentials. Use password "password" for demo users.');
+      }
 
-      if (signInError) throw signInError;
+      localStorage.setItem('hrmsCurrentUser', JSON.stringify(user));
+      dispatch(setUser(user));
 
-      if (data.user) {
-        const { data: employee } = await supabase
-          .from('employees')
-          .select('is_admin')
-          .eq('id', data.user.id)
-          .single();
-
-        if (employee?.is_admin) {
-          router.push('/admin/dashboard');
-        } else {
-          router.push('/employee/dashboard');
-        }
+      if (user.is_admin) {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/employee/dashboard');
       }
     } catch (err: any) {
       setError(err.message || 'Failed to login. Please check your credentials.');

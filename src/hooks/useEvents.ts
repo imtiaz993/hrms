@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
 import { Employee } from '@/types';
 import { parseISO, differenceInDays, format, addYears, isBefore, isAfter } from 'date-fns';
+import { useMemo } from 'react';
+import { useLocalData } from '@/lib/local-data';
 
 export interface UpcomingEvent {
   id: string;
@@ -91,37 +91,23 @@ function differenceInYears(date1: Date, date2: Date): number {
 }
 
 export function useGetUpcomingBirthdays(daysAhead: number = 30) {
-  return useQuery({
-    queryKey: ['upcomingBirthdays', daysAhead],
-    queryFn: async (): Promise<UpcomingEvent[]> => {
-      const { data, error } = await supabase
-        .from('employees')
-        .select('*')
-        .eq('is_active', true)
-        .not('date_of_birth', 'is', null);
+  const { employees } = useLocalData();
 
-      if (error) throw error;
+  const data = useMemo(
+    () => getUpcomingBirthdaysFromEmployees(employees, daysAhead),
+    [employees, daysAhead]
+  );
 
-      return getUpcomingBirthdaysFromEmployees(data || [], daysAhead);
-    },
-    staleTime: 3600000,
-  });
+  return { data, isLoading: false, error: null as unknown };
 }
 
 export function useGetUpcomingAnniversaries(daysAhead: number = 30) {
-  return useQuery({
-    queryKey: ['upcomingAnniversaries', daysAhead],
-    queryFn: async (): Promise<UpcomingEvent[]> => {
-      const { data, error } = await supabase
-        .from('employees')
-        .select('*')
-        .eq('is_active', true)
-        .not('join_date', 'is', null);
+  const { employees } = useLocalData();
 
-      if (error) throw error;
+  const data = useMemo(
+    () => getUpcomingAnniversariesFromEmployees(employees, daysAhead),
+    [employees, daysAhead]
+  );
 
-      return getUpcomingAnniversariesFromEmployees(data || [], daysAhead);
-    },
-    staleTime: 3600000,
-  });
+  return { data, isLoading: false, error: null as unknown };
 }

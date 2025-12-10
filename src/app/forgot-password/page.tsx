@@ -2,14 +2,15 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useLocalData } from '@/lib/local-data';
 
 export default function ForgotPasswordPage() {
+  const { employees } = useLocalData();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -22,12 +23,11 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (resetError) throw resetError;
-
+      const exists = employees.some((emp) => emp.email.toLowerCase() === email.toLowerCase());
+      if (!exists) {
+        throw new Error('Email not found in demo users.');
+      }
+      localStorage.setItem('hrmsResetEmail', email);
       setSuccess(true);
     } catch (err: any) {
       setError(err.message || 'Failed to send reset email. Please try again.');

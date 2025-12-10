@@ -2,15 +2,16 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useLocalData } from '@/lib/local-data';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const { updatePassword } = useLocalData();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -33,11 +34,15 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
 
     try {
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password,
-      });
+      const email = localStorage.getItem('hrmsResetEmail');
+      if (!email) {
+        throw new Error('No reset request found. Please start from "Forgot password".');
+      }
 
-      if (updateError) throw updateError;
+      const updated = updatePassword(email, password);
+      if (!updated) {
+        throw new Error('Unable to update password for this user.');
+      }
 
       router.push('/login');
     } catch (err: any) {
