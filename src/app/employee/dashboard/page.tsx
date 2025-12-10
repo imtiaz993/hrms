@@ -38,6 +38,7 @@ import { WorkingHoursChartCard } from '@/components/employee/working-hours-chart
 import { ClockActionCard } from '@/components/employee/clock-action-card';
 import { TodayStatusCard } from '@/components/employee/today-status-card';
 
+
 export default function EmployeeDashboardPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
