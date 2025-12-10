@@ -11,25 +11,25 @@ export function useGetAllEmployees(searchQuery?: string, department?: string, st
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
-    if (status === 'active') {
+      if (status === 'active') {
       results = results.filter((emp) => emp.is_active);
-    } else if (status === 'inactive') {
+      } else if (status === 'inactive') {
       results = results.filter((emp) => !emp.is_active);
-    }
+      }
 
-    if (department && department !== 'all') {
+      if (department && department !== 'all') {
       results = results.filter((emp) => emp.department === department);
-    }
+      }
 
-    if (searchQuery && searchQuery.trim() !== '') {
-      const lowerQuery = searchQuery.toLowerCase();
+      if (searchQuery && searchQuery.trim() !== '') {
+        const lowerQuery = searchQuery.toLowerCase();
       results = results.filter((emp) => {
-        const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
-        const email = emp.email.toLowerCase();
-        const empId = (emp.employee_id || '').toLowerCase();
+          const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
+          const email = emp.email.toLowerCase();
+          const empId = (emp.employee_id || '').toLowerCase();
         return fullName.includes(lowerQuery) || email.includes(lowerQuery) || empId.includes(lowerQuery);
-      });
-    }
+        });
+      }
 
     setData(results);
   }, [employees, searchQuery, department, status]);

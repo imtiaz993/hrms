@@ -200,3 +200,18 @@ export interface EmployeeSalaryCalculation {
   unpaid_leave_deduction: number;
   net_salary: number;
 }
+
+export type ExtraWorkType = 'weekend' | 'holiday' | 'overtime' | 'other';
+
+export interface ExtraWork {
+  id: string;
+  employee_id: string;
+  date: string;
+  work_type: ExtraWorkType;
+  hours_worked: number;
+  reason?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  approver_comment?: string;
+  created_at: string;
+  updated_at: string;
+}

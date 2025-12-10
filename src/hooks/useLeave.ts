@@ -12,7 +12,7 @@ function generateId(prefix: string) {
 
 export function useGetLeaveBalances(employeeId: string) {
   const { leaveBalances } = useLocalData();
-  const currentYear = new Date().getFullYear();
+      const currentYear = new Date().getFullYear();
 
   const balances = useMemo(
     () =>

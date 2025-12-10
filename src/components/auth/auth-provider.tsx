@@ -11,15 +11,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    dispatch(setLoading(true));
+      dispatch(setLoading(true));
     const storedUser = typeof window !== 'undefined' ? localStorage.getItem('hrmsCurrentUser') : null;
     if (storedUser) {
       const parsed = JSON.parse(storedUser) as Employee;
       dispatch(setUser(parsed));
     } else {
       dispatch(setUser(null));
-    }
-    dispatch(setLoading(false));
+        }
+      dispatch(setLoading(false));
   }, [dispatch, router]);
 
   return <>{children}</>;

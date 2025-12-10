@@ -36,9 +36,9 @@ export default function LoginPage() {
       dispatch(setUser(user));
 
       if (user.is_admin) {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/employee/dashboard');
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/employee/dashboard');
       }
     } catch (err: any) {
       setError(err.message || 'Failed to login. Please check your credentials.');

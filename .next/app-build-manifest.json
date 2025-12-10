@@ -16,6 +16,26 @@
       "static/chunks/main-app.js",
       "static/chunks/app/login/page.js"
     ],
+    "/admin/dashboard/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/dashboard/page.js"
+    ],
+    "/admin/dashboard/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/dashboard/layout.js"
+    ],
+    "/admin/dashboard/employees/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/dashboard/employees/page.js"
+    ],
+    "/admin/dashboard/attendance/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/dashboard/attendance/page.js"
+    ],
     "/employee/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -25,6 +45,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/employee/dashboard/layout.js"
+    ],
+    "/employee/dashboard/attendance-log/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/employee/dashboard/attendance-log/page.js"
     ],
     "/employee/dashboard/leave/page": [
       "static/chunks/webpack.js",
@@ -61,20 +86,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/employee/dashboard/profile/change-password/page.js"
     ],
-    "/admin/dashboard/page": [
+    "/admin/dashboard/employees/add/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/dashboard/page.js"
-    ],
-    "/admin/dashboard/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/admin/dashboard/layout.js"
-    ],
-    "/_not-found/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
+      "static/chunks/app/admin/dashboard/employees/add/page.js"
     ]
   }
 }

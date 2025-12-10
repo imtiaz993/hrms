@@ -41,14 +41,14 @@ export function useGetAllLeaveRequests(
       })
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
-    if (searchQuery && searchQuery.trim() !== '') {
-      const lowerQuery = searchQuery.toLowerCase();
-      results = results.filter((req) => {
-        const fullName = `${req.employee.first_name} ${req.employee.last_name}`.toLowerCase();
-        const empId = (req.employee.employee_id || '').toLowerCase();
-        return fullName.includes(lowerQuery) || empId.includes(lowerQuery);
-      });
-    }
+      if (searchQuery && searchQuery.trim() !== '') {
+        const lowerQuery = searchQuery.toLowerCase();
+        results = results.filter((req) => {
+          const fullName = `${req.employee.first_name} ${req.employee.last_name}`.toLowerCase();
+          const empId = (req.employee.employee_id || '').toLowerCase();
+          return fullName.includes(lowerQuery) || empId.includes(lowerQuery);
+        });
+      }
 
     setData(results);
   }, [employees, leaveRequests, searchQuery, statusFilter, typeFilter]);
@@ -61,12 +61,12 @@ export function useApproveLeaveRequest() {
   const [isPending, setIsPending] = useState(false);
 
   const mutateAsync = async ({
-    requestId,
-    adminComment,
-  }: {
-    requestId: string;
-    adminComment?: string;
-  }) => {
+      requestId,
+      adminComment,
+    }: {
+      requestId: string;
+      adminComment?: string;
+    }) => {
     setIsPending(true);
     try {
       const updated = updateLeaveStatus(requestId, 'approved', adminComment);
@@ -85,12 +85,12 @@ export function useRejectLeaveRequest() {
   const [isPending, setIsPending] = useState(false);
 
   const mutateAsync = async ({
-    requestId,
-    adminComment,
-  }: {
-    requestId: string;
-    adminComment?: string;
-  }) => {
+      requestId,
+      adminComment,
+    }: {
+      requestId: string;
+      adminComment?: string;
+    }) => {
     setIsPending(true);
     try {
       const updated = updateLeaveStatus(requestId, 'rejected', adminComment);

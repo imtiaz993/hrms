@@ -11,6 +11,7 @@ import {
   SalaryConfig,
   SalaryRecord,
   TimeEntry,
+  ExtraWork,
 } from '@/types';
 import { PayrollSettings } from '@/types';
 import {
@@ -23,6 +24,7 @@ import {
   initialSalaryConfigs,
   initialSalaryRecords,
   initialTimeEntries,
+  initialExtraWork,
 } from './mockData';
 import {
   calculateOvertimeHours,
@@ -40,6 +42,7 @@ type LocalDataContextValue = {
   salaryConfigs: SalaryConfig[];
   salaryRecords: SalaryRecord[];
   payrollSettings: PayrollSettings;
+  extraWork: ExtraWork[];
   authenticate: (email: string, password: string) => Employee | null;
   updatePassword: (email: string, password: string) => boolean;
   logout: () => void;
@@ -63,6 +66,8 @@ type LocalDataContextValue = {
   updatePayrollSettings: (settings: Partial<PayrollSettings>) => PayrollSettings;
   setSalaryConfig: (config: SalaryConfig) => void;
   addSalaryRecord: (record: SalaryRecord) => void;
+  createExtraWork: (work: Omit<ExtraWork, 'id' | 'created_at' | 'updated_at' | 'status'>) => ExtraWork;
+  updateExtraWorkStatus: (id: string, status: ExtraWork['status'], comment?: string) => ExtraWork | null;
 };
 
 const LocalDataContext = createContext<LocalDataContextValue | null>(null);
@@ -88,6 +93,7 @@ export function LocalDataProvider({ children }: { children: React.ReactNode }) {
   const [salaryConfigs, setSalaryConfigs] = useState<SalaryConfig[]>(initialSalaryConfigs);
   const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>(initialSalaryRecords);
   const [payrollSettings, setPayrollSettings] = useState<PayrollSettings>(initialPayrollSettings);
+  const [extraWork, setExtraWork] = useState<ExtraWork[]>(initialExtraWork);
 
   const authenticate = useCallback(
     (email: string, password: string) => {
@@ -272,6 +278,44 @@ export function LocalDataProvider({ children }: { children: React.ReactNode }) {
     setSalaryRecords((prev: SalaryRecord[]) => [record, ...prev]);
   }, []);
 
+  const createExtraWork = useCallback(
+    (work: Omit<ExtraWork, 'id' | 'created_at' | 'updated_at' | 'status'>) => {
+      const now = createTimestamp();
+      const newWork: ExtraWork = {
+        ...work,
+        id: generateId('ew'),
+        status: 'pending',
+        created_at: now,
+        updated_at: now,
+      };
+      setExtraWork((prev: ExtraWork[]) => [newWork, ...prev]);
+      return newWork;
+    },
+    []
+  );
+
+  const updateExtraWorkStatus = useCallback(
+    (id: string, status: ExtraWork['status'], comment?: string) => {
+      let updated: ExtraWork | null = null;
+      setExtraWork((prev: ExtraWork[]) =>
+        prev.map((work: ExtraWork) => {
+          if (work.id === id) {
+            updated = {
+              ...work,
+              status,
+              approver_comment: comment || work.approver_comment,
+              updated_at: createTimestamp(),
+            };
+            return updated;
+          }
+          return work;
+        })
+      );
+      return updated;
+    },
+    []
+  );
+
   const value = useMemo<LocalDataContextValue>(
     () => ({
       employees,
@@ -282,6 +326,7 @@ export function LocalDataProvider({ children }: { children: React.ReactNode }) {
       salaryConfigs,
       salaryRecords,
       payrollSettings,
+      extraWork,
       authenticate,
       updatePassword,
       logout,
@@ -296,6 +341,8 @@ export function LocalDataProvider({ children }: { children: React.ReactNode }) {
       updatePayrollSettings,
       setSalaryConfig,
       addSalaryRecord,
+      createExtraWork,
+      updateExtraWorkStatus,
     }),
     [
       employees,
@@ -306,6 +353,7 @@ export function LocalDataProvider({ children }: { children: React.ReactNode }) {
       salaryConfigs,
       salaryRecords,
       payrollSettings,
+      extraWork,
       authenticate,
       updatePassword,
       logout,
@@ -320,6 +368,8 @@ export function LocalDataProvider({ children }: { children: React.ReactNode }) {
       updatePayrollSettings,
       setSalaryConfig,
       addSalaryRecord,
+      createExtraWork,
+      updateExtraWorkStatus,
     ]
   );
 

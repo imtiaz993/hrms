@@ -20,7 +20,7 @@ export function useGetTodayStatus(
   const [data, setData] = useState<TodayStatus | null>(null);
 
   useEffect(() => {
-    const today = format(new Date(), 'yyyy-MM-dd');
+      const today = format(new Date(), 'yyyy-MM-dd');
     const entry = timeEntries.find(
       (item) => item.employee_id === employeeId && item.date === today
     );
@@ -53,10 +53,10 @@ export function useClockIn() {
     standardHours,
     standardShiftStart,
   }: {
-    employeeId: string;
-    standardHours: number;
-    standardShiftStart: string;
-  }) => {
+      employeeId: string;
+      standardHours: number;
+      standardShiftStart: string;
+    }) => {
     setIsPending(true);
     try {
       return clockIn({ employeeId, standardHours, standardShiftStart });
@@ -73,16 +73,16 @@ export function useClockOut() {
   const [isPending, setIsPending] = useState(false);
 
   const mutateAsync = async ({
-    timeEntryId,
-    employeeId,
-    standardHours,
+      timeEntryId,
+      employeeId,
+      standardHours,
     standardShiftEnd,
-  }: {
-    timeEntryId: string;
-    employeeId: string;
-    standardHours: number;
-    standardShiftEnd: string;
-  }) => {
+    }: {
+      timeEntryId: string;
+      employeeId: string;
+      standardHours: number;
+      standardShiftEnd: string;
+    }) => {
     setIsPending(true);
     try {
       const existing = timeEntries.find((entry) => entry.id === timeEntryId);

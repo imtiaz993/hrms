@@ -16,6 +16,7 @@ interface ClockActionCardProps {
   standardHours: number;
   standardShiftStart: string;
   standardShiftEnd: string;
+  onActionComplete?: () => void;
 }
 
 export function ClockActionCard({
@@ -24,6 +25,7 @@ export function ClockActionCard({
   standardHours,
   standardShiftStart,
   standardShiftEnd,
+  onActionComplete,
 }: ClockActionCardProps) {
   const { timeEntries } = useLocalData();
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -40,6 +42,7 @@ export function ClockActionCard({
         standardShiftStart,
       });
       setMessage({ type: 'success', text: 'Clocked in successfully!' });
+      onActionComplete?.();
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message || 'Failed to clock in. Please try again.' });
     }
@@ -65,6 +68,7 @@ export function ClockActionCard({
         standardShiftEnd,
       });
       setMessage({ type: 'success', text: 'Clocked out successfully!' });
+      onActionComplete?.();
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message || 'Failed to clock out. Please try again.' });
     }
