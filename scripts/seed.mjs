@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -15,10 +17,10 @@ async function seed() {
 
   console.log('Step 1: Creating test employees...');
 
-  const employee1Email = 'employee@test.com';
+  const employee1Email = 'employee@gmail.com';
   const employee1Password = 'password123';
 
-  const admin1Email = 'admin@test.com';
+  const admin1Email = 'admin@gmail.com';
   const admin1Password = 'admin123';
 
   const { data: empAuth, error: empAuthError } = await supabase.auth.signUp({

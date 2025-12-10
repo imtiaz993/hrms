@@ -1,12 +1,21 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
-import { useAppSelector } from '@/store/hooks';
-import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { LogOut, Clock, Calendar, DollarSign, BarChart3, PartyPopper, User as UserIcon, ClipboardList } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import { useAppSelector } from "@/store/hooks";
+import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import {
+  LogOut,
+  Clock,
+  Calendar,
+  DollarSign,
+  BarChart3,
+  PartyPopper,
+  User as UserIcon,
+  ClipboardList,
+} from "lucide-react";
 
 export default function EmployeeDashboardLayout({
   children,
@@ -15,20 +24,55 @@ export default function EmployeeDashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, isLoading, currentUser } = useAppSelector((state) => state.auth);
+
+  const [checking, setChecking] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  // adjust selector to your actual slice name if needed
+  const currentUser = useAppSelector((state: any) => state.user?.currentUser);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, isLoading, router]);
+    const checkAuth = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      // not logged in → go to login
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+
+      // check role
+      const { data: employee } = await supabase
+        .from("employees")
+        .select("is_admin")
+        .eq("id", user.id)
+        .single();
+
+      // if admin → send to admin dashboard
+      if (employee?.is_admin) {
+        router.replace("/admin/dashboard");
+        return;
+      }
+
+      setChecking(false);
+    };
+
+    checkAuth();
+  }, [router]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
+    try {
+      setLoggingOut(true);
+      await supabase.auth.signOut();
+      router.replace("/login");
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
-  if (isLoading) {
+  if (checking) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -37,10 +81,6 @@ export default function EmployeeDashboardLayout({
         </div>
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return null;
   }
 
   return (
@@ -60,9 +100,13 @@ export default function EmployeeDashboardLayout({
               </div>
             </div>
 
-            <Button variant="outline" onClick={handleLogout}>
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              disabled={loggingOut}
+            >
               <LogOut className="h-4 w-4 mr-2" />
-              Logout
+              {loggingOut ? "Logging out..." : "Logout"}
             </Button>
           </div>
         </div>
@@ -74,75 +118,81 @@ export default function EmployeeDashboardLayout({
             <Link
               href="/employee/dashboard"
               className={`flex items-center px-3 py-4 text-sm font-medium border-b-2 ${
-                pathname === '/employee/dashboard'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                pathname === "/employee/dashboard"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
               }`}
             >
               <Clock className="h-4 w-4 mr-2" />
               Time Tracking
             </Link>
+
             <Link
               href="/employee/dashboard/attendance-log"
               className={`flex items-center px-3 py-4 text-sm font-medium border-b-2 ${
-                pathname === '/employee/dashboard/attendance-log'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                pathname === "/employee/dashboard/attendance-log"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
               }`}
             >
               <ClipboardList className="h-4 w-4 mr-2" />
               Daily Log
             </Link>
+
             <Link
               href="/employee/dashboard/leave"
               className={`flex items-center px-3 py-4 text-sm font-medium border-b-2 ${
-                pathname === '/employee/dashboard/leave'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                pathname === "/employee/dashboard/leave"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
               }`}
             >
               <Calendar className="h-4 w-4 mr-2" />
               Leave & Holidays
             </Link>
+
             <Link
               href="/employee/dashboard/salary"
               className={`flex items-center px-3 py-4 text-sm font-medium border-b-2 ${
-                pathname === '/employee/dashboard/salary'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                pathname === "/employee/dashboard/salary"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
               }`}
             >
               <DollarSign className="h-4 w-4 mr-2" />
               Salary
             </Link>
+
             <Link
               href="/employee/dashboard/attendance-analytics"
               className={`flex items-center px-3 py-4 text-sm font-medium border-b-2 ${
-                pathname === '/employee/dashboard/attendance-analytics'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                pathname === "/employee/dashboard/attendance-analytics"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
               }`}
             >
               <BarChart3 className="h-4 w-4 mr-2" />
               Analytics
             </Link>
+
             <Link
               href="/employee/dashboard/events"
               className={`flex items-center px-3 py-4 text-sm font-medium border-b-2 ${
-                pathname === '/employee/dashboard/events'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                pathname === "/employee/dashboard/events"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
               }`}
             >
               <PartyPopper className="h-4 w-4 mr-2" />
               Events
             </Link>
+
             <Link
               href="/employee/dashboard/profile"
               className={`flex items-center px-3 py-4 text-sm font-medium border-b-2 ${
-                pathname?.startsWith('/employee/dashboard/profile')
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                pathname?.startsWith("/employee/dashboard/profile")
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
               }`}
             >
               <UserIcon className="h-4 w-4 mr-2" />

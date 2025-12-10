@@ -86,6 +86,7 @@ export default function PayrollSettingsPage() {
 
     try {
       await updateSettings.mutateAsync(formData);
+      router.push('/admin/dashboard/payroll');
     } catch (error) {
       alert('Failed to update payroll settings');
     }

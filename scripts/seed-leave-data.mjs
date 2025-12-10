@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -16,7 +18,7 @@ async function seedLeaveData() {
   console.log('Step 1: Logging in as test employee...');
 
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-    email: 'employee@test.com',
+    email: 'employee@gmail.com',
     password: 'password123',
   });
 
@@ -43,7 +45,7 @@ async function seedLeaveData() {
       .from('employees')
       .upsert({
         id: employeeId,
-        email: 'employee@test.com',
+        email: 'employee@gmail.com',
         first_name: 'John',
         last_name: 'Doe',
         designation: 'Software Engineer',

@@ -1,58 +1,108 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAppSelector } from '@/store/hooks';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle2, ArrowLeft } from 'lucide-react';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CheckCircle2, ArrowLeft } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { setUser } from "@/store/authSlice";
 
 export default function EditProfilePage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { currentUser } = useAppSelector((state) => state.auth);
   const [showSuccess, setShowSuccess] = useState(false);
 
   const [formData, setFormData] = useState({
-    first_name: currentUser?.first_name || '',
-    last_name: currentUser?.last_name || '',
-    phone_number: currentUser?.phone_number || '',
-    address: currentUser?.address || '',
-    gender: currentUser?.gender || '',
-    emergency_contact_name: currentUser?.emergency_contact_name || '',
-    emergency_contact_relation: currentUser?.emergency_contact_relation || '',
-    emergency_contact_phone: currentUser?.emergency_contact_phone || '',
+    first_name: currentUser?.first_name || "",
+    last_name: currentUser?.last_name || "",
+    phone_number: currentUser?.phone_number || "",
+    address: currentUser?.address || "",
+    gender: currentUser?.gender || "",
+    emergency_contact_name: currentUser?.emergency_contact_name || "",
+    emergency_contact_relation: currentUser?.emergency_contact_relation || "",
+    emergency_contact_phone: currentUser?.emergency_contact_phone || "",
   });
 
   if (!currentUser) {
     return null;
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setShowSuccess(true);
-    setTimeout(() => {
-      router.push('/employee/dashboard/profile');
-    }, 2000);
+
+    if (!currentUser?.id) {
+      console.error("No current user found");
+      alert("No user found. Please log in again.");
+      return;
+    }
+
+    setShowSuccess(false);
+    setIsSubmitting(true);
+
+    try {
+      console.log("Submitting profile update…", formData);
+
+      const { error } = await supabase
+        .from("employees") // make sure this is your correct table name
+        .update({
+          first_name: formData.first_name.trim(),
+          last_name: formData.last_name.trim(),
+          phone_number: formData.phone_number.trim(),
+          address: formData.address.trim(),
+          gender: formData.gender || null,
+          emergency_contact_name: formData.emergency_contact_name.trim(),
+          emergency_contact_relation:
+            formData.emergency_contact_relation || null,
+          emergency_contact_phone: formData.emergency_contact_phone.trim(),
+        })
+        .eq("id", currentUser.id); // make sure 'id' is the correct PK column
+
+      if (error) {
+        console.error("Supabase update error:", error);
+        alert("Failed to update profile. Please try again.");
+        return;
+      }
+
+      console.log("Profile updated successfully");
+
+      const updatedUser = {
+        ...currentUser,
+        ...formData,
+      };
+      dispatch(setUser(updatedUser));
+
+      setShowSuccess(true);
+
+      router.push("/employee/dashboard/profile");
+    } catch (err) {
+      console.error("Unexpected error updating profile:", err);
+      alert("Something went wrong. Please check console and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center space-x-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.back()}
-        >
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
@@ -107,7 +157,9 @@ export default function EditProfilePage() {
                 disabled
                 className="bg-gray-100"
               />
-              <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Email cannot be changed
+              </p>
             </div>
 
             <div>
@@ -161,11 +213,13 @@ export default function EditProfilePage() {
               <Label htmlFor="employee_id">Employee ID</Label>
               <Input
                 id="employee_id"
-                value={currentUser.employee_id || 'Not assigned'}
+                value={currentUser.employee_id || "Not assigned"}
                 disabled
                 className="bg-gray-100"
               />
-              <p className="text-xs text-gray-500 mt-1">This field cannot be edited</p>
+              <p className="text-xs text-gray-500 mt-1">
+                This field cannot be edited
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -251,11 +305,7 @@ export default function EditProfilePage() {
           <Button type="submit" className="flex-1 md:flex-none">
             Save Changes
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-          >
+          <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
         </div>
