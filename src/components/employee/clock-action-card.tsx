@@ -1,14 +1,20 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { TodayStatus } from '@/types';
-import { useClockIn, useClockOut } from '@/hooks/useTimeEntry';
-import { format } from 'date-fns';
-import { Clock, CheckCircle2 } from 'lucide-react';
-import { useLocalData } from '@/lib/local-data';
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { TodayStatus } from "@/types";
+import { useClockIn, useClockOut } from "@/hooks/useTimeEntry";
+import { format } from "date-fns";
+import { Clock, CheckCircle2 } from "lucide-react";
+import { useLocalData } from "@/lib/local-data";
 
 interface ClockActionCardProps {
   status: TodayStatus;
@@ -28,7 +34,10 @@ export function ClockActionCard({
   onActionComplete,
 }: ClockActionCardProps) {
   const { timeEntries } = useLocalData();
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const clockInMutation = useClockIn();
   const clockOutMutation = useClockOut();
@@ -41,23 +50,29 @@ export function ClockActionCard({
         standardHours,
         standardShiftStart,
       });
-      setMessage({ type: 'success', text: 'Clocked in successfully!' });
+      setMessage({ type: "success", text: "Clocked in successfully!" });
       onActionComplete?.();
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to clock in. Please try again.' });
+      setMessage({
+        type: "error",
+        text: error.message || "Failed to clock in. Please try again.",
+      });
     }
   };
 
   const handleClockOut = async () => {
     setMessage(null);
     try {
-      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const todayStr = format(new Date(), "yyyy-MM-dd");
       const entry = timeEntries.find(
         (item) => item.employee_id === employeeId && item.date === todayStr
       );
 
       if (!entry) {
-        setMessage({ type: 'error', text: 'No time entry found for today.' });
+        setMessage({
+          type: "error",
+          text: "No time entry found for today.",
+        });
         return;
       }
 
@@ -67,62 +82,73 @@ export function ClockActionCard({
         standardHours,
         standardShiftEnd,
       });
-      setMessage({ type: 'success', text: 'Clocked out successfully!' });
+      setMessage({ type: "success", text: "Clocked out successfully!" });
       onActionComplete?.();
     } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Failed to clock out. Please try again.' });
+      setMessage({
+        type: "error",
+        text: error.message || "Failed to clock out. Please try again.",
+      });
     }
   };
 
-  const currentTime = format(new Date(), 'h:mm a');
+  const currentTime = format(new Date(), "h:mm a");
   const isLoading = clockInMutation.isPending || clockOutMutation.isPending;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Clock In / Clock Out</CardTitle>
-        <CardDescription>Record your work hours for today</CardDescription>
+    <Card className="rounded-2xl border border-slate-100 bg-white/90 shadow-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base font-semibold text-slate-900">
+          Clock In / Clock Out
+        </CardTitle>
+        <CardDescription className="text-xs text-slate-500">
+          Record your work hours for today
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-1">
         {message && (
-          <Alert variant={message.type === 'error' ? 'destructive' : 'success'}>
+          <Alert variant={message.type === "error" ? "destructive" : "success"}>
             <AlertDescription>{message.text}</AlertDescription>
           </Alert>
         )}
 
-        <div className="text-center py-4">
-          <p className="text-sm text-gray-500 mb-2">Current Time</p>
-          <p className="text-3xl font-bold text-gray-900">{currentTime}</p>
+        <div className="rounded-2xl bg-slate-50/80 py-4 text-center">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            Current Time
+          </p>
+          <p className="mt-1 text-3xl font-semibold text-slate-900">
+            {currentTime}
+          </p>
         </div>
 
-        {status.status === 'not_clocked_in' && (
+        {status.status === "not_clocked_in" && (
           <Button
             onClick={handleClockIn}
             disabled={isLoading}
-            className="w-full"
+            className="w-full rounded-xl"
             size="lg"
           >
-            <Clock className="h-5 w-5 mr-2" />
-            {isLoading ? 'Clocking In...' : 'Clock In'}
+            <Clock className="mr-2 h-5 w-5" />
+            {isLoading ? "Clocking In..." : "Clock In"}
           </Button>
         )}
 
-        {status.status === 'clocked_in' && (
+        {status.status === "clocked_in" && (
           <Button
             onClick={handleClockOut}
             disabled={isLoading}
-            className="w-full"
+            className="w-full rounded-xl"
             size="lg"
             variant="destructive"
           >
-            <CheckCircle2 className="h-5 w-5 mr-2" />
-            {isLoading ? 'Clocking Out...' : 'Clock Out'}
+            <CheckCircle2 className="mr-2 h-5 w-5" />
+            {isLoading ? "Clocking Out..." : "Clock Out"}
           </Button>
         )}
 
-        {status.status === 'completed' && (
-          <div className="text-center py-4">
-            <p className="text-green-600 font-medium">You've completed your shift for today!</p>
+        {status.status === "completed" && (
+          <div className="rounded-2xl bg-emerald-50/80 p-4 text-center text-sm font-medium text-emerald-700">
+            You&apos;ve completed your shift for today!
           </div>
         )}
       </CardContent>

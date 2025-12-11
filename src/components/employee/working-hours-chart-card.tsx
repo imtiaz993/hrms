@@ -1,9 +1,14 @@
-'use client';
+"use client";
 
-import { useMemo } from 'react';
-import { useGetAttendanceLog } from '@/hooks/useAttendanceLog';
-import { useGetAvailableMonths } from '@/hooks/useAttendanceAnalytics';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO } from 'date-fns';
+import { useMemo } from "react";
+import { useGetAttendanceLog } from "@/hooks/useAttendanceLog";
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  parseISO,
+} from "date-fns";
 
 interface WorkingHoursChartCardProps {
   employeeId: string;
@@ -22,7 +27,11 @@ export function WorkingHoursChartCard({
   onMonthChange,
   availableMonths,
 }: WorkingHoursChartCardProps) {
-  const { data: logData } = useGetAttendanceLog(employeeId, selectedMonth, selectedYear);
+  const { data: logData } = useGetAttendanceLog(
+    employeeId,
+    selectedMonth,
+    selectedYear
+  );
 
   const chartData = useMemo(() => {
     if (!logData) return [];
@@ -33,7 +42,7 @@ export function WorkingHoursChartCard({
     const allDays = eachDayOfInterval({ start, end });
 
     return allDays.map((day) => {
-      const dateStr = format(day, 'yyyy-MM-dd');
+      const dateStr = format(day, "yyyy-MM-dd");
       const log = logData.logs.find((l) => l.date === dateStr);
 
       return {
@@ -46,7 +55,10 @@ export function WorkingHoursChartCard({
   }, [logData, selectedMonth, selectedYear, standardHoursPerDay]);
 
   const totals = useMemo(() => {
-    const scheduled = chartData.reduce((sum, item) => sum + item.scheduledHours, 0);
+    const scheduled = chartData.reduce(
+      (sum, item) => sum + item.scheduledHours,
+      0
+    );
     const worked = chartData.reduce((sum, item) => sum + item.actualHours, 0);
     const difference = worked - scheduled;
 
@@ -57,15 +69,18 @@ export function WorkingHoursChartCard({
     };
   }, [chartData]);
 
-  const maxHours = Math.max(
-    ...chartData.map((d) => Math.max(d.scheduledHours, d.actualHours)),
-    standardHoursPerDay * 1.5
-  );
+  const maxHours =
+    Math.max(
+      ...chartData.map((d) => Math.max(d.scheduledHours, d.actualHours)),
+      standardHoursPerDay * 1.5
+    ) ||
+    standardHoursPerDay ||
+    8;
 
   if (!logData || chartData.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        <p>No working hours data available for this month.</p>
+      <div className="py-10 text-center text-sm text-slate-500">
+        No working hours data available for this month.
       </div>
     );
   }
@@ -74,18 +89,23 @@ export function WorkingHoursChartCard({
     <div className="space-y-4">
       {/* Month Selector */}
       {availableMonths.length > 0 && (
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-gray-700">Select Month:</label>
+        <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3">
+          <label className="text-sm font-medium text-slate-700">
+            Select Month:
+          </label>
           <select
             value={`${selectedYear}-${selectedMonth}`}
             onChange={(e) => {
-              const [year, month] = e.target.value.split('-').map(Number);
+              const [year, month] = e.target.value.split("-").map(Number);
               onMonthChange(month, year);
             }}
-            className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/5"
           >
             {availableMonths.map((m) => (
-              <option key={`${m.year}-${m.month}`} value={`${m.year}-${m.month}`}>
+              <option
+                key={`${m.year}-${m.month}`}
+                value={`${m.year}-${m.month}`}
+              >
                 {m.label}
               </option>
             ))}
@@ -93,31 +113,44 @@ export function WorkingHoursChartCard({
         </div>
       )}
 
-      {/* Line Chart */}
-      <div className="space-y-2">
-        <div className="relative h-64 flex items-end justify-between gap-1">
+      {/* Bars (scheduled vs actual) */}
+      <div className="space-y-3">
+        <div className="relative flex h-64 items-end justify-between gap-1 rounded-2xl bg-slate-50/60 px-3 pb-3 pt-4">
           {chartData.map((item, index) => {
             const scheduledHeight = (item.scheduledHours / maxHours) * 100;
-            const actualHeight = item.actualHours > 0 ? (item.actualHours / maxHours) * 100 : 0;
+            const actualHeight =
+              item.actualHours > 0 ? (item.actualHours / maxHours) * 100 : 0;
+
+            const isOver = item.actualHours >= item.scheduledHours;
 
             return (
-              <div key={index} className="flex-1 flex flex-col items-center relative">
-                {/* Scheduled hours bar (baseline) */}
+              <div
+                key={index}
+                className="relative flex flex-1 flex-col items-center"
+              >
+                {/* Scheduled baseline */}
                 <div
-                  className="w-full bg-gray-200 rounded-t absolute bottom-0 opacity-50"
+                  className="absolute bottom-0 w-full rounded-t-md bg-slate-200/80"
                   style={{ height: `${scheduledHeight}%` }}
                 />
-                {/* Actual hours bar */}
+                {/* Actual */}
                 {item.actualHours > 0 && (
                   <div
-                    className={`w-full rounded-t transition-all ${
-                      item.actualHours >= item.scheduledHours ? 'bg-green-500' : 'bg-red-500'
+                    className={`absolute bottom-0 w-full rounded-t-md border border-white/40 ${
+                      isOver ? "bg-emerald-500" : "bg-rose-500"
                     }`}
-                    style={{ height: `${Math.max(actualHeight, 2)}%` }}
-                    title={`${format(parseISO(item.date), 'MMM dd')}: ${item.actualHours.toFixed(1)}h / ${item.scheduledHours}h`}
+                    style={{ height: `${Math.max(actualHeight, 5)}%` }}
+                    title={`${format(
+                      parseISO(item.date),
+                      "MMM dd"
+                    )}: ${item.actualHours.toFixed(1)}h / ${
+                      item.scheduledHours
+                    }h`}
                   />
                 )}
-                <span className="text-xs text-gray-500 mt-1">{item.day}</span>
+                <span className="mt-1 text-[10px] text-slate-500">
+                  {item.day}
+                </span>
               </div>
             );
           })}
@@ -125,44 +158,47 @@ export function WorkingHoursChartCard({
       </div>
 
       {/* Totals */}
-      <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+      <div className="grid grid-cols-3 gap-4 border-t border-slate-100 pt-4 text-sm">
         <div>
-          <p className="text-sm text-gray-500">Total Scheduled</p>
-          <p className="text-lg font-semibold">{totals.scheduled.toFixed(1)}h</p>
+          <p className="text-xs text-slate-500">Total Scheduled</p>
+          <p className="text-lg font-semibold text-slate-900">
+            {totals.scheduled.toFixed(1)}h
+          </p>
         </div>
         <div>
-          <p className="text-sm text-gray-500">Total Worked</p>
-          <p className="text-lg font-semibold">{totals.worked.toFixed(1)}h</p>
+          <p className="text-xs text-slate-500">Total Worked</p>
+          <p className="text-lg font-semibold text-slate-900">
+            {totals.worked.toFixed(1)}h
+          </p>
         </div>
         <div>
-          <p className="text-sm text-gray-500">Difference</p>
+          <p className="text-xs text-slate-500">Difference</p>
           <p
             className={`text-lg font-semibold ${
-              totals.difference >= 0 ? 'text-green-600' : 'text-red-600'
+              totals.difference >= 0 ? "text-emerald-600" : "text-rose-600"
             }`}
           >
-            {totals.difference >= 0 ? '+' : ''}
+            {totals.difference >= 0 ? "+" : ""}
             {totals.difference.toFixed(1)}h
           </p>
         </div>
       </div>
 
       {/* Legend */}
-      <div className="flex items-center justify-center space-x-4 text-xs">
-        <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 bg-gray-200 rounded"></div>
+      <div className="flex items-center justify-center gap-4 pt-2 text-[11px] text-slate-700">
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded bg-slate-200" />
           <span>Scheduled (baseline)</span>
         </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 bg-green-500 rounded"></div>
-          <span>Actual (above)</span>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded bg-emerald-500" />
+          <span>Actual (≥ scheduled)</span>
         </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 bg-red-500 rounded"></div>
-          <span>Actual (below)</span>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded bg-rose-500" />
+          <span>Actual (&lt; scheduled)</span>
         </div>
       </div>
     </div>
   );
 }
-

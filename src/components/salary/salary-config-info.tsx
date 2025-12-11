@@ -9,41 +9,68 @@ interface SalaryConfigInfoProps {
   standardHoursPerDay: number;
 }
 
-export function SalaryConfigInfo({ config, standardHoursPerDay }: SalaryConfigInfoProps) {
-  const hourlyRate = config.salary_type === 'hourly'
-    ? config.base_amount
-    : calculateHourlyRate(config.base_amount, standardHoursPerDay);
+export function SalaryConfigInfo({
+  config,
+  standardHoursPerDay,
+}: SalaryConfigInfoProps) {
+  const hourlyRate =
+    config.salary_type === 'hourly'
+      ? config.base_amount
+      : calculateHourlyRate(config.base_amount, standardHoursPerDay);
+
+  const cardBase =
+    'relative overflow-hidden rounded-2xl border border-slate-100 bg-slate-50/80 backdrop-blur-sm';
 
   return (
-    <Card className="bg-gray-50">
-      <CardHeader>
-        <CardTitle className="text-sm font-medium text-gray-700">Salary Configuration</CardTitle>
+    <Card className={cardBase}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-semibold text-slate-900">
+          Salary Configuration
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Salary Type:</span>
-            <span className="font-medium capitalize">{config.salary_type}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">
-              {config.salary_type === 'monthly' ? 'Base Salary:' : 'Hourly Rate:'}
+          <div className="flex items-center justify-between">
+            <span className="text-slate-600">Salary type</span>
+            <span className="font-medium capitalize text-slate-900">
+              {config.salary_type}
             </span>
-            <span className="font-medium">{formatCurrency(config.base_amount, config.currency)}</span>
           </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-slate-600">
+              {config.salary_type === 'monthly' ? 'Base salary' : 'Hourly rate'}
+            </span>
+            <span className="font-medium text-slate-900">
+              {formatCurrency(config.base_amount, config.currency)}
+            </span>
+          </div>
+
           {config.salary_type === 'monthly' && (
-            <div className="flex justify-between">
-              <span className="text-gray-600">Effective Hourly Rate:</span>
-              <span className="font-medium">{formatCurrency(hourlyRate, config.currency)}/hr</span>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-600">Effective hourly rate</span>
+              <span className="font-medium text-slate-900">
+                {formatCurrency(hourlyRate, config.currency)}/hr
+              </span>
             </div>
           )}
-          <div className="flex justify-between">
-            <span className="text-gray-600">Overtime Multiplier:</span>
-            <span className="font-medium">{config.overtime_multiplier}x</span>
+
+          <div className="flex items-center justify-between">
+            <span
+              className="text-slate-600"
+            >
+              Overtime multiplier
+            </span>
+            <span className="font-medium text-slate-900">
+              {config.overtime_multiplier}x
+            </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Standard Hours/Day:</span>
-            <span className="font-medium">{standardHoursPerDay}h</span>
+
+          <div className="flex items-center justify-between">
+            <span className="text-slate-600">Standard hours per day</span>
+            <span className="font-medium text-slate-900">
+              {standardHoursPerDay}h
+            </span>
           </div>
         </div>
       </CardContent>

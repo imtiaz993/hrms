@@ -2,7 +2,6 @@
 
 import { useMemo } from 'react';
 import { useGetAttendanceLog } from '@/hooks/useAttendanceLog';
-import { useGetAvailableMonths } from '@/hooks/useAttendanceAnalytics';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO } from 'date-fns';
 
 interface AttendanceChartCardProps {
@@ -13,7 +12,13 @@ interface AttendanceChartCardProps {
   availableMonths: Array<{ month: number; year: number; label: string }>;
 }
 
-type AttendanceStatus = 'present' | 'early_present' | 'half_day' | 'absent' | 'leave' | 'missing';
+type AttendanceStatus =
+  | 'present'
+  | 'early_present'
+  | 'half_day'
+  | 'absent'
+  | 'leave'
+  | 'missing';
 
 export function AttendanceChartCard({
   employeeId,
@@ -22,7 +27,11 @@ export function AttendanceChartCard({
   onMonthChange,
   availableMonths,
 }: AttendanceChartCardProps) {
-  const { data: logData } = useGetAttendanceLog(employeeId, selectedMonth, selectedYear);
+  const { data: logData } = useGetAttendanceLog(
+    employeeId,
+    selectedMonth,
+    selectedYear
+  );
 
   const chartData = useMemo(() => {
     if (!logData) return [];
@@ -41,9 +50,9 @@ export function AttendanceChartCard({
         if (log.status === 'present' && !log.isLate) {
           status = 'present';
         } else if (log.status === 'late' && log.isLate) {
-          status = 'early_present'; // Late arrival
+          status = 'early_present';
         } else if (log.status === 'early_leave') {
-          status = 'early_present'; // Early leave
+          status = 'early_present';
         } else if (log.status === 'incomplete') {
           status = 'missing';
         } else if (log.status === 'absent') {
@@ -52,9 +61,6 @@ export function AttendanceChartCard({
           status = 'present';
         }
       }
-      
-      // Check for leave requests on this date
-      // Note: This would need leave request data, but for now we'll use present/absent
 
       return {
         date: dateStr,
@@ -84,28 +90,26 @@ export function AttendanceChartCard({
   const getStatusColor = (status: AttendanceStatus) => {
     switch (status) {
       case 'present':
-        return 'bg-green-500';
+        return 'bg-emerald-500';
       case 'early_present':
-        return 'bg-yellow-500';
+        return 'bg-yellow-400';
       case 'half_day':
         return 'bg-orange-500';
       case 'absent':
-        return 'bg-red-500';
+        return 'bg-rose-500';
       case 'leave':
         return 'bg-blue-500';
       case 'missing':
-        return 'bg-gray-400';
+        return 'bg-slate-400';
       default:
-        return 'bg-gray-300';
+        return 'bg-slate-300';
     }
   };
 
-  const maxCount = Math.max(...Object.values(statusCounts), 1);
-
   if (!logData || chartData.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        <p>No attendance data available for this month.</p>
+      <div className="py-10 text-center text-sm text-slate-500">
+        No attendance data available for this month.
       </div>
     );
   }
@@ -114,18 +118,23 @@ export function AttendanceChartCard({
     <div className="space-y-4">
       {/* Month Selector */}
       {availableMonths.length > 0 && (
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-gray-700">Select Month:</label>
+        <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3">
+          <label className="text-sm font-medium text-slate-700">
+            Select Month:
+          </label>
           <select
             value={`${selectedYear}-${selectedMonth}`}
             onChange={(e) => {
               const [year, month] = e.target.value.split('-').map(Number);
               onMonthChange(month, year);
             }}
-            className="px-3 py-1 border border-gray-300 rounded-md text-sm"
+            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/5"
           >
             {availableMonths.map((m) => (
-              <option key={`${m.year}-${m.month}`} value={`${m.year}-${m.month}`}>
+              <option
+                key={`${m.year}-${m.month}`}
+                value={`${m.year}-${m.month}`}
+              >
                 {m.label}
               </option>
             ))}
@@ -134,24 +143,34 @@ export function AttendanceChartCard({
       )}
 
       {/* Bar Chart */}
-      <div className="space-y-2">
-        <div className="flex items-end justify-between gap-1 h-48">
+      <div className="space-y-3">
+        <div className="flex h-56 items-end justify-between gap-1 rounded-2xl bg-slate-50/60 px-3 pb-3 pt-4">
           {chartData.map((item, index) => {
-            // Show a bar for each day - height represents presence (not absent)
             const hasData = item.status !== 'absent';
-            // Use a fixed height for visibility, or scale based on day of week
-            const height = hasData ? 60 + (item.day % 7) * 5 : 0; // Vary height slightly for visual interest
-            
+            const height = hasData ? 40 + ((item.day % 7) * 7) : 0;
+
             return (
-              <div key={index} className="flex-1 flex flex-col items-center">
+              <div
+                key={index}
+                className="relative flex flex-1 flex-col items-center"
+              >
                 {hasData && (
                   <div
-                    className={`w-full ${getStatusColor(item.status)} rounded-t transition-all`}
-                    style={{ height: `${height}%`, minHeight: hasData ? '20px' : '0' }}
-                    title={`${format(parseISO(item.date), 'MMM dd')}: ${item.status}`}
+                    className={`${getStatusColor(
+                      item.status
+                    )} w-full rounded-t-md shadow-sm transition-all`}
+                    style={{
+                      height: `${height}%`,
+                      minHeight: hasData ? '18px' : '0',
+                    }}
+                    title={`${format(parseISO(item.date), 'MMM dd')}: ${
+                      item.status
+                    }`}
                   />
                 )}
-                <span className="text-xs text-gray-500 mt-1">{item.day}</span>
+                <span className="mt-1 text-[10px] text-slate-500">
+                  {item.day}
+                </span>
               </div>
             );
           })}
@@ -159,33 +178,58 @@ export function AttendanceChartCard({
       </div>
 
       {/* Legend */}
-      <div className="grid grid-cols-3 gap-2 text-xs">
-        <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 bg-green-500 rounded"></div>
-          <span>Present ({statusCounts.present})</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-          <span>Early Present ({statusCounts.early_present})</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 bg-orange-500 rounded"></div>
-          <span>Half-Day ({statusCounts.half_day})</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 bg-red-500 rounded"></div>
-          <span>Absent ({statusCounts.absent})</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 bg-blue-500 rounded"></div>
-          <span>Leave ({statusCounts.leave})</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 bg-gray-400 rounded"></div>
-          <span>Missing ({statusCounts.missing})</span>
-        </div>
+      <div className="grid grid-cols-3 gap-2 text-[11px] text-slate-700">
+        <LegendItem
+          color="bg-emerald-500"
+          label="Present"
+          count={statusCounts.present}
+        />
+        <LegendItem
+          color="bg-yellow-400"
+          label="Late/Early"
+          count={statusCounts.early_present}
+        />
+        <LegendItem
+          color="bg-orange-500"
+          label="Half-Day"
+          count={statusCounts.half_day}
+        />
+        <LegendItem
+          color="bg-rose-500"
+          label="Absent"
+          count={statusCounts.absent}
+        />
+        <LegendItem
+          color="bg-blue-500"
+          label="Leave"
+          count={statusCounts.leave}
+        />
+        <LegendItem
+          color="bg-slate-400"
+          label="Missing"
+          count={statusCounts.missing}
+        />
       </div>
     </div>
   );
 }
 
+
+function LegendItem({
+  color,
+  label,
+  count,
+}: {
+  color: string;
+  label: string;
+  count: number;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className={`h-3 w-3 rounded ${color}`} />
+      <span>
+        {label} ({count})
+      </span>
+    </div>
+  );
+}

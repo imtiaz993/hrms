@@ -1,9 +1,18 @@
-'use client';
+"use client";
 
-import { Employee } from '@/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { X, User, Mail, Phone, MapPin, Calendar, Briefcase } from 'lucide-react';
+import { Employee } from "@/types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  X,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Briefcase,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ProfilePopupProps {
   employee: Employee;
@@ -11,137 +20,124 @@ interface ProfilePopupProps {
   onChangePassword: () => void;
 }
 
-export function ProfilePopup({ employee, onClose, onChangePassword }: ProfilePopupProps) {
+export function ProfilePopup({
+  employee,
+  onClose,
+  onChangePassword,
+}: ProfilePopupProps) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Personal Information</CardTitle>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-100 bg-white/95 shadow-xl">
+        <CardHeader className="sticky top-0 z-10 flex flex-row items-center justify-between border-b border-slate-100 bg-white/95 pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Personal Information
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="rounded-full hover:bg-slate-100"
+          >
+            <X className="h-4 w-4 text-slate-500" />
           </Button>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-start space-x-3">
-              <User className="h-5 w-5 text-gray-400 mt-1" />
-              <div>
-                <p className="text-sm text-gray-500">Full Name</p>
-                <p className="font-medium">
-                  {employee.first_name} {employee.last_name}
-                </p>
-              </div>
-            </div>
+        <CardContent className="space-y-6 pt-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <InfoRow
+              icon={User}
+              label="Full Name"
+              value={`${employee.first_name} ${employee.last_name}`}
+            />
 
-            <div className="flex items-start space-x-3">
-              <Mail className="h-5 w-5 text-gray-400 mt-1" />
-              <div>
-                <p className="text-sm text-gray-500">Email</p>
-                <p className="font-medium">{employee.email}</p>
-              </div>
-            </div>
+            <InfoRow icon={Mail} label="Email" value={employee.email} />
 
             {employee.phone_number && (
-              <div className="flex items-start space-x-3">
-                <Phone className="h-5 w-5 text-gray-400 mt-1" />
-                <div>
-                  <p className="text-sm text-gray-500">Phone</p>
-                  <p className="font-medium">{employee.phone_number}</p>
-                </div>
-              </div>
+              <InfoRow
+                icon={Phone}
+                label="Phone"
+                value={employee.phone_number}
+              />
             )}
 
             {employee.address && (
-              <div className="flex items-start space-x-3">
-                <MapPin className="h-5 w-5 text-gray-400 mt-1" />
-                <div>
-                  <p className="text-sm text-gray-500">Address</p>
-                  <p className="font-medium">{employee.address}</p>
-                </div>
-              </div>
+              <InfoRow icon={MapPin} label="Address" value={employee.address} />
             )}
 
-            <div className="flex items-start space-x-3">
-              <Briefcase className="h-5 w-5 text-gray-400 mt-1" />
-              <div>
-                <p className="text-sm text-gray-500">Designation</p>
-                <p className="font-medium">{employee.designation}</p>
-              </div>
-            </div>
+            <InfoRow
+              icon={Briefcase}
+              label="Designation"
+              value={employee.designation}
+            />
 
-            <div className="flex items-start space-x-3">
-              <Briefcase className="h-5 w-5 text-gray-400 mt-1" />
-              <div>
-                <p className="text-sm text-gray-500">Department</p>
-                <p className="font-medium">{employee.department}</p>
-              </div>
-            </div>
+            <InfoRow
+              icon={Briefcase}
+              label="Department"
+              value={employee.department}
+            />
 
             {employee.date_of_birth && (
-              <div className="flex items-start space-x-3">
-                <Calendar className="h-5 w-5 text-gray-400 mt-1" />
-                <div>
-                  <p className="text-sm text-gray-500">Date of Birth</p>
-                  <p className="font-medium">{employee.date_of_birth}</p>
-                </div>
-              </div>
+              <InfoRow
+                icon={Calendar}
+                label="Date of Birth"
+                value={employee.date_of_birth}
+              />
             )}
 
-            <div className="flex items-start space-x-3">
-              <Calendar className="h-5 w-5 text-gray-400 mt-1" />
-              <div>
-                <p className="text-sm text-gray-500">Join Date</p>
-                <p className="font-medium">{employee.join_date}</p>
-              </div>
-            </div>
+            <InfoRow
+              icon={Calendar}
+              label="Join Date"
+              value={employee.join_date}
+            />
 
             {employee.employee_id && (
-              <div className="flex items-start space-x-3">
-                <User className="h-5 w-5 text-gray-400 mt-1" />
-                <div>
-                  <p className="text-sm text-gray-500">Employee ID</p>
-                  <p className="font-medium">{employee.employee_id}</p>
-                </div>
-              </div>
+              <InfoRow
+                icon={User}
+                label="Employee ID"
+                value={employee.employee_id}
+              />
             )}
 
             {employee.employment_type && (
-              <div className="flex items-start space-x-3">
-                <Briefcase className="h-5 w-5 text-gray-400 mt-1" />
-                <div>
-                  <p className="text-sm text-gray-500">Employment Type</p>
-                  <p className="font-medium capitalize">{employee.employment_type.replace('_', ' ')}</p>
-                </div>
-              </div>
+              <InfoRow
+                icon={Briefcase}
+                label="Employment Type"
+                value={employee.employment_type.replace("_", " ")}
+              />
             )}
           </div>
 
           {employee.emergency_contact_name && (
-            <div className="mt-6 pt-6 border-t">
-              <h3 className="font-semibold mb-3">Emergency Contact</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Name</p>
-                  <p className="font-medium">{employee.emergency_contact_name}</p>
-                </div>
+            <section className="mt-2 border-t border-slate-100 pt-5">
+              <h3 className="mb-3 text-sm font-semibold text-slate-900">
+                Emergency Contact
+              </h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <MiniInfo
+                  label="Name"
+                  value={employee.emergency_contact_name}
+                />
                 {employee.emergency_contact_relation && (
-                  <div>
-                    <p className="text-sm text-gray-500">Relation</p>
-                    <p className="font-medium">{employee.emergency_contact_relation}</p>
-                  </div>
+                  <MiniInfo
+                    label="Relation"
+                    value={employee.emergency_contact_relation}
+                  />
                 )}
                 {employee.emergency_contact_phone && (
-                  <div>
-                    <p className="text-sm text-gray-500">Phone</p>
-                    <p className="font-medium">{employee.emergency_contact_phone}</p>
-                  </div>
+                  <MiniInfo
+                    label="Phone"
+                    value={employee.emergency_contact_phone}
+                  />
                 )}
               </div>
-            </div>
+            </section>
           )}
 
-          <div className="mt-6 pt-6 border-t">
-            <Button onClick={onChangePassword} className="w-full">
+          <div className="border-t border-slate-100 pt-5">
+            <Button
+              onClick={onChangePassword}
+              className="w-full rounded-xl"
+              size="lg"
+            >
               Change Password
             </Button>
           </div>
@@ -151,3 +147,39 @@ export function ProfilePopup({ employee, onClose, onChangePassword }: ProfilePop
   );
 }
 
+type InfoRowProps = {
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  label: string;
+  value: string;
+};
+
+function InfoRow({ icon: Icon, label, value }: InfoRowProps) {
+  return (
+    <div className="flex items-start gap-3 rounded-2xl bg-slate-50/60 p-3">
+      <div className="mt-1 rounded-full bg-white p-2 shadow-sm">
+        <Icon className="h-4 w-4 text-slate-400" />
+      </div>
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+          {label}
+        </p>
+        <p className="mt-0.5 text-sm font-medium text-slate-900 break-words">
+          {value}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MiniInfo({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-slate-50/60 p-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <p className="mt-0.5 text-sm font-medium text-slate-900 break-words">
+        {value}
+      </p>
+    </div>
+  );
+}

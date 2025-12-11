@@ -1,78 +1,110 @@
-'use client';
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AttendanceLogSummary } from '@/hooks/useAttendanceLog';
-import { CheckCircle2, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AttendanceLogSummary } from "@/hooks/useAttendanceLog";
+import { CheckCircle2, XCircle, Clock, AlertCircle } from "lucide-react";
 
 interface AttendanceLogSummaryProps {
   summary: AttendanceLogSummary;
 }
 
-export function AttendanceLogSummaryComponent({ summary }: AttendanceLogSummaryProps) {
+export function AttendanceLogSummaryComponent({
+  summary,
+}: AttendanceLogSummaryProps) {
+  const cardBase =
+    "relative overflow-hidden rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm";
+
+  const hasOvertime = summary.totalOvertimeHours > 0;
+  const hasIncomplete = summary.totalIncompletePunches > 0;
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Monthly Summary</CardTitle>
+    <Card className={cardBase}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base font-semibold text-slate-900">
+          Monthly Summary
+        </CardTitle>
+        <p className="mt-1 text-xs text-slate-500">
+          High-level overview of your attendance performance this month.
+        </p>
       </CardHeader>
+
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <p className="text-sm text-gray-600">Present Days</p>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5">
+          <div className="space-y-1 rounded-2xl bg-emerald-50/60 p-3">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                <CheckCircle2 className="h-4 w-4" />
+              </span>
+              <p className="text-xs font-medium text-slate-600">Present Days</p>
             </div>
-            <p className="text-2xl font-bold text-green-600">{summary.totalPresentDays}</p>
+            <p className="text-2xl font-semibold text-emerald-700">
+              {summary.totalPresentDays}
+            </p>
           </div>
 
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <XCircle className="h-4 w-4 text-red-600" />
-              <p className="text-sm text-gray-600">Absent Days</p>
+          <div className="space-y-1 rounded-2xl bg-rose-50/60 p-3">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+                <XCircle className="h-4 w-4" />
+              </span>
+              <p className="text-xs font-medium text-slate-600">Absent Days</p>
             </div>
-            <p className="text-2xl font-bold text-red-600">{summary.totalAbsentDays}</p>
+            <p className="text-2xl font-semibold text-rose-700">
+              {summary.totalAbsentDays}
+            </p>
           </div>
 
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <Clock className="h-4 w-4 text-blue-600" />
-              <p className="text-sm text-gray-600">Total Hours</p>
+          <div className="space-y-1 rounded-2xl bg-indigo-50/60 p-3">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                <Clock className="h-4 w-4" />
+              </span>
+              <p className="text-xs font-medium text-slate-600">Total Hours</p>
             </div>
-            <p className="text-2xl font-bold text-blue-600">
+            <p className="text-2xl font-semibold text-indigo-700">
               {summary.totalHoursWorked.toFixed(1)}h
             </p>
           </div>
 
-          {summary.totalOvertimeHours > 0 && (
-            <div className="space-y-1">
-              <div className="flex items-center space-x-2">
-                <Clock className="h-4 w-4 text-purple-600" />
-                <p className="text-sm text-gray-600">Overtime</p>
+          {hasOvertime && (
+            <div className="space-y-1 rounded-2xl bg-purple-50/60 p-3">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-purple-100 text-purple-600">
+                  <Clock className="h-4 w-4" />
+                </span>
+                <p className="text-xs font-medium text-slate-600">Overtime</p>
               </div>
-              <p className="text-2xl font-bold text-purple-600">
+              <p className="text-2xl font-semibold text-purple-700">
                 {summary.totalOvertimeHours.toFixed(1)}h
               </p>
             </div>
           )}
 
-          {summary.totalIncompletePunches > 0 && (
-            <div className="space-y-1">
-              <div className="flex items-center space-x-2">
-                <AlertCircle className="h-4 w-4 text-orange-600" />
-                <p className="text-sm text-gray-600">Incomplete</p>
+          {hasIncomplete && (
+            <div className="space-y-1 rounded-2xl bg-amber-50/60 p-3">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                  <AlertCircle className="h-4 w-4" />
+                </span>
+                <p className="text-xs font-medium text-slate-600">Incomplete</p>
               </div>
-              <p className="text-2xl font-bold text-orange-600">
+              <p className="text-2xl font-semibold text-amber-700">
                 {summary.totalIncompletePunches}
               </p>
             </div>
           )}
         </div>
 
-        {summary.totalIncompletePunches > 0 && (
-          <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-md">
-            <p className="text-sm text-orange-900">
-              <strong>Notice:</strong> You have {summary.totalIncompletePunches} incomplete{' '}
-              {summary.totalIncompletePunches === 1 ? 'punch' : 'punches'}. Please ensure you
-              clock out at the end of your shift to avoid attendance issues.
+        {hasIncomplete && (
+          <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
+            <p className="font-semibold mb-0.5">Notice</p>
+            <p>
+              You have {summary.totalIncompletePunches}{" "}
+              {summary.totalIncompletePunches === 1
+                ? "incomplete punch"
+                : "incomplete punches"}
+              . Please remember to clock out at the end of your shift to avoid
+              attendance issues.
             </p>
           </div>
         )}

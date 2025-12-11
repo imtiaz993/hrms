@@ -2,7 +2,12 @@
 
 import { useState } from 'react';
 import { useLocalData } from '@/lib/local-data';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -69,15 +74,22 @@ export function ExtraWorkPopup({ employeeId, onClose }: ExtraWorkPopupProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Request Extra Work Adjustment</CardTitle>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+      <Card className="w-full max-w-md rounded-2xl border border-slate-100 bg-white/95 shadow-xl">
+        <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Request Extra Work Adjustment
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="rounded-full hover:bg-slate-100"
+          >
+            <X className="h-4 w-4 text-slate-500" />
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <Alert variant="destructive">
@@ -89,7 +101,9 @@ export function ExtraWorkPopup({ employeeId, onClose }: ExtraWorkPopupProps) {
             {success && (
               <Alert variant="success">
                 <CheckCircle2 className="h-4 w-4" />
-                <AlertDescription>Extra work request submitted successfully!</AlertDescription>
+                <AlertDescription>
+                  Extra work request submitted successfully!
+                </AlertDescription>
               </Alert>
             )}
 
@@ -111,7 +125,7 @@ export function ExtraWorkPopup({ employeeId, onClose }: ExtraWorkPopupProps) {
                 id="workType"
                 value={workType}
                 onChange={(e) => setWorkType(e.target.value as ExtraWorkType)}
-                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/5"
                 required
                 disabled={isLoading || success}
               >
@@ -144,17 +158,27 @@ export function ExtraWorkPopup({ employeeId, onClose }: ExtraWorkPopupProps) {
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Enter reason for extra work..."
-                className="flex min-h-[80px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/5"
                 required
                 disabled={isLoading || success}
               />
             </div>
 
-            <div className="flex space-x-3">
-              <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={isLoading}>
+            <div className="flex gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="flex-1 rounded-xl"
+                disabled={isLoading}
+              >
                 Cancel
               </Button>
-              <Button type="submit" className="flex-1" disabled={isLoading || success}>
+              <Button
+                type="submit"
+                className="flex-1 rounded-xl"
+                disabled={isLoading || success}
+              >
                 {isLoading ? 'Submitting...' : 'Submit Request'}
               </Button>
             </div>
@@ -164,4 +188,3 @@ export function ExtraWorkPopup({ employeeId, onClose }: ExtraWorkPopupProps) {
     </div>
   );
 }
-

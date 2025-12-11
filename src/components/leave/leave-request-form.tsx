@@ -1,13 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LeaveType, LeaveRequest } from '@/types';
-import { useCreateLeaveRequest, calculateLeaveDays, hasOverlappingLeave } from '@/hooks/useLeave';
+import {
+  useCreateLeaveRequest,
+  calculateLeaveDays,
+  hasOverlappingLeave,
+} from '@/hooks/useLeave';
 import { format, parseISO, isBefore, startOfDay } from 'date-fns';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
@@ -16,7 +26,10 @@ interface LeaveRequestFormProps {
   existingRequests: LeaveRequest[];
 }
 
-export function LeaveRequestForm({ employeeId, existingRequests }: LeaveRequestFormProps) {
+export function LeaveRequestForm({
+  employeeId,
+  existingRequests,
+}: LeaveRequestFormProps) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [leaveType, setLeaveType] = useState<LeaveType>('paid');
@@ -57,7 +70,10 @@ export function LeaveRequestForm({ employeeId, existingRequests }: LeaveRequestF
     }
 
     if (hasOverlappingLeave(existingRequests, startDate, endDate)) {
-      setValidationError('You already have a pending or approved leave request for these dates.');
+      setValidationError(
+        'You already have a pending or approved leave request for these dates.'
+      );
+      // keeping logic same as your original (no early return)
     }
 
     const totalDays = calculateLeaveDays(startDate, endDate, isHalfDay);
@@ -79,7 +95,9 @@ export function LeaveRequestForm({ employeeId, existingRequests }: LeaveRequestF
       setReason('');
       setIsHalfDay(false);
     } catch (error: any) {
-      setValidationError(error.message || 'Failed to submit leave request. Please try again.');
+      setValidationError(
+        error.message || 'Failed to submit leave request. Please try again.'
+      );
     }
   };
 
@@ -95,31 +113,46 @@ export function LeaveRequestForm({ employeeId, existingRequests }: LeaveRequestF
     return `${days} day${days !== 1 ? 's' : ''}`;
   };
 
+  const durationPreview = calculateDaysPreview();
+
+  const cardBase =
+    'relative overflow-hidden rounded-2xl border border-slate-100 bg-white/85 backdrop-blur-sm shadow-sm';
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Request Leave</CardTitle>
-        <CardDescription>Submit a new leave request for approval</CardDescription>
+    <Card className={cardBase}>
+      <CardHeader className="pb-4">
+        <CardTitle className="text-base font-semibold text-slate-900">
+          Request Leave
+        </CardTitle>
+        <CardDescription className="text-xs text-slate-500">
+          Submit a new leave request to your manager for approval.
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {validationError && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="border-rose-200 bg-rose-50">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{validationError}</AlertDescription>
+              <AlertDescription className="text-sm">
+                {validationError}
+              </AlertDescription>
             </Alert>
           )}
 
           {successMessage && (
-            <Alert variant="success">
+            <Alert variant="success" className="border-emerald-200 bg-emerald-50">
               <CheckCircle2 className="h-4 w-4" />
-              <AlertDescription>{successMessage}</AlertDescription>
+              <AlertDescription className="text-sm">
+                {successMessage}
+              </AlertDescription>
             </Alert>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date *</Label>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="startDate" className="text-sm font-medium text-slate-700">
+                Start Date <span className="text-rose-500">*</span>
+              </Label>
               <Input
                 id="startDate"
                 type="date"
@@ -131,11 +164,17 @@ export function LeaveRequestForm({ employeeId, existingRequests }: LeaveRequestF
                 min={format(new Date(), 'yyyy-MM-dd')}
                 required
                 disabled={createMutation.isPending}
+                className="h-10 rounded-lg border-slate-200 text-sm focus-visible:ring-indigo-500"
               />
+              <p className="text-[11px] text-slate-400">
+                You can request leave starting from today or a future date.
+              </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="endDate">End Date *</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="endDate" className="text-sm font-medium text-slate-700">
+                End Date <span className="text-rose-500">*</span>
+              </Label>
               <Input
                 id="endDate"
                 type="date"
@@ -144,66 +183,76 @@ export function LeaveRequestForm({ employeeId, existingRequests }: LeaveRequestF
                 min={startDate || format(new Date(), 'yyyy-MM-dd')}
                 required
                 disabled={createMutation.isPending}
+                className="h-10 rounded-lg border-slate-200 text-sm focus-visible:ring-indigo-500"
               />
+              <p className="text-[11px] text-slate-400">
+                For single-day leave, choose the same start and end date.
+              </p>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="leaveType">Leave Type *</Label>
-            <select
-              id="leaveType"
-              value={leaveType}
-              onChange={(e) => setLeaveType(e.target.value as LeaveType)}
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              required
-              disabled={createMutation.isPending}
-            >
-              <option value="paid">Paid Leave</option>
-              <option value="sick">Sick Leave</option>
-              <option value="unpaid">Unpaid Leave</option>
-            </select>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <div className="space-y-1.5">
+              <Label htmlFor="leaveType" className="text-sm font-medium text-slate-700">
+                Leave Type <span className="text-rose-500">*</span>
+              </Label>
+              <select
+                id="leaveType"
+                value={leaveType}
+                onChange={(e) => setLeaveType(e.target.value as LeaveType)}
+                className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                required
+                disabled={createMutation.isPending}
+              >
+                <option value="paid">Paid Leave</option>
+                <option value="sick">Sick Leave</option>
+                <option value="unpaid">Unpaid Leave</option>
+              </select>
+            </div>
+
+            <div className="flex items-end">
+              <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  id="isHalfDay"
+                  checked={isHalfDay}
+                  onChange={(e) => setIsHalfDay(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  disabled={createMutation.isPending}
+                />
+                <span>Half-day leave</span>
+              </label>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="isHalfDay"
-              checked={isHalfDay}
-              onChange={(e) => setIsHalfDay(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
-              disabled={createMutation.isPending}
-            />
-            <Label htmlFor="isHalfDay" className="cursor-pointer">
-              Half-day leave
-            </Label>
-          </div>
-
-          {calculateDaysPreview() && (
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-              <p className="text-sm text-blue-900">
-                <strong>Duration:</strong> {calculateDaysPreview()}
+          {durationPreview && (
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2.5 text-sm text-indigo-900">
+              <p>
+                <strong>Duration:</strong> {durationPreview}
               </p>
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="reason">Reason (Optional)</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="reason" className="text-sm font-medium text-slate-700">
+              Reason <span className="text-slate-400 text-xs">(optional)</span>
+            </Label>
             <textarea
               id="reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Enter reason for leave..."
-              className="flex min-h-[80px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="Provide a short explanation (e.g. family event, medical appointment)..."
+              className="flex min-h-[80px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 ring-offset-white placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               disabled={createMutation.isPending}
             />
           </div>
 
           <Button
             type="submit"
-            className="w-full"
+            className="mt-2 w-full rounded-full text-sm font-semibold"
             disabled={createMutation.isPending}
           >
-            {createMutation.isPending ? 'Submitting...' : 'Submit Request'}
+            {createMutation.isPending ? 'Submitting…' : 'Submit Leave Request'}
           </Button>
         </form>
       </CardContent>

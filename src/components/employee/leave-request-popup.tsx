@@ -11,14 +11,20 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { LeaveType, LeaveRequest } from '@/types';
 import { format, parseISO, isBefore, startOfDay } from 'date-fns';
-import { calculateLeaveDays, hasOverlappingLeave } from '@/hooks/useLeave';
+import {
+  calculateLeaveDays,
+  hasOverlappingLeave,
+} from '@/hooks/useLeave';
 
 interface LeaveRequestPopupProps {
   employeeId: string;
   onClose: () => void;
 }
 
-export function LeaveRequestPopup({ employeeId, onClose }: LeaveRequestPopupProps) {
+export function LeaveRequestPopup({
+  employeeId,
+  onClose,
+}: LeaveRequestPopupProps) {
   const { createLeaveRequest } = useLocalData();
   const { data: existingRequests = [] } = useGetLeaveRequests(employeeId);
   const [startDate, setStartDate] = useState('');
@@ -60,7 +66,9 @@ export function LeaveRequestPopup({ employeeId, onClose }: LeaveRequestPopupProp
     }
 
     if (hasOverlappingLeave(existingRequests, startDate, endDate)) {
-      setError('You already have a pending or approved leave request for these dates.');
+      setError(
+        'You already have a pending or approved leave request for these dates.'
+      );
       return;
     }
 
@@ -95,16 +103,31 @@ export function LeaveRequestPopup({ employeeId, onClose }: LeaveRequestPopupProp
     }
   };
 
+  const durationText =
+    startDate && endDate
+      ? (() => {
+          const days = calculateLeaveDays(startDate, endDate, isHalfDay);
+          return `${days} day${days !== 1 ? 's' : ''}`;
+        })()
+      : null;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Request Leave</CardTitle>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-100 bg-white/95 shadow-xl">
+        <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Request Leave
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="rounded-full hover:bg-slate-100"
+          >
+            <X className="h-4 w-4 text-slate-500" />
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <Alert variant="destructive">
@@ -116,7 +139,9 @@ export function LeaveRequestPopup({ employeeId, onClose }: LeaveRequestPopupProp
             {success && (
               <Alert variant="success">
                 <CheckCircle2 className="h-4 w-4" />
-                <AlertDescription>Leave request submitted successfully!</AlertDescription>
+                <AlertDescription>
+                  Leave request submitted successfully!
+                </AlertDescription>
               </Alert>
             )}
 
@@ -157,7 +182,7 @@ export function LeaveRequestPopup({ employeeId, onClose }: LeaveRequestPopupProp
                 id="leaveType"
                 value={leaveType}
                 onChange={(e) => setLeaveType(e.target.value as LeaveType)}
-                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/5"
                 required
                 disabled={isLoading || success}
               >
@@ -173,20 +198,18 @@ export function LeaveRequestPopup({ employeeId, onClose }: LeaveRequestPopupProp
                 id="isHalfDay"
                 checked={isHalfDay}
                 onChange={(e) => setIsHalfDay(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
+                className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900/30"
                 disabled={isLoading || success}
               />
-              <Label htmlFor="isHalfDay" className="cursor-pointer">
+              <Label htmlFor="isHalfDay" className="cursor-pointer text-sm">
                 Half-day leave
               </Label>
             </div>
 
-            {startDate && endDate && (
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                <p className="text-sm text-blue-900">
-                  <strong>Duration:</strong>{' '}
-                  {calculateLeaveDays(startDate, endDate, isHalfDay)} day
-                  {calculateLeaveDays(startDate, endDate, isHalfDay) !== 1 ? 's' : ''}
+            {durationText && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                <p className="text-sm text-slate-800">
+                  <strong>Duration:</strong> {durationText}
                 </p>
               </div>
             )}
@@ -198,16 +221,26 @@ export function LeaveRequestPopup({ employeeId, onClose }: LeaveRequestPopupProp
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Enter reason for leave..."
-                className="flex min-h-[80px] w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/5"
                 disabled={isLoading || success}
               />
             </div>
 
-            <div className="flex space-x-3">
-              <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={isLoading}>
+            <div className="flex gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="flex-1 rounded-xl"
+                disabled={isLoading}
+              >
                 Cancel
               </Button>
-              <Button type="submit" className="flex-1" disabled={isLoading || success}>
+              <Button
+                type="submit"
+                className="flex-1 rounded-xl"
+                disabled={isLoading || success}
+              >
                 {isLoading ? 'Submitting...' : 'Submit Request'}
               </Button>
             </div>
@@ -217,4 +250,3 @@ export function LeaveRequestPopup({ employeeId, onClose }: LeaveRequestPopupProp
     </div>
   );
 }
-
