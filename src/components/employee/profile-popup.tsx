@@ -133,13 +133,13 @@ export function ProfilePopup({
           )}
 
           <div className="border-t border-slate-100 pt-5">
-            <Button
+            {/* <Button
               onClick={onChangePassword}
               className="w-full rounded-xl"
               size="lg"
             >
               Change Password
-            </Button>
+            </Button> */}
           </div>
         </CardContent>
       </Card>

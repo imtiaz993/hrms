@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useLocalData } from '@/lib/local-data';
+import { supabase } from '@/lib/Supabase';
 
 export default function ForgotPasswordPage() {
   const { employees } = useLocalData();
@@ -23,14 +24,24 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      const exists = employees.some((emp) => emp.email.toLowerCase() === email.toLowerCase());
-      if (!exists) {
-        throw new Error('Email not found in demo users.');
+      const origin =
+        typeof window !== 'undefined' ? window.location.origin : '';
+
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        email,
+        {
+          // User will be sent here after clicking the email link
+          redirectTo: `${origin}/reset-password`,
+        }
+      );
+
+      if (resetError) {
+        throw new Error(resetError.message || 'Failed to send reset email.');
       }
-      localStorage.setItem('hrmsResetEmail', email);
+
       setSuccess(true);
     } catch (err: any) {
-      setError(err.message || 'Failed to send reset email. Please try again.');
+      setError(err.message || 'Failed to send reset email.');
     } finally {
       setIsLoading(false);
     }

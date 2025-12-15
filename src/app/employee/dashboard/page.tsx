@@ -55,6 +55,7 @@ import { AttendanceChartCard } from "@/components/employee/attendance-chart-card
 import { WorkingHoursChartCard } from "@/components/employee/working-hours-chart-card";
 import { ClockActionCard } from "@/components/employee/clock-action-card";
 import { TodayStatusCard } from "@/components/employee/today-status-card";
+import { supabase } from "@/lib/Supabase";
 
 export default function EmployeeDashboardPage() {
   const router = useRouter();
@@ -72,6 +73,49 @@ export default function EmployeeDashboardPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedDay, setSelectedDay] = useState<DailyAttendance | null>(null);
+
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  
+    useEffect(() => {
+      const checkAuth = async () => {
+        // 1) Get current auth user
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+  
+        if (userError || !userData?.user) {
+          // Not logged in → kick to login
+          router.replace("/login");
+          return;
+        }
+  
+        const authUserId = userData.user.id;
+  
+        // 2) Look up employee row by id (same as auth user id)
+        const { data: employee, error: employeeError } = await supabase
+          .from("employees")
+          .select("is_admin")
+          .eq("id", authUserId)
+          .single();
+  
+        if (employeeError || !employee) {
+          // No employee row / some error → treat as unauthorized
+          router.replace("/login");
+          return;
+        }
+  
+        // 3) Check is_admin from employees table
+        if (employee.is_admin) {
+          // Logged in but NOT admin → send to employee dashboard
+          router.replace("/admin/dashboard");
+          return;
+        }
+  
+        // ✅ Logged in and is_admin = true → allow access
+        setCheckingAuth(false);
+      };
+  
+      checkAuth();
+    }, [router]);
+    
 
   const {
     data: todayStatus,
@@ -141,11 +185,25 @@ export default function EmployeeDashboardPage() {
     return combined ? combined.toUpperCase() : "?";
   }, [currentUser]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("hrmsCurrentUser");
-    dispatch(logoutAction());
-    router.push("/login");
-  };
+
+
+  const handleLogout = async () => {
+  try {
+    // Supabase logout
+    await supabase.auth.signOut();
+  } catch (err) {
+    console.error("Error signing out:", err);
+  }
+
+  // Clear local user cache
+  localStorage.removeItem("hrmsCurrentUser");
+
+  // Update Redux auth state
+  dispatch(logoutAction());
+
+  // Redirect
+  router.push("/login");
+};
 
   const handleMonthChange = (month: number, year: number) => {
     setSelectedMonth(month);
@@ -157,6 +215,13 @@ export default function EmployeeDashboardPage() {
   if (!currentUser) {
     return null;
   }
+  if (checkingAuth) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <p className="text-sm text-muted-foreground">Checking access…</p>
+        </div>
+      );
+    }
 
   const cardBase =
     "relative overflow-hidden rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg";
@@ -265,7 +330,7 @@ export default function EmployeeDashboardPage() {
             </div>
 
             {/* Fallback logout button (kept for clarity / accessibility on desktop) */}
-            <Button
+            {/* <Button
               variant="outline"
               size="sm"
               className="hidden items-center gap-2 rounded-full border-slate-200 bg-white/80 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 sm:inline-flex"
@@ -273,7 +338,7 @@ export default function EmployeeDashboardPage() {
             >
               <LogOut className="h-3.5 w-3.5" />
               <span>Logout</span>
-            </Button>
+            </Button> */}
           </div>
         </div>
       </header>

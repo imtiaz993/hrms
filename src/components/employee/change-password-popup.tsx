@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { X, Lock, AlertCircle, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/lib/Supabase";
 
 interface ChangePasswordPopupProps {
   employee: Employee;
@@ -27,7 +28,7 @@ export function ChangePasswordPopup({
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+ const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess(false);
@@ -47,17 +48,35 @@ export function ChangePasswordPopup({
       return;
     }
 
+    if (!employee?.email) {
+      setError("No email found for this user.");
+      return;
+    }
+
     setIsLoading(true);
+
     try {
-      const updated = updatePassword(employee.email, newPassword);
-      if (updated) {
-        setSuccess(true);
-        setTimeout(() => {
-          onClose();
-        }, 1500);
-      } else {
-        setError("Failed to update password");
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: employee.email,
+        password: currentPassword,
+      });
+
+      if (authError) {
+        throw new Error("Current password is incorrect");
       }
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        throw new Error(updateError.message || "Failed to update password");
+      }
+
+      setSuccess(true);
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (err: any) {
       setError(err.message || "Failed to update password");
     } finally {
