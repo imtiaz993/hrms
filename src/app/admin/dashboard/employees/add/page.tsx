@@ -9,11 +9,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { supabase } from '@/lib/Supabase';
 
 export default function AddEmployeePage() {
   const router = useRouter();
   const createEmployee = useCreateEmployee();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isInviting, setIsInviting] = useState(false);
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -67,23 +70,136 @@ export default function AddEmployeePage() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
+  setSubmitError(null);
 
-    if (!validateForm()) {
+  if (!validateForm()) return;
+
+  try {
+    setIsInviting(true);
+
+    // 1) Create auth user first (with a temporary random password)
+    const tempPassword = crypto.randomUUID(); // or any random generator
+
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email: formData.email,
+      password: tempPassword,
+    });
+
+    if (signUpError) {
+      console.error("auth signUp error:", signUpError);
+
+      if (
+        signUpError.message?.toLowerCase().includes("already") ||
+        signUpError.message?.toLowerCase().includes("registered")
+      ) {
+        setErrors((prev) => ({
+          ...prev,
+          email: "An account with this email already exists",
+        }));
+      } else {
+        setSubmitError(
+          signUpError.message || "Failed to create authentication user."
+        );
+      }
+      setIsInviting(false);
       return;
     }
 
-    try {
-      await createEmployee.mutateAsync(formData);
-      router.push('/admin/dashboard/employees');
-    } catch (error: any) {
-      if (error.message?.includes('unique')) {
-        setErrors({ email: 'Email already exists' });
-      } else {
-        alert('Failed to create employee. Please try again.');
-      }
+    const authUser = signUpData.user;
+    if (!authUser?.id) {
+      setSubmitError("Failed to get authentication user id.");
+      setIsInviting(false);
+      return;
     }
-  };
+
+    const authUserId = authUser.id; // 👈 this must match employees.id type (uuid)
+
+    // 2) Insert into employees with SAME id as auth user
+    const { error: insertError } = await supabase.from("employees").insert([
+      {
+        id: authUserId, // 👈 now NOT NULL and same as auth.users.id
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        phone_number: formData.phone_number,
+        address: formData.address,
+        gender: formData.gender,
+        date_of_birth: formData.date_of_birth || null,
+        employee_id: formData.employee_id || null,
+        department: formData.department,
+        designation: formData.designation,
+        join_date: formData.join_date,
+        employment_type: formData.employment_type,
+        emergency_contact_name: formData.emergency_contact_name || null,
+        emergency_contact_relation: formData.emergency_contact_relation || null,
+        emergency_contact_phone: formData.emergency_contact_phone || null,
+        standard_shift_start: formData.standard_shift_start,
+        standard_shift_end: formData.standard_shift_end,
+        standard_hours_per_day: formData.standard_hours_per_day,
+        is_admin: formData.is_admin,
+      },
+    ]);
+
+    if (insertError) {
+      console.error("employees insert error:", {
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code,
+      });
+
+      if (
+        insertError.message?.toLowerCase().includes("duplicate") ||
+        insertError.message?.toLowerCase().includes("unique")
+      ) {
+        setErrors((prev) => ({
+          ...prev,
+          email: "Email already exists",
+        }));
+      } else {
+        setSubmitError(
+          insertError.message ||
+            insertError.details ||
+            "Failed to create employee."
+        );
+      }
+      setIsInviting(false);
+      return;
+    }
+
+    // 3) Send magic-link email so employee can set their own password
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: formData.email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/create-password`, // or /reset-password
+      },
+    });
+
+    if (otpError) {
+      console.error("OTP error:", otpError);
+      setSubmitError(
+        otpError.message ||
+          "Employee created, but failed to send the sign-in email."
+      );
+      setIsInviting(false);
+      return;
+    }
+
+    // 4) All good → go back to employees list
+    router.push("/admin/dashboard/employees");
+  } catch (error: any) {
+    console.error(error);
+    if (error?.message?.includes("unique")) {
+      setErrors({ email: "Email already exists" });
+    } else {
+      setSubmitError("Failed to create employee. Please try again.");
+    }
+  } finally {
+    setIsInviting(false);
+  }
+};
+
 
   return (
     <div className="space-y-6 max-w-4xl">
