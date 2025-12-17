@@ -1,51 +1,87 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useLocalData } from '@/lib/local-data';
-import { supabase } from '@/lib/Supabase';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/lib/Supabase";
 
 export default function ForgotPasswordPage() {
-  const { employees } = useLocalData();
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
+  const router = useRouter();
+
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  useEffect(() => {
+    const guard = async () => {
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session;
+
+      if (session?.user) {
+        const u = session.user;
+
+        const isAdmin =
+          Boolean((u as any)?.app_metadata?.is_admin) ||
+          Boolean((u as any)?.raw_app_meta_data?.is_admin);
+
+        router.replace(isAdmin ? "/admin/dashboard" : "/employee/dashboard");
+        return;
+      }
+
+      setSessionChecked(true);
+    };
+
+    guard();
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setSuccess(false);
     setIsLoading(true);
 
     try {
       const origin =
-        typeof window !== 'undefined' ? window.location.origin : '';
+        typeof window !== "undefined" ? window.location.origin : "";
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email,
         {
-          // User will be sent here after clicking the email link
           redirectTo: `${origin}/reset-password`,
         }
       );
 
-      if (resetError) {
-        throw new Error(resetError.message || 'Failed to send reset email.');
-      }
+      if (resetError)
+        throw new Error(resetError.message || "Failed to send reset email.");
 
       setSuccess(true);
     } catch (err: any) {
-      setError(err.message || 'Failed to send reset email.');
+      setError(err.message || "Failed to send reset email.");
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (!sessionChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Checking session...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -53,7 +89,8 @@ export default function ForgotPasswordPage() {
         <CardHeader>
           <CardTitle>Forgot Password</CardTitle>
           <CardDescription>
-            Enter your email address and we'll send you a link to reset your password
+            Enter your email address and we'll send you a link to reset your
+            password
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -85,12 +122,19 @@ export default function ForgotPasswordPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading || success}>
-              {isLoading ? 'Sending...' : 'Send Reset Link'}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading || success}
+            >
+              {isLoading ? "Sending..." : "Send Reset Link"}
             </Button>
 
             <div className="text-center">
-              <Link href="/login" className="text-sm text-blue-600 hover:underline">
+              <Link
+                href="/login"
+                className="text-sm text-blue-600 hover:underline"
+              >
                 Back to login
               </Link>
             </div>

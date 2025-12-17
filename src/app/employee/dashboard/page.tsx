@@ -74,47 +74,7 @@ export default function EmployeeDashboardPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedDay, setSelectedDay] = useState<DailyAttendance | null>(null);
 
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  
-    useEffect(() => {
-      const checkAuth = async () => {
-        // 1) Get current auth user
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-  
-        if (userError || !userData?.user) {
-          // Not logged in → kick to login
-          router.replace("/login");
-          return;
-        }
-  
-        const authUserId = userData.user.id;
-  
-        // 2) Look up employee row by id (same as auth user id)
-        const { data: employee, error: employeeError } = await supabase
-          .from("employees")
-          .select("is_admin")
-          .eq("id", authUserId)
-          .single();
-  
-        if (employeeError || !employee) {
-          // No employee row / some error → treat as unauthorized
-          router.replace("/login");
-          return;
-        }
-  
-        // 3) Check is_admin from employees table
-        if (employee.is_admin) {
-          // Logged in but NOT admin → send to employee dashboard
-          router.replace("/admin/dashboard");
-          return;
-        }
-  
-        // ✅ Logged in and is_admin = true → allow access
-        setCheckingAuth(false);
-      };
-  
-      checkAuth();
-    }, [router]);
+
     
 
   const {
@@ -215,13 +175,7 @@ export default function EmployeeDashboardPage() {
   if (!currentUser) {
     return null;
   }
-  if (checkingAuth) {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <p className="text-sm text-muted-foreground">Checking access…</p>
-        </div>
-      );
-    }
+
 
   const cardBase =
     "relative overflow-hidden rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg";

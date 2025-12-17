@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Employee } from '@/types';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useUpdateEmployeeStatus } from '@/hooks/admin/useEmployees';
-import { Edit, Power, UserCircle, Mail, Briefcase } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Employee } from "@/types";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useUpdateEmployeeStatus } from "@/hooks/admin/useEmployees";
+import { Edit, Power, UserCircle, Mail, Briefcase } from "lucide-react";
 
 interface EmployeeListProps {
   employees: Employee[];
@@ -17,33 +17,62 @@ export function EmployeeList({ employees }: EmployeeListProps) {
   const router = useRouter();
   const updateStatus = useUpdateEmployeeStatus();
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [optimisticEmployees, setOptimisticEmployees] =
+    useState<Employee[]>(employees);
+
+  useEffect(() => {
+    setOptimisticEmployees(employees);
+  }, [employees]);
 
   const handleToggleStatus = async (employee: Employee) => {
-    if (window.confirm(
-      `Are you sure you want to ${employee.is_active ? 'deactivate' : 'activate'} ${employee.first_name} ${employee.last_name}?`
-    )) {
+    const nextActive = !employee.is_active;
+
+    if (
+      window.confirm(
+        `Are you sure you want to ${
+          employee.is_active ? "deactivate" : "activate"
+        } ${employee.first_name} ${employee.last_name}?`
+      )
+    ) {
       setTogglingId(employee.id);
+
+      // ✅ optimistic update (button flips instantly)
+      setOptimisticEmployees((prev) =>
+        prev.map((e) =>
+          e.id === employee.id ? { ...e, is_active: nextActive } : e
+        )
+      );
+
       try {
         await updateStatus.mutateAsync({
           employeeId: employee.id,
-          isActive: !employee.is_active,
+          isActive: nextActive,
         });
       } catch (error) {
-        console.error('Error updating status:', error);
-        alert('Failed to update employee status');
+        // ✅ rollback if API fails
+        setOptimisticEmployees((prev) =>
+          prev.map((e) =>
+            e.id === employee.id ? { ...e, is_active: !nextActive } : e
+          )
+        );
+
+        console.error("Error updating status:", error);
+        alert("Failed to update employee status");
       } finally {
         setTogglingId(null);
       }
     }
   };
 
-  if (employees.length === 0) {
+  if (optimisticEmployees.length === 0) {
     return (
       <Card>
         <CardContent className="py-12">
           <div className="text-center">
             <UserCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-500">No employees found matching your criteria.</p>
+            <p className="text-gray-500">
+              No employees found matching your criteria.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -52,7 +81,7 @@ export function EmployeeList({ employees }: EmployeeListProps) {
 
   return (
     <div className="grid grid-cols-1 gap-4">
-      {employees.map((employee) => (
+      {optimisticEmployees.map((employee) => (
         <Card
           key={employee.id}
           className="hover:shadow-md transition-shadow cursor-pointer"
@@ -61,7 +90,9 @@ export function EmployeeList({ employees }: EmployeeListProps) {
             <div className="flex items-center justify-between">
               <div
                 className="flex items-center space-x-4 flex-1"
-                onClick={() => router.push(`/admin/dashboard/employees/${employee.id}`)}
+                onClick={() =>
+                  router.push(`/admin/dashboard/employees/${employee.id}`)
+                }
               >
                 <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
                   <UserCircle className="h-8 w-8 text-white" />
@@ -72,11 +103,15 @@ export function EmployeeList({ employees }: EmployeeListProps) {
                     <h3 className="text-base font-semibold text-gray-900 truncate">
                       {employee.first_name} {employee.last_name}
                     </h3>
-                    <Badge variant={employee.is_active ? 'success' : 'destructive'}>
-                      {employee.is_active ? 'Active' : 'Inactive'}
+                    <Badge
+                      variant={employee.is_active ? "success" : "destructive"}
+                    >
+                      {employee.is_active ? "Active" : "Inactive"}
                     </Badge>
                     {employee.employee_id && (
-                      <Badge variant="secondary">ID: {employee.employee_id}</Badge>
+                      <Badge variant="secondary">
+                        ID: {employee.employee_id}
+                      </Badge>
                     )}
                   </div>
 
@@ -101,14 +136,16 @@ export function EmployeeList({ employees }: EmployeeListProps) {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    router.push(`/admin/dashboard/employees/${employee.id}/edit`);
+                    router.push(
+                      `/admin/dashboard/employees/${employee.id}/edit`
+                    );
                   }}
                 >
                   <Edit className="h-4 w-4 mr-1" />
                   Edit
                 </Button>
                 <Button
-                  variant={employee.is_active ? 'destructive' : 'default'}
+                  variant={employee.is_active ? "destructive" : "default"}
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -118,10 +155,10 @@ export function EmployeeList({ employees }: EmployeeListProps) {
                 >
                   <Power className="h-4 w-4 mr-1" />
                   {togglingId === employee.id
-                    ? 'Loading...'
+                    ? "Loading..."
                     : employee.is_active
-                    ? 'Deactivate'
-                    : 'Activate'}
+                    ? "Deactivate"
+                    : "Activate"}
                 </Button>
               </div>
             </div>
