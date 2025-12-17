@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,17 +13,44 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useLocalData } from "@/lib/local-data";
 import { supabase } from "@/lib/Supabase";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const { updatePassword } = useLocalData();
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+
+  useEffect(() => {
+    const guard = async () => {
+
+      const hrmsCurrentUser = localStorage.getItem("hrmsCurrentUser");
+      if (hrmsCurrentUser) {
+        if(hrmsCurrentUser.includes('"is_admin":true')) {
+          router.replace("/admin/dashboard");
+          return;
+        }else {
+        router.replace("/employee/dashboard");
+        return;
+        }
+      }
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+
+      setSessionChecked(true);
+    };
+
+    guard();
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,21 +75,28 @@ export default function ResetPasswordPage() {
       });
 
       if (updateError) {
-        throw new Error(
-          updateError.message || "Failed to reset password. Please try again."
-        );
+        throw new Error(updateError.message);
       }
 
+      await supabase.auth.signOut();
+
       setSuccess("Password updated successfully. Redirecting to login...");
-      setTimeout(() => {
-        router.push("/login");
-      }, 1500);
+      router.replace("/login");
     } catch (err: any) {
-      setError(err.message || "Failed to reset password. Please try again.");
+      setError(err?.message || "Failed to reset password. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (!sessionChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
+        Checking access...
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -71,6 +105,7 @@ export default function ResetPasswordPage() {
           <CardTitle>Reset Password</CardTitle>
           <CardDescription>Enter your new password below</CardDescription>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
@@ -79,17 +114,22 @@ export default function ResetPasswordPage() {
               </Alert>
             )}
 
+            {success && (
+              <Alert>
+                <AlertDescription>{success}</AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="password">New Password</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter new password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={isLoading}
                 minLength={6}
+                disabled={isLoading}
               />
             </div>
 
@@ -98,12 +138,11 @@ export default function ResetPasswordPage() {
               <Input
                 id="confirmPassword"
                 type="password"
-                placeholder="Confirm new password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                disabled={isLoading}
                 minLength={6}
+                disabled={isLoading}
               />
             </div>
 

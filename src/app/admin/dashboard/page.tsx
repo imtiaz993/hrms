@@ -15,54 +15,6 @@ export default function AdminDashboardPage() {
   const activeEmployees = employees?.filter((emp) => emp.is_active).length || 0;
   const inactiveEmployees = employees?.filter((emp) => !emp.is_active).length || 0;
   const totalEmployees = employees?.length || 0;
-  const [checkingAuth, setCheckingAuth] = useState(true);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      // 1) Get current auth user
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-
-      if (userError || !userData?.user) {
-        // Not logged in → kick to login
-        router.replace("/login");
-        return;
-      }
-
-      const authUserId = userData.user.id;
-
-      // 2) Look up employee row by id (same as auth user id)
-      const { data: employee, error: employeeError } = await supabase
-        .from("employees")
-        .select("is_admin")
-        .eq("id", authUserId)
-        .single();
-
-      if (employeeError || !employee) {
-        // No employee row / some error → treat as unauthorized
-        router.replace("/login");
-        return;
-      }
-
-      // 3) Check is_admin from employees table
-      if (!employee.is_admin) {
-        // Logged in but NOT admin → send to employee dashboard
-        router.replace("/employee/dashboard");
-        return;
-      }
-
-      // ✅ Logged in and is_admin = true → allow access
-      setCheckingAuth(false);
-    };
-
-    checkAuth();
-  }, [router]);
-  if (checkingAuth) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">Checking access…</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

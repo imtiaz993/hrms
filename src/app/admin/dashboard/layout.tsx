@@ -7,27 +7,47 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Button } from '@/components/ui/button';
 import { LogOut, LayoutDashboard, Users, CalendarCheck, Calendar, DollarSign } from 'lucide-react';
 import { logout as logoutAction } from '@/store/authSlice';
+import { supabase } from '@/lib/Supabase';
 
-export default function AdminDashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const pathname = usePathname();
+
   const { currentUser, isAuthenticated, isLoading } = useAppSelector((state) => state.auth);
 
+  // NOTE:
+  // Prefer: currentUser.is_admin coming from your own DB (employees/users table).
+  // If you are currently relying on Supabase metadata, you can fallback to it like below.
+  const isAdmin =
+    Boolean((currentUser as any)?.is_admin) ||
+    Boolean((currentUser as any)?.raw_app_meta_data?.is_admin);
+
   useEffect(() => {
-    if (!isLoading && (!isAuthenticated || !currentUser?.is_admin)) {
-      router.push('/login');
+    if (isLoading) return;
+
+    if (!isAuthenticated) {
+      router.replace('/login');
+      return;
     }
-  }, [isAuthenticated, currentUser, isLoading, router]);
+
+    if (!isAdmin) {
+      router.replace('/employee/dashboard');
+      return;
+    }
+  }, [isAuthenticated, isAdmin, isLoading, router]);
 
   const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    console.error("Logout error:", error.message);
+  } else {
+    console.log("User logged out");
+  }
     localStorage.removeItem('hrmsCurrentUser');
     dispatch(logoutAction());
-    router.push('/login');
+    router.replace('/login');
   };
 
   if (isLoading) {
@@ -41,9 +61,8 @@ export default function AdminDashboardLayout({
     );
   }
 
-  if (!isAuthenticated || !currentUser?.is_admin) {
-    return null;
-  }
+  // While redirecting, render nothing.
+  if (!isAuthenticated || !isAdmin) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -54,9 +73,7 @@ export default function AdminDashboardLayout({
               <LayoutDashboard className="h-8 w-8 text-blue-600" />
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">Admin Portal</h1>
-                <p className="text-sm text-gray-500">
-                  Welcome, {currentUser.first_name} {currentUser.last_name}
-                </p>
+                <p className="text-sm text-gray-500">Welcome, {currentUser?.first_name} {currentUser?.last_name}</p>
               </div>
             </div>
 

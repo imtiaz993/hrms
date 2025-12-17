@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useGetAllEmployees, useGetDepartments } from '@/hooks/admin/useEmployees';
+import { useGetAllEmployees, useGetDepartments, useUpdateEmployeeStatus } from '@/hooks/admin/useEmployees';
 import { EmployeeList } from '@/components/admin/employees/employee-list';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,13 +17,38 @@ export default function EmployeesPage() {
   const [status, setStatus] = useState('all');
 
   const {
-    data: employees,
+    data,
     isLoading,
     error,
     refetch,
   } = useGetAllEmployees(searchQuery, department, status);
 
   const { data: departments } = useGetDepartments();
+   const { mutateAsync: updateStatus } = useUpdateEmployeeStatus();
+
+  // ✅ local copy for instant UI updates
+  const [employees, setEmployees] = useState<any[]>([]);
+
+  useEffect(() => {
+    setEmployees(data ?? []);
+  }, [data]);
+
+  // ✅ instant toggle handler
+  const handleToggleActive = async (employeeId: string, nextActive: boolean) => {
+    // optimistic update
+    setEmployees((prev) =>
+      prev.map((e) => (e.id === employeeId ? { ...e, is_active: nextActive } : e))
+    );
+
+    try {
+      await updateStatus({ employeeId, isActive: nextActive });
+      await refetch();
+    } catch (e) {
+      setEmployees((prev) =>
+        prev.map((e) => (e.id === employeeId ? { ...e, is_active: !nextActive } : e))
+      );
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -86,7 +111,7 @@ export default function EmployeesPage() {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Unable to load employee data.
-            <Button variant="link" onClick={() => refetch()} className="ml-2 p-0 h-auto">
+            <Button variant="link" onClick={refetch} className="ml-2 p-0 h-auto">
               Retry
             </Button>
           </AlertDescription>
@@ -109,7 +134,12 @@ export default function EmployeesPage() {
           </CardContent>
         </Card>
       ) : (
-        employees && <EmployeeList employees={employees} />
+        employees && (
+          <EmployeeList
+            employees={employees}
+            onToggleActive={handleToggleActive} 
+          />
+        )
       )}
     </div>
   );

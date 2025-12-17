@@ -10,13 +10,27 @@ export default function EmployeeDashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAppSelector((state) => state.auth);
+  const { currentUser, isAuthenticated, isLoading } = useAppSelector(
+    (state) => state.auth
+  );
+
+  const isAdmin =
+    Boolean((currentUser as any)?.is_admin) ||
+    Boolean((currentUser as any)?.raw_app_meta_data?.is_admin);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
+    if (isLoading) return;
+
+    if (!isAuthenticated) {
+      router.replace('/login');
+      return;
     }
-  }, [isAuthenticated, isLoading, router]);
+
+    if (isAdmin) {
+      router.replace('/admin/dashboard');
+      return;
+    }
+  }, [isAuthenticated, isAdmin, isLoading, router]);
 
   if (isLoading) {
     return (
@@ -29,7 +43,8 @@ export default function EmployeeDashboardLayout({
     );
   }
 
-  if (!isAuthenticated) {
+  // While redirecting, render nothing
+  if (!isAuthenticated || isAdmin) {
     return null;
   }
 

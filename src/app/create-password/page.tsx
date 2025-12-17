@@ -17,6 +17,7 @@ import { supabase } from "@/lib/Supabase";
 
 export default function CreatePasswordPage() {
   const router = useRouter();
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -25,35 +26,51 @@ export default function CreatePasswordPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
 
-  // When user comes from magic link, Supabase creates a session.
-  // We fetch the current user to make sure the link is valid.
+  // 🔐 ACCESS CONTROL + SESSION VALIDATION
   useEffect(() => {
-    const checkUser = async () => {
+    const validateAccess = async () => {
+      // 1️⃣ Already logged-in user → block page
+      const hrmsCurrentUser = localStorage.getItem("hrmsCurrentUser");
+      if (hrmsCurrentUser) {
+        if(hrmsCurrentUser.includes('"is_admin":true')) {
+          router.replace("/admin/dashboard");
+          return;
+        }else {
+        router.replace("/employee/dashboard");
+        return;
+        }
+      }
+
+      // 2️⃣ Page allowed ONLY if token exists
+      const token = localStorage.getItem("token");
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+
+      // 3️⃣ Validate Supabase session (magic link)
       const { data, error } = await supabase.auth.getUser();
 
       if (error || !data?.user) {
-        setError(
-          "Your create link is invalid or has expired. Please request a new link."
-        );
-      } else {
-        setEmail(data.user.email ?? null);
+        router.replace("/login");
+        return;
       }
 
+      setEmail(data.user.email ?? null);
       setSessionChecked(true);
     };
 
-    checkUser();
-  }, []);
+    validateAccess();
+  }, [router]);
 
+  // 🔑 PASSWORD CREATION
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
     if (!email) {
-      setError(
-        "No active session found. Please open the password create link from your email again."
-      );
+      setError("Session expired. Please request a new password link.");
       return;
     }
 
@@ -70,30 +87,37 @@ export default function CreatePasswordPage() {
     setIsLoading(true);
 
     try {
-      // This updates the password for the CURRENTLY logged-in user
+      // 1️⃣ Update password
       const { error: updateError } = await supabase.auth.updateUser({
         password,
       });
 
-      if (updateError) {
-        throw new Error(
-          updateError.message || "Failed to create password. Please try again."
-        );
-      }
+      if (updateError) throw new Error(updateError.message);
 
-      setSuccess("Password updated successfully. Redirecting to login...");
-      setTimeout(() => {
-        router.push("/login");
-      }, 1500);
+      // 2️⃣ Logout user immediately
+      await supabase.auth.signOut();
+
+      setSuccess("Password created successfully. Redirecting to login...");
+
+      // 3️⃣ Redirect to login
+      router.replace("/login");
     } catch (err: any) {
-      setError(err.message || "Failed to create password. Please try again.");
+      setError(err?.message || "Failed to create password. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const formDisabled = isLoading || !!error && !email;
+  // ⏳ Loading state while checking session
+  if (!sessionChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Checking your link...</p>
+      </div>
+    );
+  }
 
+  // ✅ VALID SESSION UI
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -108,56 +132,51 @@ export default function CreatePasswordPage() {
             )}
           </CardDescription>
         </CardHeader>
+
         <CardContent>
-          {!sessionChecked ? (
-            <p className="text-sm text-muted-foreground">Checking your link...</p>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-              {success && (
-                <Alert>
-                  <AlertDescription>{success}</AlertDescription>
-                </Alert>
-              )}
+            {success && (
+              <Alert>
+                <AlertDescription>{success}</AlertDescription>
+              </Alert>
+            )}
 
-              <div className="space-y-2">
-                <Label htmlFor="password">New Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter new password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  disabled={formDisabled}
-                  minLength={6}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">New Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                disabled={isLoading}
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Confirm new password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  disabled={formDisabled}
-                  minLength={6}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={6}
+                disabled={isLoading}
+              />
+            </div>
 
-              <Button type="submit" className="w-full" disabled={formDisabled}>
-                {isLoading ? "Creating..." : "Create Password"}
-              </Button>
-            </form>
-          )}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Creating..." : "Create Password"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

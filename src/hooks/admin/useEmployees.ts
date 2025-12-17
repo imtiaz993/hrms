@@ -1,71 +1,193 @@
 import { Employee } from '@/types';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocalData } from '@/lib/local-data';
+import { supabase } from '@/lib/Supabase';
 
-export function useGetAllEmployees(searchQuery?: string, department?: string, status?: string) {
-  const { employees } = useLocalData();
+export function useGetAllEmployees(
+  searchQuery?: string,
+  department?: string,
+  status?: string
+) {
   const [data, setData] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+
+  const refetch = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      let q = supabase
+        .from("employees")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (status === "active") q = q.eq("is_active", true);
+      else if (status === "inactive") q = q.eq("is_active", false);
+
+      if (department && department !== "all") q = q.eq("department", department);
+
+      if (searchQuery && searchQuery.trim() !== "") {
+        const s = searchQuery.trim().replace(/"/g, '\\"');
+        q = q.or(
+          `first_name.ilike.%${s}%,last_name.ilike.%${s}%,email.ilike.%${s}%,employee_id.ilike.%${s}%`
+        );
+      }
+
+      const { data: rows, error: err } = await q.returns<Employee[]>();
+      if (err) throw err;
+
+      setData(rows ?? []);
+    } catch (e) {
+      setError(e);
+      setData([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [searchQuery, department, status]);
 
   useEffect(() => {
-    let results = [...employees].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+    refetch();
+  }, [refetch]);
 
-      if (status === 'active') {
-      results = results.filter((emp) => emp.is_active);
-      } else if (status === 'inactive') {
-      results = results.filter((emp) => !emp.is_active);
-      }
-
-      if (department && department !== 'all') {
-      results = results.filter((emp) => emp.department === department);
-      }
-
-      if (searchQuery && searchQuery.trim() !== '') {
-        const lowerQuery = searchQuery.toLowerCase();
-      results = results.filter((emp) => {
-          const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
-          const email = emp.email.toLowerCase();
-          const empId = (emp.employee_id || '').toLowerCase();
-        return fullName.includes(lowerQuery) || email.includes(lowerQuery) || empId.includes(lowerQuery);
-        });
-      }
-
-    setData(results);
-  }, [employees, searchQuery, department, status]);
-
-  return { data, isLoading: false, error: null as unknown };
+  return { data, isLoading, error, refetch };
 }
 
+
+
+
 export function useGetEmployeeById(employeeId: string) {
-  const { employees } = useLocalData();
-  const employee = useMemo(
-    () => employees.find((emp) => emp.id === employeeId),
-    [employees, employeeId]
-  );
-  return { data: employee || null, isLoading: false, error: null as unknown };
+  const [data, setData] = useState<Employee | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+
+  useEffect(() => {
+    if (!employeeId) {
+      setData(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchEmployee = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const { data: row, error: err } = await supabase
+          .from("employees")
+          .select("*")
+          .eq("id", employeeId)
+          .single();
+
+        if (err) throw err;
+
+        if (!cancelled) {
+          setData(row as Employee);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError(e);
+          setData(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchEmployee();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [employeeId]);
+
+  return { data, isLoading, error };
 }
 
 export function useGetDepartments() {
-  const { employees } = useLocalData();
-  const departments = useMemo(() => {
-    const unique = Array.from(new Set(employees.map((emp) => emp.department))).filter(Boolean);
-    return unique.sort();
-  }, [employees]);
+  const [data, setData] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<unknown>(null);
 
-  return { data: departments, isLoading: false, error: null as unknown };
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchDepartments = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const { data: rows, error: err } = await supabase
+          .from("employees")
+          .select("department");
+
+        if (err) throw err;
+
+        const unique = Array.from(
+          new Set(
+            (rows ?? [])
+              .map((r: any) => r.department)
+              .filter(Boolean)
+          )
+        ).sort();
+
+        if (!cancelled) {
+          setData(unique);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError(e);
+          setData([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchDepartments();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { data, isLoading, error };
 }
 
 export function useUpdateEmployeeStatus() {
-  const { updateEmployeeStatus } = useLocalData();
   const [isPending, setIsPending] = useState(false);
 
-  const mutateAsync = async ({ employeeId, isActive }: { employeeId: string; isActive: boolean }) => {
+  const mutateAsync = async ({
+    employeeId,
+    isActive,
+  }: {
+    employeeId: string;
+    isActive: boolean;
+  }): Promise<Employee> => {
     setIsPending(true);
+
     try {
-      const updated = updateEmployeeStatus(employeeId, isActive);
-      if (!updated) throw new Error('Employee not found');
-      return updated;
+      const { data, error } = await supabase
+        .from("employees")
+        .update({ is_active: isActive })
+        .eq("id", employeeId)
+        .select("*")
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error("Employee not found");
+      }
+
+      return data as Employee;
     } finally {
       setIsPending(false);
     }
@@ -96,24 +218,24 @@ export interface CreateEmployeeInput {
   is_admin: boolean;
 }
 
-export function useCreateEmployee() {
-  const { addEmployee } = useLocalData();
-  const [isPending, setIsPending] = useState(false);
+// export function useCreateEmployee() {
+//   const { addEmployee } = useLocalData();
+//   const [isPending, setIsPending] = useState(false);
 
-  const mutateAsync = async (input: CreateEmployeeInput) => {
-    setIsPending(true);
-    try {
-      return addEmployee({
-        ...input,
-        is_active: true,
-      } as Omit<Employee, 'id' | 'created_at' | 'updated_at'>);
-    } finally {
-      setIsPending(false);
-    }
-  };
+//   const mutateAsync = async (input: CreateEmployeeInput) => {
+//     setIsPending(true);
+//     try {
+//       return addEmployee({
+//         ...input,
+//         is_active: true,
+//       } as Omit<Employee, 'id' | 'created_at' | 'updated_at'>);
+//     } finally {
+//       setIsPending(false);
+//     }
+//   };
 
-  return { mutateAsync, isPending };
-}
+//   return { mutateAsync, isPending };
+// }
 
 export interface UpdateEmployeeInput {
   first_name: string;
@@ -134,19 +256,50 @@ export interface UpdateEmployeeInput {
 }
 
 export function useUpdateEmployee() {
-  const { updateEmployee } = useLocalData();
-  const [isPending, setIsPending] = useState(false);
+const [isPending, setIsPending] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<unknown>(null);
 
-  const mutateAsync = async ({ employeeId, input }: { employeeId: string; input: UpdateEmployeeInput }) => {
+  const mutateAsync = async ({
+    employeeId,
+    input,
+  }: {
+    employeeId: string;
+    input: UpdateEmployeeInput;
+  }): Promise<Employee> => {
     setIsPending(true);
+    setIsSuccess(false);
+    setError(null);
+
     try {
-      const updated = updateEmployee(employeeId, input);
-      if (!updated) throw new Error('Employee not found');
-      return updated;
+      const payload = {
+        ...input,
+        standard_hours_per_day:
+          input.standard_hours_per_day != null
+            ? Number(input.standard_hours_per_day)
+            : undefined,
+        date_of_birth: input.date_of_birth || null,
+      };
+
+      const { data, error: err } = await supabase
+        .from("employees")
+        .update(payload)
+        .eq("id", employeeId)
+        .select("*")
+        .single();
+
+      if (err) throw err;
+      if (!data) throw new Error("Employee not found");
+
+      setIsSuccess(true);
+      return data as Employee;
+    } catch (e) {
+      setError(e);
+      throw e;
     } finally {
       setIsPending(false);
     }
   };
 
-  return { mutateAsync, isPending };
+  return { mutateAsync, isPending, isSuccess, error };
 }

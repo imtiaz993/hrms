@@ -1,205 +1,190 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useCreateEmployee } from '@/hooks/admin/useEmployees';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
-import { supabase } from '@/lib/Supabase';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react";
+import { supabase } from "@/lib/Supabase";
 
 export default function AddEmployeePage() {
   const router = useRouter();
-  const createEmployee = useCreateEmployee();
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isInviting, setIsInviting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone_number: '',
-    address: '',
-    gender: '',
-    date_of_birth: '',
-    employee_id: '',
-    department: '',
-    designation: '',
-    join_date: '',
-    employment_type: 'full-time',
-    emergency_contact_name: '',
-    emergency_contact_relation: '',
-    emergency_contact_phone: '',
-    standard_shift_start: '09:00',
-    standard_shift_end: '17:00',
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone_number: "",
+    address: "",
+    gender: "",
+    date_of_birth: "",
+    employee_id: "",
+    department: "",
+    designation: "",
+    join_date: "",
+    employment_type: "full-time",
+    emergency_contact_name: "",
+    emergency_contact_relation: "",
+    emergency_contact_phone: "",
+    standard_shift_start: "09:00",
+    standard_shift_end: "17:00",
     standard_hours_per_day: 8,
     is_admin: false,
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
-    setFormData({
-      ...formData,
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const value =
+      e.target.type === "checkbox"
+        ? (e.target as HTMLInputElement).checked
+        : e.target.value;
+
+    setFormData((prev) => ({
+      ...prev,
       [e.target.name]: value,
-    });
+    }));
+
     if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: '' });
+      setErrors((prev) => ({ ...prev, [e.target.name]: "" }));
     }
   };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.first_name.trim()) newErrors.first_name = 'First name is required';
-    if (!formData.last_name.trim()) newErrors.last_name = 'Last name is required';
+    if (!formData.first_name.trim())
+      newErrors.first_name = "First name is required";
+    if (!formData.last_name.trim())
+      newErrors.last_name = "Last name is required";
+
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+      newErrors.email = "Email is invalid";
     }
-    if (!formData.department.trim()) newErrors.department = 'Department is required';
-    if (!formData.designation.trim()) newErrors.designation = 'Designation is required';
-    if (!formData.join_date) newErrors.join_date = 'Join date is required';
+
+    if (!formData.department.trim())
+      newErrors.department = "Department is required";
+    if (!formData.designation.trim())
+      newErrors.designation = "Designation is required";
+    if (!formData.join_date) newErrors.join_date = "Join date is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setSubmitError(null);
+    e.preventDefault();
+    setSubmitError(null);
+    setIsSuccess(false);
 
-  if (!validateForm()) return;
-
-  try {
+    if (!validateForm()) return;
     setIsInviting(true);
 
-    // 1) Create auth user first (with a temporary random password)
-    const tempPassword = crypto.randomUUID(); // or any random generator
+    try {
+      const is_admin = formData.is_admin;
 
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email: formData.email,
-      password: tempPassword,
-    });
-
-    if (signUpError) {
-      console.error("auth signUp error:", signUpError);
-
-      if (
-        signUpError.message?.toLowerCase().includes("already") ||
-        signUpError.message?.toLowerCase().includes("registered")
-      ) {
-        setErrors((prev) => ({
-          ...prev,
-          email: "An account with this email already exists",
-        }));
-      } else {
-        setSubmitError(
-          signUpError.message || "Failed to create authentication user."
-        );
-      }
-      setIsInviting(false);
-      return;
-    }
-
-    const authUser = signUpData.user;
-    if (!authUser?.id) {
-      setSubmitError("Failed to get authentication user id.");
-      setIsInviting(false);
-      return;
-    }
-
-    const authUserId = authUser.id; // 👈 this must match employees.id type (uuid)
-
-    // 2) Insert into employees with SAME id as auth user
-    const { error: insertError } = await supabase.from("employees").insert([
-      {
-        id: authUserId, // 👈 now NOT NULL and same as auth.users.id
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        email: formData.email,
-        phone_number: formData.phone_number,
-        address: formData.address,
-        gender: formData.gender,
-        date_of_birth: formData.date_of_birth || null,
-        employee_id: formData.employee_id || null,
-        department: formData.department,
-        designation: formData.designation,
-        join_date: formData.join_date,
-        employment_type: formData.employment_type,
-        emergency_contact_name: formData.emergency_contact_name || null,
-        emergency_contact_relation: formData.emergency_contact_relation || null,
-        emergency_contact_phone: formData.emergency_contact_phone || null,
-        standard_shift_start: formData.standard_shift_start,
-        standard_shift_end: formData.standard_shift_end,
-        standard_hours_per_day: formData.standard_hours_per_day,
-        is_admin: formData.is_admin,
-      },
-    ]);
-
-    if (insertError) {
-      console.error("employees insert error:", {
-        message: insertError.message,
-        details: insertError.details,
-        hint: insertError.hint,
-        code: insertError.code,
+      // 1) Create auth user (server route)
+      const createRes = await fetch("/api/admin/create-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email, is_admin }),
       });
 
-      if (
-        insertError.message?.toLowerCase().includes("duplicate") ||
-        insertError.message?.toLowerCase().includes("unique")
-      ) {
-        setErrors((prev) => ({
-          ...prev,
-          email: "Email already exists",
-        }));
-      } else {
-        setSubmitError(
-          insertError.message ||
-            insertError.details ||
-            "Failed to create employee."
-        );
+      const createJson = await createRes.json().catch(() => ({}));
+
+      if (!createRes.ok || createJson?.error) {
+        const msg =
+          createJson?.error?.message ||
+          createJson?.error ||
+          "Failed to create authentication user.";
+
+        if (String(msg).toLowerCase().includes("already")) {
+          setErrors((prev) => ({
+            ...prev,
+            email: "An account with this email already exists",
+          }));
+        } else {
+          setSubmitError(msg);
+        }
+        return;
       }
+
+      const authUserId = createJson?.data?.user?.id;
+      if (!authUserId) {
+        setSubmitError("Auth user created but user id not returned.");
+        return;
+      }
+
+      // 2) Insert into employees table
+      const { error: insertError } = await supabase.from("employees").insert([
+        {
+          id: authUserId,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          email: formData.email,
+          phone_number: formData.phone_number || null,
+          address: formData.address || null,
+          gender: formData.gender || null,
+          date_of_birth: formData.date_of_birth || null,
+          employee_id: formData.employee_id || null,
+          department: formData.department,
+          designation: formData.designation,
+          join_date: formData.join_date,
+          employment_type: formData.employment_type,
+          emergency_contact_name: formData.emergency_contact_name || null,
+          emergency_contact_relation:
+            formData.emergency_contact_relation || null,
+          emergency_contact_phone: formData.emergency_contact_phone || null,
+          standard_shift_start: formData.standard_shift_start,
+          standard_shift_end: formData.standard_shift_end,
+          standard_hours_per_day: Number(formData.standard_hours_per_day) || 8,
+          is_admin: formData.is_admin,
+          is_active: true,
+        },
+      ]);
+
+      if (insertError) {
+        setSubmitError(insertError.message || "Failed to create employee.");
+        return;
+      }
+
+      // 3) Send create-password email (server route)
+      const mailRes = await fetch("/api/admin/send-create-password-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email }),
+      });
+
+      const mailJson = await mailRes.json().catch(() => ({}));
+
+      if (!mailRes.ok || mailJson?.error) {
+        setSubmitError(
+          mailJson?.error?.message ||
+            mailJson?.error ||
+            "Failed to send password email."
+        );
+        return;
+      }
+
+      setIsSuccess(true);
+      router.push("/admin/dashboard");
+    } catch (err: any) {
+      console.error(err);
+      setSubmitError(err?.message || "Failed to create employee. Please try again.");
+    } finally {
       setIsInviting(false);
-      return;
     }
-
-    // 3) Send magic-link email so employee can set their own password
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: formData.email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/create-password`, // or /reset-password
-      },
-    });
-
-    if (otpError) {
-      console.error("OTP error:", otpError);
-      setSubmitError(
-        otpError.message ||
-          "Employee created, but failed to send the sign-in email."
-      );
-      setIsInviting(false);
-      return;
-    }
-
-    // 4) All good → go back to employees list
-    router.push("/admin/dashboard/employees");
-  } catch (error: any) {
-    console.error(error);
-    if (error?.message?.includes("unique")) {
-      setErrors({ email: "Email already exists" });
-    } else {
-      setSubmitError("Failed to create employee. Please try again.");
-    }
-  } finally {
-    setIsInviting(false);
-  }
-};
-
+  };
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -213,7 +198,14 @@ export default function AddEmployeePage() {
         </div>
       </div>
 
-      {createEmployee.isSuccess && (
+      {submitError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{submitError}</AlertDescription>
+        </Alert>
+      )}
+
+      {isSuccess && (
         <Alert className="bg-green-50 border-green-200">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-900">
@@ -223,6 +215,7 @@ export default function AddEmployeePage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Personal Information */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Personal Information</CardTitle>
@@ -236,12 +229,16 @@ export default function AddEmployeePage() {
                   name="first_name"
                   value={formData.first_name}
                   onChange={handleChange}
-                  className={errors.first_name ? 'border-red-500' : ''}
+                  className={errors.first_name ? "border-red-500" : ""}
+                  disabled={isInviting}
                 />
                 {errors.first_name && (
-                  <p className="text-sm text-red-600 mt-1">{errors.first_name}</p>
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.first_name}
+                  </p>
                 )}
               </div>
+
               <div>
                 <Label htmlFor="last_name">Last Name *</Label>
                 <Input
@@ -249,10 +246,13 @@ export default function AddEmployeePage() {
                   name="last_name"
                   value={formData.last_name}
                   onChange={handleChange}
-                  className={errors.last_name ? 'border-red-500' : ''}
+                  className={errors.last_name ? "border-red-500" : ""}
+                  disabled={isInviting}
                 />
                 {errors.last_name && (
-                  <p className="text-sm text-red-600 mt-1">{errors.last_name}</p>
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.last_name}
+                  </p>
                 )}
               </div>
             </div>
@@ -265,9 +265,12 @@ export default function AddEmployeePage() {
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
-                className={errors.email ? 'border-red-500' : ''}
+                className={errors.email ? "border-red-500" : ""}
+                disabled={isInviting}
               />
-              {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email}</p>}
+              {errors.email && (
+                <p className="text-sm text-red-600 mt-1">{errors.email}</p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -279,8 +282,10 @@ export default function AddEmployeePage() {
                   type="tel"
                   value={formData.phone_number}
                   onChange={handleChange}
+                  disabled={isInviting}
                 />
               </div>
+
               <div>
                 <Label htmlFor="date_of_birth">Date of Birth</Label>
                 <Input
@@ -289,6 +294,7 @@ export default function AddEmployeePage() {
                   type="date"
                   value={formData.date_of_birth}
                   onChange={handleChange}
+                  disabled={isInviting}
                 />
               </div>
             </div>
@@ -300,6 +306,7 @@ export default function AddEmployeePage() {
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
+                disabled={isInviting}
               />
             </div>
 
@@ -310,6 +317,7 @@ export default function AddEmployeePage() {
                 name="gender"
                 value={formData.gender}
                 onChange={handleChange}
+                disabled={isInviting}
                 className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
               >
                 <option value="">Select gender</option>
@@ -322,6 +330,7 @@ export default function AddEmployeePage() {
           </CardContent>
         </Card>
 
+        {/* Job Information */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Job Information</CardTitle>
@@ -336,8 +345,10 @@ export default function AddEmployeePage() {
                   value={formData.employee_id}
                   onChange={handleChange}
                   placeholder="AUTO"
+                  disabled={isInviting}
                 />
               </div>
+
               <div>
                 <Label htmlFor="join_date">Join Date *</Label>
                 <Input
@@ -346,10 +357,13 @@ export default function AddEmployeePage() {
                   type="date"
                   value={formData.join_date}
                   onChange={handleChange}
-                  className={errors.join_date ? 'border-red-500' : ''}
+                  className={errors.join_date ? "border-red-500" : ""}
+                  disabled={isInviting}
                 />
                 {errors.join_date && (
-                  <p className="text-sm text-red-600 mt-1">{errors.join_date}</p>
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.join_date}
+                  </p>
                 )}
               </div>
             </div>
@@ -362,13 +376,17 @@ export default function AddEmployeePage() {
                   name="department"
                   value={formData.department}
                   onChange={handleChange}
-                  className={errors.department ? 'border-red-500' : ''}
+                  className={errors.department ? "border-red-500" : ""}
                   placeholder="e.g., Engineering"
+                  disabled={isInviting}
                 />
                 {errors.department && (
-                  <p className="text-sm text-red-600 mt-1">{errors.department}</p>
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.department}
+                  </p>
                 )}
               </div>
+
               <div>
                 <Label htmlFor="designation">Designation *</Label>
                 <Input
@@ -376,11 +394,14 @@ export default function AddEmployeePage() {
                   name="designation"
                   value={formData.designation}
                   onChange={handleChange}
-                  className={errors.designation ? 'border-red-500' : ''}
+                  className={errors.designation ? "border-red-500" : ""}
                   placeholder="e.g., Software Engineer"
+                  disabled={isInviting}
                 />
                 {errors.designation && (
-                  <p className="text-sm text-red-600 mt-1">{errors.designation}</p>
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.designation}
+                  </p>
                 )}
               </div>
             </div>
@@ -392,6 +413,7 @@ export default function AddEmployeePage() {
                 name="employment_type"
                 value={formData.employment_type}
                 onChange={handleChange}
+                disabled={isInviting}
                 className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
               >
                 <option value="full-time">Full-time</option>
@@ -410,6 +432,7 @@ export default function AddEmployeePage() {
                   type="time"
                   value={formData.standard_shift_start}
                   onChange={handleChange}
+                  disabled={isInviting}
                 />
               </div>
               <div>
@@ -420,6 +443,7 @@ export default function AddEmployeePage() {
                   type="time"
                   value={formData.standard_shift_end}
                   onChange={handleChange}
+                  disabled={isInviting}
                 />
               </div>
               <div>
@@ -432,6 +456,7 @@ export default function AddEmployeePage() {
                   max="24"
                   value={formData.standard_hours_per_day}
                   onChange={handleChange}
+                  disabled={isInviting}
                 />
               </div>
             </div>
@@ -444,6 +469,7 @@ export default function AddEmployeePage() {
                 checked={formData.is_admin}
                 onChange={handleChange}
                 className="h-4 w-4 rounded border-gray-300"
+                disabled={isInviting}
               />
               <Label htmlFor="is_admin" className="font-normal cursor-pointer">
                 Grant admin privileges
@@ -452,6 +478,7 @@ export default function AddEmployeePage() {
           </CardContent>
         </Card>
 
+        {/* Emergency Contact */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Emergency Contact</CardTitle>
@@ -464,6 +491,7 @@ export default function AddEmployeePage() {
                 name="emergency_contact_name"
                 value={formData.emergency_contact_name}
                 onChange={handleChange}
+                disabled={isInviting}
               />
             </div>
 
@@ -475,6 +503,7 @@ export default function AddEmployeePage() {
                   name="emergency_contact_relation"
                   value={formData.emergency_contact_relation}
                   onChange={handleChange}
+                  disabled={isInviting}
                   className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
                 >
                   <option value="">Select relation</option>
@@ -494,6 +523,7 @@ export default function AddEmployeePage() {
                   type="tel"
                   value={formData.emergency_contact_phone}
                   onChange={handleChange}
+                  disabled={isInviting}
                 />
               </div>
             </div>
@@ -501,10 +531,10 @@ export default function AddEmployeePage() {
         </Card>
 
         <div className="flex gap-3">
-          <Button type="submit" disabled={createEmployee.isPending}>
-            {createEmployee.isPending ? 'Creating...' : 'Save Employee'}
+          <Button type="submit" disabled={isInviting}>
+            {isInviting ? "Creating..." : "Save Employee"}
           </Button>
-          <Button type="button" variant="outline" onClick={() => router.back()}>
+          <Button type="button" variant="outline" onClick={() => router.back()} disabled={isInviting}>
             Cancel
           </Button>
         </div>
