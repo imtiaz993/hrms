@@ -1,15 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useGetTodayAttendanceOverview } from '@/hooks/admin/useAttendance';
-import { useGetDepartments } from '@/hooks/admin/useEmployees';
+import { useGetDepartments, useGetAllEmployees } from '@/hooks/admin/useEmployees';
+import { useGetAttendanceAnalytics } from '@/hooks/useAttendanceAnalytics';
 import { AttendanceKPICards } from '@/components/admin/attendance/attendance-kpi-cards';
 import { TodayAttendanceTable } from '@/components/admin/attendance/today-attendance-table';
-import { Card, CardContent } from '@/components/ui/card';
+import { AttendanceChartCard } from '@/components/employee/attendance-chart-card';
+import { WorkingHoursChartCard } from '@/components/employee/working-hours-chart-card';
+import { AttendanceHeatmap } from '@/components/attendance/attendance-heatmap';
+import { AttendanceInsights } from '@/components/attendance/attendance-insights';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Search, RefreshCw, AlertCircle, Calendar } from 'lucide-react';
+import { Search, RefreshCw, AlertCircle, Calendar, Users } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function AttendanceOverviewPage() {
@@ -18,6 +23,10 @@ export default function AttendanceOverviewPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
   const {
     data,
     isLoading,
@@ -25,6 +34,28 @@ export default function AttendanceOverviewPage() {
   } = useGetTodayAttendanceOverview(searchQuery, department, statusFilter);
 
   const { data: departments } = useGetDepartments();
+  const { data: employees = [] } = useGetAllEmployees('', 'all', 'active');
+
+  const { data: analyticsData } = useGetAttendanceAnalytics(selectedEmployeeId, selectedMonth, selectedYear);
+
+  const [selectedDay, setSelectedDay] = useState<any>(null);
+
+  const selectedEmployee = useMemo(() => {
+    return employees.find((emp) => emp.id === selectedEmployeeId);
+  }, [employees, selectedEmployeeId]);
+
+  const availableMonths = useMemo(() => {
+    const now = new Date();
+    return [
+      { month: now.getMonth() + 1, year: now.getFullYear(), label: format(now, 'MMMM yyyy') },
+    ];
+  }, []);
+
+  useEffect(() => {
+    if (employees.length > 0 && !selectedEmployeeId) {
+      setSelectedEmployeeId(employees[0].id);
+    }
+  }, [employees, selectedEmployeeId]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -42,6 +73,11 @@ export default function AttendanceOverviewPage() {
     if (seconds < 60) return `${seconds} seconds ago`;
     const minutes = Math.floor(seconds / 60);
     return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+  };
+
+  const handleMonthChange = (month: number, year: number) => {
+    setSelectedMonth(month);
+    setSelectedYear(year);
   };
 
   return (
@@ -142,6 +178,90 @@ export default function AttendanceOverviewPage() {
           ) : (
             <TodayAttendanceTable records={data.records} />
           )}
+
+          <div className="border-t pt-8 mt-8">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Employee Attendance Analytics</h2>
+              <p className="text-gray-600">Detailed attendance insights and trends</p>
+            </div>
+
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-lg">Select Employee</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4">
+                  <Users className="h-5 w-5 text-gray-400" />
+                  <select
+                    value={selectedEmployeeId}
+                    onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                    className="flex-1 h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  >
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.first_name} {emp.last_name} - {emp.department}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {selectedEmployee && (
+                  <p className="mt-3 text-sm text-gray-600">
+                    Showing analytics for:{' '}
+                    <span className="font-semibold text-gray-900">
+                      {selectedEmployee.first_name} {selectedEmployee.last_name}
+                    </span>
+                    {' '}({selectedEmployee.department} - {selectedEmployee.designation})
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Attendance Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AttendanceChartCard
+                    employeeId={selectedEmployeeId}
+                    selectedMonth={selectedMonth}
+                    selectedYear={selectedYear}
+                    onMonthChange={handleMonthChange}
+                    availableMonths={availableMonths}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Working Hours</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <WorkingHoursChartCard
+                    employeeId={selectedEmployeeId}
+                    selectedMonth={selectedMonth}
+                    selectedYear={selectedYear}
+                    standardHoursPerDay={selectedEmployee?.standard_hours_per_day || 8}
+                    onMonthChange={handleMonthChange}
+                    availableMonths={availableMonths}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="mb-6">
+              <AttendanceHeatmap
+                dailyAttendance={analyticsData?.dailyAttendance || []}
+                month={selectedMonth}
+                year={selectedYear}
+                onDayClick={setSelectedDay}
+              />
+            </div>
+
+            <div>
+              <AttendanceInsights analytics={analyticsData || { presentDays: 0, absentDays: 0, lateArrivals: 0, earlyLeaves: 0, totalHoursWorked: 0, averageHoursPerDay: 0, dailyAttendance: [] }} />
+            </div>
+          </div>
         </>
       ) : null}
     </div>
