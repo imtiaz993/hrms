@@ -1,21 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useGetAllEmployees, useGetDepartments } from '@/hooks/admin/useEmployees';
 import { EmployeeTable } from '@/components/admin/employees/employee-table';
-import { AddEmployeeModal } from '@/components/admin/employees/add-employee-modal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Search, AlertCircle, Users } from 'lucide-react';
-import { useToast } from '@/components/ui/toast';
 
 export default function EmployeesPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [department, setDepartment] = useState('all');
   const [status, setStatus] = useState('all');
-  const [showAddModal, setShowAddModal] = useState(false);
 
   const {
     data,
@@ -25,22 +24,12 @@ export default function EmployeesPage() {
   } = useGetAllEmployees(searchQuery, department, status);
 
   const { data: departments } = useGetDepartments();
-  const { addToast } = useToast();
 
   const [employees, setEmployees] = useState<any[]>([]);
 
   useEffect(() => {
     setEmployees(data ?? []);
   }, [data]);
-
-  const handleAddSuccess = () => {
-    addToast({
-      title: "Success",
-      description: "Employee added successfully",
-      variant: "success",
-    });
-    refetch();
-  };
 
   return (
     <div className="space-y-6">
@@ -49,7 +38,7 @@ export default function EmployeesPage() {
           <h1 className="text-3xl font-bold text-gray-900">Employee Directory</h1>
           <p className="text-gray-600 mt-1">Manage and view all employees</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)}>
+        <Button onClick={() => router.push('/admin/dashboard/employees/add')}>
           <Plus className="h-4 w-4 mr-2" />
           Add Employee
         </Button>
@@ -118,7 +107,7 @@ export default function EmployeesPage() {
             <div className="text-center">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-500 mb-4">No employees found. Add your first employee.</p>
-              <Button onClick={() => setShowAddModal(true)}>
+              <Button onClick={() => router.push('/admin/dashboard/employees/add')}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Employee
               </Button>
@@ -133,12 +122,6 @@ export default function EmployeesPage() {
           />
         )
       )}
-
-      <AddEmployeeModal
-        open={showAddModal}
-        onOpenChange={setShowAddModal}
-        onSuccess={handleAddSuccess}
-      />
     </div>
   );
 }

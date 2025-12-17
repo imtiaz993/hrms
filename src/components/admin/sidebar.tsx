@@ -33,10 +33,6 @@ const navItems: NavItem[] = [
     label: 'Employees',
     href: '/admin/dashboard/employees',
     icon: Users,
-    subItems: [
-      { label: 'All Employees', href: '/admin/dashboard/employees' },
-      { label: 'Add Employee', href: '/admin/dashboard/employees/add' },
-    ],
   },
   {
     label: 'Attendance',
