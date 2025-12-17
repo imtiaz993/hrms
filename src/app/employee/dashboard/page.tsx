@@ -80,7 +80,6 @@ export default function EmployeeDashboardPage() {
   const {
     data: todayStatus,
     isLoading: statusLoading,
-    refetch: refetchStatus,
   } = useGetTodayStatus(
     currentUser?.id || "",
     currentUser?.standard_hours_per_day || 8,
@@ -407,7 +406,7 @@ export default function EmployeeDashboardPage() {
                     standardHours={currentUser.standard_hours_per_day}
                     standardShiftStart={currentUser.standard_shift_start}
                     standardShiftEnd={currentUser.standard_shift_end}
-                    onActionComplete={refetchStatus}
+                    onActionComplete={() => {}}
                   />
                 </div>
               ) : (
@@ -416,7 +415,7 @@ export default function EmployeeDashboardPage() {
                     You haven&apos;t marked your attendance yet.
                   </p>
                   <Button
-                    onClick={() => refetchStatus()}
+                    onClick={() => window.location.reload()}
                     size="sm"
                     className="rounded-full px-4 text-xs font-medium"
                   >
@@ -529,7 +528,7 @@ export default function EmployeeDashboardPage() {
               <CardTitle className="flex items-center justify-between text-base font-semibold text-slate-900">
                 <span>Requests &amp; Approvals</span>
                 <Button
-                  size="xs"
+                  size="sm"
                   className="rounded-full px-2.5 text-[11px] font-medium shadow-none"
                   onClick={() => setShowLeaveRequest(true)}
                 >

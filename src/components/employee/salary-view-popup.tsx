@@ -128,7 +128,7 @@ export function SalaryViewPopup({ employeeId, onClose }: SalaryViewPopupProps) {
     );
   }
 
-  const currency = salaryConfig?.currency || payrollSettings?.defaultCurrency || 'USD';
+  const currency = salaryConfig?.currency || payrollSettings?.currency || 'USD';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">

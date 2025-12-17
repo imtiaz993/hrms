@@ -25,7 +25,7 @@ export default function EmployeeDetailPage() {
   const params = useParams();
   const employeeId = params.id as string;
 
-  const { data: employee, isLoading, error, refetch } = useGetEmployeeById(employeeId);
+  const { data: employee, isLoading, error } = useGetEmployeeById(employeeId);
 
   if (isLoading) {
     return (
@@ -41,9 +41,6 @@ export default function EmployeeDetailPage() {
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
           Unable to load employee data.
-          <Button variant="link" onClick={() => refetch()} className="ml-2 p-0 h-auto">
-            Retry
-          </Button>
         </AlertDescription>
       </Alert>
     );

@@ -22,7 +22,6 @@ export default function AttendanceOverviewPage() {
     data,
     isLoading,
     error,
-    refetch,
   } = useGetTodayAttendanceOverview(searchQuery, department, statusFilter);
 
   const { data: departments } = useGetDepartments();
@@ -35,7 +34,6 @@ export default function AttendanceOverviewPage() {
   }, []);
 
   const handleRefresh = () => {
-    refetch();
     setLastUpdated(new Date());
   };
 

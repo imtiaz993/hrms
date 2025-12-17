@@ -4,6 +4,13 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function POST(req: Request) {
   try {
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { error: 'Supabase admin client not configured' },
+        { status: 500 }
+      );
+    }
+
     const { email } = await req.json();
     if (!email)
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
