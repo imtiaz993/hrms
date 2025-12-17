@@ -303,3 +303,29 @@ const [isPending, setIsPending] = useState(false);
 
   return { mutateAsync, isPending, isSuccess, error };
 }
+
+export function useDeleteEmployee() {
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+
+  const mutateAsync = async (employeeId: string): Promise<void> => {
+    setIsPending(true);
+    setError(null);
+
+    try {
+      const { error: err } = await supabase
+        .from("employees")
+        .delete()
+        .eq("id", employeeId);
+
+      if (err) throw err;
+    } catch (e) {
+      setError(e);
+      throw e;
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return { mutateAsync, isPending, error };
+}
