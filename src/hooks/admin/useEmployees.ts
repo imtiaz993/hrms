@@ -3,11 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocalData } from '@/lib/local-data';
 import { supabase } from '@/lib/Supabase';
 
-export function useGetAllEmployees(
-  searchQuery?: string,
-  department?: string,
-  status?: string
-) {
+export function useGetAllEmployees() {
   const [data, setData] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -17,26 +13,14 @@ export function useGetAllEmployees(
     setError(null);
 
     try {
-      let q = supabase
+      const { data: rows, error: err } = await supabase
         .from("employees")
         .select("*")
-        .order("created_at", { ascending: false });
+        .eq("is_deleted", false)
+        .order("created_at", { ascending: false })
+        .returns<Employee[]>();
 
-      if (status === "active") q = q.eq("is_active", true);
-      else if (status === "inactive") q = q.eq("is_active", false);
-
-      if (department && department !== "all") q = q.eq("department", department);
-
-      if (searchQuery && searchQuery.trim() !== "") {
-        const s = searchQuery.trim().replace(/"/g, '\\"');
-        q = q.or(
-          `first_name.ilike.%${s}%,last_name.ilike.%${s}%,email.ilike.%${s}%,employee_id.ilike.%${s}%`
-        );
-      }
-
-      const { data: rows, error: err } = await q.returns<Employee[]>();
       if (err) throw err;
-
       setData(rows ?? []);
     } catch (e) {
       setError(e);
@@ -44,7 +28,7 @@ export function useGetAllEmployees(
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, department, status]);
+  }, []);
 
   useEffect(() => {
     refetch();
@@ -52,7 +36,6 @@ export function useGetAllEmployees(
 
   return { data, isLoading, error, refetch };
 }
-
 
 
 
@@ -218,24 +201,6 @@ export interface CreateEmployeeInput {
   is_admin: boolean;
 }
 
-// export function useCreateEmployee() {
-//   const { addEmployee } = useLocalData();
-//   const [isPending, setIsPending] = useState(false);
-
-//   const mutateAsync = async (input: CreateEmployeeInput) => {
-//     setIsPending(true);
-//     try {
-//       return addEmployee({
-//         ...input,
-//         is_active: true,
-//       } as Omit<Employee, 'id' | 'created_at' | 'updated_at'>);
-//     } finally {
-//       setIsPending(false);
-//     }
-//   };
-
-//   return { mutateAsync, isPending };
-// }
 
 export interface UpdateEmployeeInput {
   first_name: string;
@@ -315,7 +280,9 @@ export function useDeleteEmployee() {
     try {
       const { error: err } = await supabase
         .from("employees")
-        .delete()
+        .update({
+          is_deleted: true,
+        })
         .eq("id", employeeId);
 
       if (err) throw err;

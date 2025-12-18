@@ -19,20 +19,37 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MoreVertical, Eye, Power, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { MoreVertical, Eye, Power, Trash2, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { ProfilePopup } from "@/components/employee/profile-popup";
-import { useUpdateEmployeeStatus, useDeleteEmployee } from "@/hooks/admin/useEmployees";
+import {
+  useUpdateEmployeeStatus,
+  useDeleteEmployee,
+} from "@/hooks/admin/useEmployees";
 import { useToast } from "@/components/ui/toast";
 
 interface EmployeeTableProps {
   employees: Employee[];
   onEmployeeUpdate: () => void;
+  onEdit: (employee: Employee) => void; // ✅ add
 }
 
-export function EmployeeTable({ employees, onEmployeeUpdate }: EmployeeTableProps) {
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+export function EmployeeTable({
+  employees,
+  onEmployeeUpdate,
+  onEdit,
+}: EmployeeTableProps) {
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
+    null
+  );
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
@@ -40,8 +57,10 @@ export function EmployeeTable({ employees, onEmployeeUpdate }: EmployeeTableProp
     employee: Employee | null;
   }>({ open: false, type: "activate", employee: null });
 
-  const { mutateAsync: updateStatus, isPending: isUpdating } = useUpdateEmployeeStatus();
-  const { mutateAsync: deleteEmployee, isPending: isDeleting } = useDeleteEmployee();
+  const { mutateAsync: updateStatus, isPending: isUpdating } =
+    useUpdateEmployeeStatus();
+  const { mutateAsync: deleteEmployee, isPending: isDeleting } =
+    useDeleteEmployee();
   const { addToast } = useToast();
 
   const getInitials = (firstName: string, lastName: string) => {
@@ -173,11 +192,19 @@ export function EmployeeTable({ employees, onEmployeeUpdate }: EmployeeTableProp
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="text-gray-700">{employee.email}</TableCell>
-                <TableCell className="text-gray-700">{employee.department}</TableCell>
-                <TableCell className="text-gray-700">{employee.designation}</TableCell>
+                <TableCell className="text-gray-700">
+                  {employee.email}
+                </TableCell>
+                <TableCell className="text-gray-700">
+                  {employee.department}
+                </TableCell>
+                <TableCell className="text-gray-700">
+                  {employee.designation}
+                </TableCell>
                 <TableCell>
-                  <Badge variant={employee.is_active ? "success" : "destructive"}>
+                  <Badge
+                    variant={employee.is_active ? "success" : "destructive"}
+                  >
                     {employee.is_active ? "Active" : "Inactive"}
                   </Badge>
                 </TableCell>
@@ -195,14 +222,23 @@ export function EmployeeTable({ employees, onEmployeeUpdate }: EmployeeTableProp
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleViewEmployee(employee)}>
+                      <DropdownMenuItem
+                        onClick={() => handleViewEmployee(employee)}
+                      >
                         <Eye className="mr-2 h-4 w-4" />
                         View
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleToggleStatus(employee)}>
+                      <DropdownMenuItem
+                        onClick={() => handleToggleStatus(employee)}
+                      >
                         <Power className="mr-2 h-4 w-4" />
                         {employee.is_active ? "Deactivate" : "Activate"}
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onEdit(employee)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         destructive
@@ -231,11 +267,14 @@ export function EmployeeTable({ employees, onEmployeeUpdate }: EmployeeTableProp
         />
       )}
 
-      <Dialog open={confirmDialog.open} onOpenChange={(open) => {
-        if (!open) {
-          setConfirmDialog({ open: false, type: "activate", employee: null });
-        }
-      }}>
+      <Dialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDialog({ open: false, type: "activate", employee: null });
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{dialogContent.title}</DialogTitle>
@@ -245,14 +284,20 @@ export function EmployeeTable({ employees, onEmployeeUpdate }: EmployeeTableProp
             <Button
               variant="outline"
               onClick={() =>
-                setConfirmDialog({ open: false, type: "activate", employee: null })
+                setConfirmDialog({
+                  open: false,
+                  type: "activate",
+                  employee: null,
+                })
               }
               disabled={isUpdating || isDeleting}
             >
               Cancel
             </Button>
             <Button
-              variant={confirmDialog.type === "delete" ? "destructive" : "default"}
+              variant={
+                confirmDialog.type === "delete" ? "destructive" : "default"
+              }
               onClick={confirmAction}
               disabled={isUpdating || isDeleting}
             >

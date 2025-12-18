@@ -14,7 +14,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useLocalData } from "@/lib/local-data";
 import { useAppDispatch } from "@/store/hooks";
 import { setUser } from "@/store/authSlice";
 import { supabase } from "@/lib/Supabase";
@@ -22,26 +21,67 @@ import { supabase } from "@/lib/Supabase";
 export default function LoginPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { authenticate } = useLocalData();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
 
+  const signOutAndError = async (message: string) => {
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+    setError(message);
+  };
+
   useEffect(() => {
     const guard = async () => {
+      setError("");
+
       const { data } = await supabase.auth.getSession();
       const session = data?.session;
 
       if (session?.user) {
         const u = session.user;
 
-        const isAdmin =
-          Boolean((u as any)?.app_metadata?.is_admin) ||
-          Boolean((u as any)?.raw_app_meta_data?.is_admin);
+        const { data: profile, error: profileError } = await supabase
+          .from("employees")
+          .select("*")
+          .eq("id", u.id)
+          .single();
 
-        router.replace(isAdmin ? "/admin/dashboard" : "/employee/dashboard");
+        if (profileError || !profile) {
+          await signOutAndError(
+            "Unable to load your profile. Please login again."
+          );
+          setSessionChecked(true);
+          return;
+        }
+
+        if (profile.is_deleted === true) {
+          await signOutAndError(
+            "This account has been deleted. Please contact admin."
+          );
+          setSessionChecked(true);
+          return;
+        }
+
+        if (profile.is_active === false) {
+          await signOutAndError(
+            "Your account is deactivated. Contact admin to reactivate."
+          );
+          setSessionChecked(true);
+          return;
+        }
+
+        localStorage.setItem("hrmsCurrentUser", JSON.stringify(profile));
+        dispatch(setUser(profile));
+
+        router.replace(
+          profile.is_admin ? "/admin/dashboard" : "/employee/dashboard"
+        );
         return;
       }
 
@@ -49,64 +89,67 @@ export default function LoginPage() {
     };
 
     guard();
-  }, [router]);
-
+  }, [dispatch, router]);
+  
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword(
-        {
+      const { data, error: authError } =
+        await supabase.auth.signInWithPassword({
           email,
           password,
-        }
-      );
+        });
+
       if (authError) {
         throw new Error(
           authError.message || "Failed to login. Please check your credentials."
         );
       }
+
       const supaUser = data.user;
       if (!supaUser) {
         throw new Error("Unable to login. Please try again.");
       }
+
       const { data: profile, error: profileError } = await supabase
         .from("employees")
         .select("*")
         .eq("id", supaUser.id)
         .single();
+
       if (profileError || !profile) {
-        throw new Error("Unable to load your profile. Please contact support.");
-      }
-      const appUser = profile;
-
-      localStorage.setItem("hrmsCurrentUser", JSON.stringify(appUser));
-      dispatch(setUser(appUser));
-
-      if (appUser.is_admin) {
-        router.push("/admin/dashboard");
-      } else {
-        router.push("/employee/dashboard");
+        await supabase.auth.signOut();
+        throw new Error(
+          "Unable to load your profile. Please contact support."
+        );
       }
 
-      // const user = authenticate(email, password);
-      // if (!user) {
-      //   throw new Error('Invalid credentials. Use password "password" for demo users.');
-      // }
+      if (profile.is_deleted === true) {
+        await supabase.auth.signOut();
+        throw new Error(
+          "This account has been deleted. Please contact admin."
+        );
+      }
 
-      // localStorage.setItem('hrmsCurrentUser', JSON.stringify(user));
-      // dispatch(setUser(user));
+      if (profile.is_active === false) {
+        await supabase.auth.signOut();
+        throw new Error(
+          "Your account is deactivated. Contact admin to reactivate."
+        );
+      }
 
-      // if (user.is_admin) {
-      //     router.push('/admin/dashboard');
-      //   } else {
-      //     router.push('/employee/dashboard');
-      // }
+      localStorage.setItem("hrmsCurrentUser", JSON.stringify(profile));
+      dispatch(setUser(profile));
+
+      router.push(
+        profile.is_admin ? "/admin/dashboard" : "/employee/dashboard"
+      );
     } catch (err: any) {
       setError(
-        err.message || "Failed to login. Please check your credentials."
+        err?.message || "Failed to login. Please check your credentials."
       );
     } finally {
       setIsLoading(false);
@@ -130,6 +173,7 @@ export default function LoginPage() {
             Enter your credentials to access your account
           </CardDescription>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             {error && (

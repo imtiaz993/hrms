@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
@@ -11,10 +11,10 @@ import {
   Settings,
   ChevronRight,
   Menu,
-  X
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useState } from 'react';
+  X,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 interface NavItem {
   label: string;
@@ -25,32 +25,32 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    label: 'Dashboard',
-    href: '/admin/dashboard',
+    label: "Dashboard",
+    href: "/admin/dashboard",
     icon: LayoutDashboard,
   },
   {
-    label: 'Employees',
-    href: '/admin/dashboard/employees',
+    label: "Employees",
+    href: "/admin/dashboard/employees",
     icon: Users,
   },
   {
-    label: 'Attendance',
-    href: '/admin/dashboard/attendance',
+    label: "Attendance",
+    href: "/admin/dashboard/attendance",
     icon: CalendarCheck,
   },
   {
-    label: 'Leave Requests',
-    href: '/admin/dashboard/leaves',
+    label: "Leave Requests",
+    href: "/admin/dashboard/leaves",
     icon: Calendar,
   },
   {
-    label: 'Payroll',
-    href: '/admin/dashboard/payroll',
+    label: "Payroll",
+    href: "/admin/dashboard/payroll",
     icon: DollarSign,
     subItems: [
-      { label: 'Overview', href: '/admin/dashboard/payroll' },
-      { label: 'Settings', href: '/admin/dashboard/settings/payroll' },
+      { label: "Overview", href: "/admin/dashboard/payroll" },
+      { label: "Settings", href: "/admin/dashboard/settings/payroll" },
     ],
   },
 ];
@@ -78,8 +78,8 @@ export function AdminSidebar() {
 
       <aside
         className={cn(
-          'fixed left-0 top-0 z-50 h-screen w-64 bg-white border-r border-gray-200 transition-transform duration-300 lg:translate-x-0',
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          "fixed left-0 top-0 z-50 h-screen w-64 bg-white border-r border-gray-200 transition-transform duration-300 lg:translate-x-0",
+          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         <div className="flex h-full flex-col">
@@ -89,7 +89,9 @@ export function AdminSidebar() {
                 <LayoutDashboard className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-gray-900">Admin Portal</h2>
+                <h2 className="text-sm font-bold text-gray-900">
+                  Admin Portal
+                </h2>
                 <p className="text-xs text-gray-500">Management</p>
               </div>
             </div>
@@ -114,12 +116,6 @@ export function AdminSidebar() {
               ))}
             </ul>
           </nav>
-
-          <div className="border-t border-gray-200 p-4">
-            <p className="text-xs text-gray-500">
-              Admin Dashboard v1.0
-            </p>
-          </div>
         </div>
       </aside>
     </>
@@ -147,10 +143,10 @@ function NavItemComponent({
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className={cn(
-            'flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+            "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors",
             pathname?.startsWith(item.href)
-              ? 'bg-blue-50 text-blue-700'
-              : 'text-gray-700 hover:bg-gray-50'
+              ? "bg-blue-50 text-blue-700"
+              : "text-gray-700 hover:bg-gray-50"
           )}
         >
           <div className="flex items-center gap-3">
@@ -159,8 +155,8 @@ function NavItemComponent({
           </div>
           <ChevronRight
             className={cn(
-              'h-4 w-4 transition-transform',
-              isExpanded && 'rotate-90'
+              "h-4 w-4 transition-transform",
+              isExpanded && "rotate-90"
             )}
           />
         </button>
@@ -174,10 +170,10 @@ function NavItemComponent({
                     href={subItem.href}
                     onClick={onNavigate}
                     className={cn(
-                      'block rounded-lg px-3 py-2 text-sm transition-colors',
+                      "block rounded-lg px-3 py-2 text-sm transition-colors",
                       isSubActive
-                        ? 'bg-blue-50 font-medium text-blue-700'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        ? "bg-blue-50 font-medium text-blue-700"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     )}
                   >
                     {subItem.label}
@@ -197,10 +193,10 @@ function NavItemComponent({
         href={item.href}
         onClick={onNavigate}
         className={cn(
-          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
           isActive
-            ? 'bg-blue-50 text-blue-700'
-            : 'text-gray-700 hover:bg-gray-50'
+            ? "bg-blue-50 text-blue-700"
+            : "text-gray-700 hover:bg-gray-50"
         )}
       >
         <item.icon className="h-4 w-4 flex-shrink-0" />
