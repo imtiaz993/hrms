@@ -1,123 +1,146 @@
-import { format, parseISO, differenceInMinutes, differenceInHours } from 'date-fns';
+import { format, parseISO, differenceInMinutes } from 'date-fns';
 import { TimeEntry, TodayStatus, AttendanceRow } from '@/types';
 
-export function calculateTotalHours(timeIn: string, timeOut: string): number {
-  const start = parseISO(timeIn);
-  const end = parseISO(timeOut);
-  const minutes = differenceInMinutes(end, start);
-  return Math.round((minutes / 60) * 100) / 100;
+export function calculateTotalHours(timeIn?: string | null, timeOut?: string | null): number {
+  if (!timeIn || !timeOut) return 0;
+
+  try {
+    const start = parseISO(timeIn);
+    const end = parseISO(timeOut);
+    const minutes = differenceInMinutes(end, start);
+    return Math.round((minutes / 60) * 100) / 100;
+  } catch (e) {
+    console.error('Error in calculateTotalHours:', { timeIn, timeOut, e });
+    return 0;
+  }
 }
 
 export function calculateOvertimeHours(totalHours: number, standardHours: number): number {
   return Math.max(0, totalHours - standardHours);
 }
 
-export function isEmployeeLate(timeIn: string, standardShiftStart: string): boolean {
-  const actualTime = parseISO(timeIn);
-  const actualMinutes = actualTime.getHours() * 60 + actualTime.getMinutes();
+export function isEmployeeLate(timeIn?: string | null, standardShiftStart?: string | null): boolean {
+  if (!timeIn || !standardShiftStart) return false;
 
-  const [hours, minutes] = standardShiftStart.split(':').map(Number);
-  const standardMinutes = hours * 60 + minutes;
-
-  return actualMinutes > standardMinutes;
+  try {
+    const actualTime = parseISO(timeIn);
+    const actualMinutes = actualTime.getHours() * 60 + actualTime.getMinutes();
+    const [hours, minutes] = standardShiftStart.split(':').map(Number);
+    const standardMinutes = hours * 60 + minutes;
+    return actualMinutes > standardMinutes;
+  } catch (e) {
+    console.error('Error in isEmployeeLate:', { timeIn, standardShiftStart, e });
+    return false;
+  }
 }
 
-export function calculateLateMinutes(timeIn: string, standardShiftStart: string): number {
-  if (!isEmployeeLate(timeIn, standardShiftStart)) return 0;
+export function calculateLateMinutes(timeIn?: string | null, standardShiftStart?: string | null): number {
+  if (!timeIn || !standardShiftStart) return 0;
 
-  const actualTime = parseISO(timeIn);
-  const actualMinutes = actualTime.getHours() * 60 + actualTime.getMinutes();
-
-  const [hours, minutes] = standardShiftStart.split(':').map(Number);
-  const standardMinutes = hours * 60 + minutes;
-
-  return actualMinutes - standardMinutes;
+  try {
+    if (!isEmployeeLate(timeIn, standardShiftStart)) return 0;
+    const actualTime = parseISO(timeIn);
+    const actualMinutes = actualTime.getHours() * 60 + actualTime.getMinutes();
+    const [hours, minutes] = standardShiftStart.split(':').map(Number);
+    const standardMinutes = hours * 60 + minutes;
+    return actualMinutes - standardMinutes;
+  } catch (e) {
+    console.error('Error in calculateLateMinutes:', { timeIn, standardShiftStart, e });
+    return 0;
+  }
 }
 
-export function isEarlyLeave(timeOut: string, standardShiftEnd: string): boolean {
-  const actualTime = parseISO(timeOut);
-  const actualMinutes = actualTime.getHours() * 60 + actualTime.getMinutes();
+export function isEarlyLeave(timeOut?: string | null, standardShiftEnd?: string | null): boolean {
+  if (!timeOut || !standardShiftEnd) return false;
 
-  const [hours, minutes] = standardShiftEnd.split(':').map(Number);
-  const standardMinutes = hours * 60 + minutes;
-
-  return actualMinutes < standardMinutes;
+  try {
+    const actualTime = parseISO(timeOut);
+    const actualMinutes = actualTime.getHours() * 60 + actualTime.getMinutes();
+    const [hours, minutes] = standardShiftEnd.split(':').map(Number);
+    const standardMinutes = hours * 60 + minutes;
+    return actualMinutes < standardMinutes;
+  } catch (e) {
+    console.error('Error in isEarlyLeave:', { timeOut, standardShiftEnd, e });
+    return false;
+  }
 }
 
-export function formatTime(timestamp: string): string {
-  return format(parseISO(timestamp), 'h:mm a');
+export function formatTime(timestamp?: string | null): string {
+  if (!timestamp) return '—';
+  try {
+    return format(parseISO(timestamp), 'h:mm a');
+  } catch (e) {
+    console.error('Error in formatTime:', timestamp, e);
+    return '—';
+  }
 }
 
-export function formatDate(date: string): string {
-  return format(parseISO(date), 'EEE, MMM d');
+export function formatDate(date?: string | null): string {
+  if (!date) return '—';
+  try {
+    return format(parseISO(date), 'EEE, MMM d');
+  } catch (e) {
+    console.error('Error in formatDate:', date, e);
+    return '—';
+  }
 }
 
-export function formatDateFull(date: string): string {
-  return format(parseISO(date), 'EEEE, MMMM d, yyyy');
+export function formatDateFull(date?: string | null): string {
+  if (!date) return '—';
+  try {
+    return format(parseISO(date), 'EEEE, MMMM d, yyyy');
+  } catch (e) {
+    console.error('Error in formatDateFull:', date, e);
+    return '—';
+  }
 }
 
-export function formatHours(hours: number): string {
+export function formatHours(hours?: number | null): string {
+  if (!hours) return '—';
   const h = Math.floor(hours);
   const m = Math.round((hours - h) * 60);
   return `${h}h ${m}m`;
 }
 
-export function calculateElapsedHours(timeIn: string): number {
-  const start = parseISO(timeIn);
-  const now = new Date();
-  const minutes = differenceInMinutes(now, start);
-  return Math.round((minutes / 60) * 100) / 100;
+export function calculateElapsedHours(timeIn?: string | null): number | null {
+  if (!timeIn) return null;
+
+  try {
+    const start = parseISO(timeIn);
+    const now = new Date();
+    const minutes = differenceInMinutes(now, start);
+    return Math.round((minutes / 60) * 100) / 100;
+  } catch (e) {
+    console.error('Error in calculateElapsedHours:', timeIn, e);
+    return null;
+  }
 }
 
 export function mapTimeEntryToTodayStatus(
-  entry: TimeEntry | null,
+  entry: any,
   standardHours: number,
   standardShiftStart: string
 ): TodayStatus {
-  if (!entry) {
+  if (entry.clock_in && entry.clock_out) {
     return {
-      date: format(new Date(), 'yyyy-MM-dd'),
-      status: 'not_clocked_in',
-      timeIn: null,
-      timeOut: null,
-      elapsedHours: null,
-      totalHours: null,
-      overtimeHours: 0,
-      isLate: false,
-      lateByMinutes: null,
+      status: "completed",
+      timeEntryId: entry.id,
+      clockIn: entry.clock_in,
+      clockOut: entry.clock_out,
     };
   }
 
-  const isLate = isEmployeeLate(entry.time_in, standardShiftStart);
-  const lateByMinutes = isLate ? calculateLateMinutes(entry.time_in, standardShiftStart) : null;
-
-  if (!entry.time_out) {
+  if (entry.clock_in && !entry.clock_out) {
     return {
-      date: entry.date,
-      status: 'clocked_in',
-      timeIn: entry.time_in,
-      timeOut: null,
-      elapsedHours: calculateElapsedHours(entry.time_in),
-      totalHours: null,
-      overtimeHours: 0,
-      isLate,
-      lateByMinutes,
+      status: "clocked_in",
+      timeEntryId: entry.id,
+      clockIn: entry.clock_in,
     };
   }
 
-  const totalHours = entry.total_hours || 0;
-  const overtimeHours = calculateOvertimeHours(totalHours, standardHours);
 
   return {
-    date: entry.date,
-    status: 'completed',
-    timeIn: entry.time_in,
-    timeOut: entry.time_out,
-    elapsedHours: null,
-    totalHours,
-    overtimeHours,
-    isLate,
-    lateByMinutes,
+    status: "not_clocked_in",
   };
 }
 

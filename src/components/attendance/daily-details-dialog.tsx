@@ -3,9 +3,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DailyAttendance } from "@/hooks/useAttendanceAnalytics";
 import { formatDate, formatTime, formatHours } from "@/lib/time-utils";
 import { X } from "lucide-react";
+import { DailyAttendance } from "@/types";
 
 interface DailyDetailsDialogProps {
   day: DailyAttendance | null;
@@ -22,8 +22,11 @@ const statusConfig = {
 
 export function DailyDetailsDialog({ day, onClose }: DailyDetailsDialogProps) {
   if (!day) return null;
-
-  const config = statusConfig[day.status];
+const config =
+    statusConfig[day.status as keyof typeof statusConfig] ?? {
+      label: day.status ?? "Unknown",
+      variant: "secondary" as const,
+    };
 
   return (
     <div

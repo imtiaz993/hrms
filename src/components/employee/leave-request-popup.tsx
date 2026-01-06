@@ -1,21 +1,17 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useLocalData } from '@/lib/local-data';
-import { useGetLeaveRequests } from '@/hooks/useLeave';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { X, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { LeaveType, LeaveRequest } from '@/types';
-import { format, parseISO, isBefore, startOfDay } from 'date-fns';
-import {
-  calculateLeaveDays,
-  hasOverlappingLeave,
-} from '@/hooks/useLeave';
-
+import { useState } from "react";
+import { useCreateLeaveRequest } from "@/hooks/useLeave";
+import { useGetLeaveRequests } from "@/hooks/useLeave";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { X, AlertCircle, CheckCircle2 } from "lucide-react";
+import { LeaveType, LeaveRequest } from "@/types";
+import { format, parseISO, isBefore, startOfDay } from "date-fns";
+import { calculateLeaveDays, hasOverlappingLeave } from "@/hooks/useLeave";
 interface LeaveRequestPopupProps {
   employeeId: string;
   onClose: () => void;
@@ -25,56 +21,49 @@ export function LeaveRequestPopup({
   employeeId,
   onClose,
 }: LeaveRequestPopupProps) {
-  const { createLeaveRequest } = useLocalData();
+  const createMutation = useCreateLeaveRequest();
   const { data: existingRequests = [] } = useGetLeaveRequests(employeeId);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [leaveType, setLeaveType] = useState<LeaveType>('paid');
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [leaveType, setLeaveType] = useState<LeaveType>("paid");
   const [isHalfDay, setIsHalfDay] = useState(false);
-  const [reason, setReason] = useState('');
-  const [error, setError] = useState('');
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setSuccess(false);
-
     if (!startDate || !endDate) {
-      setError('Please select start and end dates.');
+      setError("Please select start and end dates.");
       return;
     }
-
     const start = startOfDay(parseISO(startDate));
     const end = startOfDay(parseISO(endDate));
     const today = startOfDay(new Date());
 
     if (isBefore(start, today)) {
-      setError('Start date cannot be in the past.');
+      setError("Start date cannot be in the past.");
       return;
     }
-
     if (isBefore(end, start)) {
-      setError('End date must be on or after start date.');
+      setError("End date must be on or after start date.");
       return;
     }
-
     if (isHalfDay && startDate !== endDate) {
-      setError('Half-day leave can only be for a single day.');
+      setError("Half-day leave can only be for a single day.");
       return;
     }
-
     if (hasOverlappingLeave(existingRequests, startDate, endDate)) {
       setError(
-        'You already have a pending or approved leave request for these dates.'
+        "You already have a pending or approved leave request for these dates."
       );
       return;
     }
-
     const totalDays = calculateLeaveDays(startDate, endDate, isHalfDay);
     const now = new Date().toISOString();
-
     setIsLoading(true);
     try {
       const newRequest: LeaveRequest = {
@@ -86,31 +75,37 @@ export function LeaveRequestPopup({
         is_half_day: isHalfDay,
         total_days: totalDays,
         reason: reason || undefined,
-        status: 'pending',
+        status: "pending",
         created_at: now,
         updated_at: now,
       };
+      await createMutation.mutateAsync({
+        employee_id: employeeId,
+        leave_type: leaveType,
+        start_date: startDate,
+        end_date: endDate,
+        is_half_day: isHalfDay,
+        total_days: totalDays,
+        reason: reason || undefined,
+      });
 
-      createLeaveRequest(newRequest);
       setSuccess(true);
       setTimeout(() => {
         onClose();
       }, 1500);
     } catch (err: any) {
-      setError(err.message || 'Failed to submit leave request.');
+      setError(err.message || "Failed to submit leave request.");
     } finally {
       setIsLoading(false);
     }
   };
-
   const durationText =
     startDate && endDate
       ? (() => {
           const days = calculateLeaveDays(startDate, endDate, isHalfDay);
-          return `${days} day${days !== 1 ? 's' : ''}`;
+          return `${days} day${days !== 1 ? "s" : ""}`;
         })()
       : null;
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
       <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-100 bg-white/95 shadow-xl">
@@ -144,7 +139,6 @@ export function LeaveRequestPopup({
                 </AlertDescription>
               </Alert>
             )}
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="startDate">Start Date *</Label>
@@ -156,12 +150,11 @@ export function LeaveRequestPopup({
                     setStartDate(e.target.value);
                     if (!endDate) setEndDate(e.target.value);
                   }}
-                  min={format(new Date(), 'yyyy-MM-dd')}
+                  min={format(new Date(), "yyyy-MM-dd")}
                   required
                   disabled={isLoading || success}
                 />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="endDate">End Date *</Label>
                 <Input
@@ -169,13 +162,12 @@ export function LeaveRequestPopup({
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  min={startDate || format(new Date(), 'yyyy-MM-dd')}
+                  min={startDate || format(new Date(), "yyyy-MM-dd")}
                   required
                   disabled={isLoading || success}
                 />
               </div>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="leaveType">Leave Type *</Label>
               <select
@@ -191,7 +183,6 @@ export function LeaveRequestPopup({
                 <option value="unpaid">Unpaid Leave</option>
               </select>
             </div>
-
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -205,7 +196,6 @@ export function LeaveRequestPopup({
                 Half-day leave
               </Label>
             </div>
-
             {durationText && (
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                 <p className="text-sm text-slate-800">
@@ -213,7 +203,6 @@ export function LeaveRequestPopup({
                 </p>
               </div>
             )}
-
             <div className="space-y-2">
               <Label htmlFor="reason">Reason (Optional)</Label>
               <textarea
@@ -225,7 +214,6 @@ export function LeaveRequestPopup({
                 disabled={isLoading || success}
               />
             </div>
-
             <div className="flex gap-3 pt-2">
               <Button
                 type="button"
@@ -241,7 +229,7 @@ export function LeaveRequestPopup({
                 className="flex-1 rounded-xl"
                 disabled={isLoading || success}
               >
-                {isLoading ? 'Submitting...' : 'Submit Request'}
+                {isLoading ? "Submitting..." : "Submit Request"}
               </Button>
             </div>
           </form>
