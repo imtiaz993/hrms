@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,29 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
+
+  useEffect(() => {
+    const guard = async () => {
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session;
+
+      if (session?.user) {
+        const u = session.user;
+
+        const isAdmin =
+          Boolean((u as any)?.app_metadata?.is_admin) ||
+          Boolean((u as any)?.raw_app_meta_data?.is_admin);
+
+        router.replace(isAdmin ? "/admin/dashboard" : "/employee/dashboard");
+        return;
+      }
+
+      setSessionChecked(true);
+    };
+
+    guard();
+  }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +98,14 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  if (!sessionChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Checking session...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">

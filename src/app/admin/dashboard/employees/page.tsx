@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useGetAllEmployees, useGetDepartments } from '@/hooks/admin/useEmployees';
-import { EmployeeList } from '@/components/admin/employees/employee-list';
+import { EmployeeTable } from '@/components/admin/employees/employee-table';
+import { AddEmployeeModal } from '@/components/admin/employees/add-employee-modal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,19 +11,25 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Search, AlertCircle, Users } from 'lucide-react';
 
 export default function EmployeesPage() {
-  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [department, setDepartment] = useState('all');
   const [status, setStatus] = useState('all');
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const {
-    data: employees,
+    data,
     isLoading,
     error,
     refetch,
   } = useGetAllEmployees(searchQuery, department, status);
 
   const { data: departments } = useGetDepartments();
+
+  const [employees, setEmployees] = useState<any[]>([]);
+
+  useEffect(() => {
+    setEmployees(data ?? []);
+  }, [data]);
 
   return (
     <div className="space-y-6">
@@ -32,7 +38,7 @@ export default function EmployeesPage() {
           <h1 className="text-3xl font-bold text-gray-900">Employee Directory</h1>
           <p className="text-gray-600 mt-1">Manage and view all employees</p>
         </div>
-        <Button onClick={() => router.push('/admin/dashboard/employees/add')}>
+        <Button onClick={() => setShowAddModal(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Employee
         </Button>
@@ -86,7 +92,7 @@ export default function EmployeesPage() {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Unable to load employee data.
-            <Button variant="link" onClick={() => refetch()} className="ml-2 p-0 h-auto">
+            <Button variant="link" onClick={refetch} className="ml-2 p-0 h-auto">
               Retry
             </Button>
           </AlertDescription>
@@ -101,7 +107,7 @@ export default function EmployeesPage() {
             <div className="text-center">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-500 mb-4">No employees found. Add your first employee.</p>
-              <Button onClick={() => router.push('/admin/dashboard/employees/add')}>
+              <Button onClick={() => setShowAddModal(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Employee
               </Button>
@@ -109,8 +115,19 @@ export default function EmployeesPage() {
           </CardContent>
         </Card>
       ) : (
-        employees && <EmployeeList employees={employees} />
+        employees && (
+          <EmployeeTable
+            employees={employees}
+            onEmployeeUpdate={refetch}
+          />
+        )
       )}
+
+      <AddEmployeeModal
+        open={showAddModal}
+        onOpenChange={setShowAddModal}
+        onSuccess={refetch}
+      />
     </div>
   );
 }

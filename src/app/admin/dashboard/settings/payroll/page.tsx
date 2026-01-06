@@ -120,15 +120,6 @@ export default function PayrollSettingsPage() {
         </div>
       </div>
 
-      {updateSettings.isSuccess && (
-        <Alert className="bg-green-50 border-green-200">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-900">
-            Payroll settings updated successfully!
-          </AlertDescription>
-        </Alert>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>

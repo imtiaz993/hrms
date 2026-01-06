@@ -30,7 +30,7 @@ export default function LeaveRequestsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequestWithEmployee | null>(null);
 
-  const { data: requests, isLoading, error, refetch } = useGetAllLeaveRequests(
+  const { data: requests, isLoading, error } = useGetAllLeaveRequests(
     typeFilter,
     statusFilter,
     searchQuery
@@ -90,9 +90,6 @@ export default function LeaveRequestsPage() {
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Failed to load leave requests.
-            <Button variant="link" onClick={() => refetch()} className="ml-2 p-0 h-auto">
-              Retry
-            </Button>
           </AlertDescription>
         </Alert>
       ) : isLoading ? (

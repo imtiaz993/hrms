@@ -90,7 +90,6 @@ export default function EmployeeDashboardPage() {
   const {
     data: todayStatus,
     isLoading: statusLoading,
-    refetch: refetchStatus,
   } = useGetTodayStatus(
     currentUser?.id || "",
     currentUser?.standard_hours_per_day || 8,
