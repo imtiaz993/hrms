@@ -1,25 +1,25 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { LeaveType, LeaveRequest } from '@/types';
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LeaveType, LeaveRequest } from "@/types";
 import {
   useCreateLeaveRequest,
   calculateLeaveDays,
   hasOverlappingLeave,
-} from '@/hooks/useLeave';
-import { format, parseISO, isBefore, startOfDay } from 'date-fns';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+} from "@/hooks/useLeave";
+import { format, parseISO, isBefore, startOfDay } from "date-fns";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 interface LeaveRequestFormProps {
   employeeId: string;
@@ -30,23 +30,23 @@ export function LeaveRequestForm({
   employeeId,
   existingRequests,
 }: LeaveRequestFormProps) {
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [leaveType, setLeaveType] = useState<LeaveType>('paid');
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [leaveType, setLeaveType] = useState<LeaveType>("paid");
   const [isHalfDay, setIsHalfDay] = useState(false);
-  const [reason, setReason] = useState('');
-  const [validationError, setValidationError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [reason, setReason] = useState("");
+  const [validationError, setValidationError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const createMutation = useCreateLeaveRequest();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setValidationError('');
-    setSuccessMessage('');
+    setValidationError("");
+    setSuccessMessage("");
 
     if (!startDate || !endDate) {
-      setValidationError('Please select start and end dates.');
+      setValidationError("Please select start and end dates.");
       return;
     }
 
@@ -55,27 +55,24 @@ export function LeaveRequestForm({
     const today = startOfDay(new Date());
 
     if (isBefore(start, today)) {
-      setValidationError('Start date cannot be in the past.');
+      setValidationError("Start date cannot be in the past.");
       return;
     }
 
     if (isBefore(end, start)) {
-      setValidationError('End date must be on or after start date.');
+      setValidationError("End date must be on or after start date.");
       return;
     }
-
     if (isHalfDay && startDate !== endDate) {
-      setValidationError('Half-day leave can only be for a single day.');
+      setValidationError("Half-day leave can only be for a single day.");
       return;
     }
 
     if (hasOverlappingLeave(existingRequests, startDate, endDate)) {
       setValidationError(
-        'You already have a pending or approved leave request for these dates.'
+        "You already have a pending or approved leave request for these dates."
       );
-      // keeping logic same as your original (no early return)
     }
-
     const totalDays = calculateLeaveDays(startDate, endDate, isHalfDay);
 
     try {
@@ -89,14 +86,14 @@ export function LeaveRequestForm({
         reason: reason || undefined,
       });
 
-      setSuccessMessage('Leave request submitted successfully!');
-      setStartDate('');
-      setEndDate('');
-      setReason('');
+      setSuccessMessage("Leave request submitted successfully!");
+      setStartDate("");
+      setEndDate("");
+      setReason("");
       setIsHalfDay(false);
     } catch (error: any) {
       setValidationError(
-        error.message || 'Failed to submit leave request. Please try again.'
+        error.message || "Failed to submit leave request. Please try again."
       );
     }
   };
@@ -110,13 +107,12 @@ export function LeaveRequestForm({
     if (isBefore(end, start)) return null;
 
     const days = calculateLeaveDays(startDate, endDate, isHalfDay);
-    return `${days} day${days !== 1 ? 's' : ''}`;
+    return `${days} day${days !== 1 ? "s" : ""}`;
   };
-
   const durationPreview = calculateDaysPreview();
 
   const cardBase =
-    'relative overflow-hidden rounded-2xl border border-slate-100 bg-white/85 backdrop-blur-sm shadow-sm';
+    "relative overflow-hidden rounded-2xl border border-slate-100 bg-white/85 backdrop-blur-sm shadow-sm";
 
   return (
     <Card className={cardBase}>
@@ -138,19 +134,23 @@ export function LeaveRequestForm({
               </AlertDescription>
             </Alert>
           )}
-
           {successMessage && (
-            <Alert variant="success" className="border-emerald-200 bg-emerald-50">
+            <Alert
+              variant="success"
+              className="border-emerald-200 bg-emerald-50"
+            >
               <CheckCircle2 className="h-4 w-4" />
               <AlertDescription className="text-sm">
                 {successMessage}
               </AlertDescription>
             </Alert>
           )}
-
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="startDate" className="text-sm font-medium text-slate-700">
+              <Label
+                htmlFor="startDate"
+                className="text-sm font-medium text-slate-700"
+              >
                 Start Date <span className="text-rose-500">*</span>
               </Label>
               <Input
@@ -161,7 +161,7 @@ export function LeaveRequestForm({
                   setStartDate(e.target.value);
                   if (!endDate) setEndDate(e.target.value);
                 }}
-                min={format(new Date(), 'yyyy-MM-dd')}
+                min={format(new Date(), "yyyy-MM-dd")}
                 required
                 disabled={createMutation.isPending}
                 className="h-10 rounded-lg border-slate-200 text-sm focus-visible:ring-indigo-500"
@@ -172,7 +172,10 @@ export function LeaveRequestForm({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="endDate" className="text-sm font-medium text-slate-700">
+              <Label
+                htmlFor="endDate"
+                className="text-sm font-medium text-slate-700"
+              >
                 End Date <span className="text-rose-500">*</span>
               </Label>
               <Input
@@ -180,7 +183,7 @@ export function LeaveRequestForm({
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                min={startDate || format(new Date(), 'yyyy-MM-dd')}
+                min={startDate || format(new Date(), "yyyy-MM-dd")}
                 required
                 disabled={createMutation.isPending}
                 className="h-10 rounded-lg border-slate-200 text-sm focus-visible:ring-indigo-500"
@@ -193,7 +196,10 @@ export function LeaveRequestForm({
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div className="space-y-1.5">
-              <Label htmlFor="leaveType" className="text-sm font-medium text-slate-700">
+              <Label
+                htmlFor="leaveType"
+                className="text-sm font-medium text-slate-700"
+              >
                 Leave Type <span className="text-rose-500">*</span>
               </Label>
               <select
@@ -232,9 +238,11 @@ export function LeaveRequestForm({
               </p>
             </div>
           )}
-
           <div className="space-y-1.5">
-            <Label htmlFor="reason" className="text-sm font-medium text-slate-700">
+            <Label
+              htmlFor="reason"
+              className="text-sm font-medium text-slate-700"
+            >
               Reason <span className="text-slate-400 text-xs">(optional)</span>
             </Label>
             <textarea
@@ -246,13 +254,12 @@ export function LeaveRequestForm({
               disabled={createMutation.isPending}
             />
           </div>
-
           <Button
             type="submit"
             className="mt-2 w-full rounded-full text-sm font-semibold"
             disabled={createMutation.isPending}
           >
-            {createMutation.isPending ? 'Submitting…' : 'Submit Leave Request'}
+            {createMutation.isPending ? "Submitting…" : "Submit Leave Request"}
           </Button>
         </form>
       </CardContent>

@@ -41,7 +41,6 @@ export function AttendanceLogSummaryComponent({
               {summary.totalPresentDays}
             </p>
           </div>
-
           <div className="space-y-1 rounded-2xl bg-rose-50/60 p-3">
             <div className="flex items-center gap-2">
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-rose-100 text-rose-600">
@@ -53,7 +52,6 @@ export function AttendanceLogSummaryComponent({
               {summary.totalAbsentDays}
             </p>
           </div>
-
           <div className="space-y-1 rounded-2xl bg-indigo-50/60 p-3">
             <div className="flex items-center gap-2">
               <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
@@ -94,7 +92,6 @@ export function AttendanceLogSummaryComponent({
             </div>
           )}
         </div>
-
         {hasIncomplete && (
           <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
             <p className="font-semibold mb-0.5">Notice</p>

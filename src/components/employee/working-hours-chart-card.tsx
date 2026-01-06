@@ -1,83 +1,75 @@
 "use client";
 
 import { useMemo } from "react";
-import { useGetAttendanceLog } from "@/hooks/useAttendanceLog";
 import {
   format,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
   parseISO,
+  isSunday,
+  isSaturday,
+  isFuture,
+  isToday,
 } from "date-fns";
-
+const statusLabels: any = {
+  present: "Present",
+  absent: "Absent",
+  late: "Late Arrival",
+  early_leave: "Early Leave",
+  future: "Future",
+  weekEnd: "WeekEnd",
+};
+import { cn } from "@/lib/utils";
 interface WorkingHoursChartCardProps {
-  employeeId: string;
   selectedMonth: number;
   selectedYear: number;
   standardHoursPerDay: number;
   onMonthChange: (month: number, year: number) => void;
   availableMonths: Array<{ month: number; year: number; label: string }>;
+  chartData: any;
+  isLoading: any;
 }
+const statusColors: any = {
+  present: "bg-emerald-500/90 hover:bg-emerald-600",
+  absent: "bg-rose-500/90 hover:bg-rose-600",
+  late: "bg-amber-400/90 hover:bg-amber-500",
+  early_leave: "bg-orange-500/90 hover:bg-orange-600",
+  future: "bg-slate-200 hover:bg-slate-300",
+  weekEnd: "bg-black hover:bg-gray-500",
+};
 
 export function WorkingHoursChartCard({
-  employeeId,
   selectedMonth,
   selectedYear,
   standardHoursPerDay,
   onMonthChange,
   availableMonths,
+  chartData,
+  isLoading,
 }: WorkingHoursChartCardProps) {
-  const { data: logData } = useGetAttendanceLog(
-    employeeId,
-    selectedMonth,
-    selectedYear
-  );
-
-  const chartData = useMemo(() => {
-    if (!logData) return [];
-
-    const monthDate = new Date(selectedYear, selectedMonth - 1, 1);
-    const start = startOfMonth(monthDate);
-    const end = endOfMonth(monthDate);
-    const allDays = eachDayOfInterval({ start, end });
-
-    return allDays.map((day) => {
-      const dateStr = format(day, "yyyy-MM-dd");
-      const log = logData.logs.find((l) => l.date === dateStr);
-
-      return {
-        date: dateStr,
-        day: day.getDate(),
-        scheduledHours: standardHoursPerDay,
-        actualHours: log?.totalHours || 0,
-      };
-    });
-  }, [logData, selectedMonth, selectedYear, standardHoursPerDay]);
-
   const totals = useMemo(() => {
     const scheduled = chartData.reduce(
-      (sum, item) => sum + item.scheduledHours,
+      (sum, item) =>
+        isSaturday(item.date) || isSunday(item.date)
+          ? sum + 0
+          : sum + item.standard_hours,
       0
     );
-    const worked = chartData.reduce((sum, item) => sum + item.actualHours, 0);
-    const difference = worked - scheduled;
-
+    const worked = chartData.reduce((sum, item) => sum + item.total_hours, 0);
     return {
       scheduled,
       worked,
-      difference,
+      difference: worked - scheduled,
     };
   }, [chartData]);
 
-  const maxHours =
-    Math.max(
-      ...chartData.map((d) => Math.max(d.scheduledHours, d.actualHours)),
-      standardHoursPerDay * 1.5
-    ) ||
-    standardHoursPerDay ||
-    8;
+  if (isLoading) {
+    return (
+      <div className="py-10 text-center text-sm text-slate-500">
+        Loading working hours...
+      </div>
+    );
+  }
 
-  if (!logData || chartData.length === 0) {
+  if (chartData.length === 0) {
     return (
       <div className="py-10 text-center text-sm text-slate-500">
         No working hours data available for this month.
@@ -87,7 +79,6 @@ export function WorkingHoursChartCard({
 
   return (
     <div className="space-y-4">
-      {/* Month Selector */}
       {availableMonths.length > 0 && (
         <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3">
           <label className="text-sm font-medium text-slate-700">
@@ -112,43 +103,63 @@ export function WorkingHoursChartCard({
           </select>
         </div>
       )}
-
-      {/* Bars (scheduled vs actual) */}
       <div className="space-y-3">
         <div className="relative flex h-64 items-end justify-between gap-1 rounded-2xl bg-slate-50/60 px-3 pb-3 pt-4">
           {chartData.map((item, index) => {
-            const scheduledHeight = (item.scheduledHours / maxHours) * 100;
-            const actualHeight =
-              item.actualHours > 0 ? (item.actualHours / maxHours) * 100 : 0;
-
-            const isOver = item.actualHours >= item.scheduledHours;
+            const actualHeight = (item.total_hours / item.standard_hours) * 100;
 
             return (
               <div
                 key={index}
-                className="relative flex flex-1 flex-col items-center"
+                className="relative flex flex-1 flex-col justify-end items-center h-full"
               >
-                {/* Scheduled baseline */}
                 <div
-                  className="absolute bottom-0 w-full rounded-t-md bg-slate-200/80"
-                  style={{ height: `${scheduledHeight}%` }}
-                />
-                {/* Actual */}
-                {item.actualHours > 0 && (
+                  className={`relative bottom-0 w-full rounded-t-md ${
+                    isSunday(item.date) || isSaturday(item.date)
+                      ? "bg-black"
+                      : "bg-slate-200/80"
+                  }`}
+                  style={{
+                    height: `${
+                      isFuture(item.date) ||
+                      isSunday(item.date) ||
+                      isSaturday(item.date)
+                        ? "20"
+                        : !item.clock_in || !item.clock_out
+                        ? 20
+                        : (item.standard_hours / standardHoursPerDay) * 100
+                    }%`,
+                  }}
+                >
                   <div
                     className={`absolute bottom-0 w-full rounded-t-md border border-white/40 ${
-                      isOver ? "bg-emerald-500" : "bg-rose-500"
+                      item.is_late
+                        ? "bg-yellow-400"
+                        : item.is_early_leave
+                        ? "bg-orange-600"
+                        : item?.clock_in
+                        ? "bg-emerald-500"
+                        : isFuture(item.date)
+                        ? ""
+                        : isSaturday(item.date) || isSunday(item.date)
+                        ? "bg-black"
+                        : "bg-rose-500"
                     }`}
-                    style={{ height: `${Math.max(actualHeight, 5)}%` }}
+                    style={{
+                      height: `${
+                        item?.clock_in && item?.clock_out ? actualHeight : "100"
+                      }%`,
+                    }}
                     title={`${format(
                       parseISO(item.date),
                       "MMM dd"
-                    )}: ${item.actualHours.toFixed(1)}h / ${
-                      item.scheduledHours
+                    )}: ${item.total_hours.toFixed(1)}h / ${
+                      item.standard_hours
                     }h`}
                   />
-                )}
-                <span className="mt-1 text-[10px] text-slate-500">
+                </div>
+
+                <span className="mt-1 text-[10px] text-slate-500 absolute z-10">
                   {item.day}
                 </span>
               </div>
@@ -156,8 +167,6 @@ export function WorkingHoursChartCard({
           })}
         </div>
       </div>
-
-      {/* Totals */}
       <div className="grid grid-cols-3 gap-4 border-t border-slate-100 pt-4 text-sm">
         <div>
           <p className="text-xs text-slate-500">Total Scheduled</p>
@@ -183,21 +192,23 @@ export function WorkingHoursChartCard({
           </p>
         </div>
       </div>
-
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-4 pt-2 text-[11px] text-slate-700">
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded bg-slate-200" />
-          <span>Scheduled (baseline)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded bg-emerald-500" />
-          <span>Actual (≥ scheduled)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded bg-rose-500" />
-          <span>Actual (&lt; scheduled)</span>
-        </div>
+      <div className="mt-3 flex  justify-center  flex-wrap gap-3">
+        {Object.entries(statusLabels).map(([status, label]) => (
+          <div
+            key={status}
+            className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1"
+          >
+            <span
+              className={cn(
+                "h-2.5 w-2.5 rounded-full border border-white shadow-sm",
+                statusColors[status as keyof typeof statusColors]
+              )}
+            />
+            <span className="text-[11px] font-medium text-slate-600">
+              {label}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );

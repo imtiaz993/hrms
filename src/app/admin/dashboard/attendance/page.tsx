@@ -126,13 +126,11 @@ export default function AttendanceOverviewPage() {
                   </select>
                 </div>
               </div>
-
               <div className="mt-4 text-xs text-gray-500">
                 Last updated: {getTimeSinceUpdate()}
               </div>
             </CardContent>
           </Card>
-
           {data.records.length === 0 ? (
             <Card>
               <CardContent className="py-12">

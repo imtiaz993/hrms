@@ -67,20 +67,6 @@ export default function LoginPage() {
       } else {
         router.push("/employee/dashboard");
       }
-
-      // const user = authenticate(email, password);
-      // if (!user) {
-      //   throw new Error('Invalid credentials. Use password "password" for demo users.');
-      // }
-
-      // localStorage.setItem('hrmsCurrentUser', JSON.stringify(user));
-      // dispatch(setUser(user));
-
-      // if (user.is_admin) {
-      //     router.push('/admin/dashboard');
-      //   } else {
-      //     router.push('/employee/dashboard');
-      // }
     } catch (err: any) {
       setError(
         err.message || "Failed to login. Please check your credentials."

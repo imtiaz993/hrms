@@ -24,9 +24,6 @@ export default function CreatePasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
-
-  // When user comes from magic link, Supabase creates a session.
-  // We fetch the current user to make sure the link is valid.
   useEffect(() => {
     const checkUser = async () => {
       const { data, error } = await supabase.auth.getUser();
