@@ -81,7 +81,13 @@ export interface TodayStatus {
   overtimeHours: number;
   isLate: boolean;
   lateByMinutes: number | null;
+  timeEntryId:number
+  clockIn:string|null;
+clockOut:string;
+
 }
+
+
 
 export interface AttendanceRow {
   id: string;
