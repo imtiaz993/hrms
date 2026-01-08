@@ -15,6 +15,7 @@ import { useLocalData } from "@/lib/local-data";
 import { useMemo, useState ,useEffect} from "react";
 import { supabase } from "@/lib/Supabase";
 
+
 function generateId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return `${prefix}-${crypto.randomUUID()}`;
@@ -104,21 +105,32 @@ export function useCreateLeaveRequest() {
   return { mutateAsync, isPending };
 }
 
+
+
+
+
 export function useCancelLeaveRequest() {
-  const { cancelLeaveRequest } = useLocalData();
   const [isPending, setIsPending] = useState(false);
 
   const mutateAsync = async ({
     requestId,
   }: {
     requestId: string;
-    employeeId: string;
+    employeeId: string; 
   }) => {
     setIsPending(true);
+
     try {
-      const updated = cancelLeaveRequest(requestId);
-      if (!updated) throw new Error("Leave request not found");
-      return updated;
+      const { error } = await supabase
+        .from('leave_requests')
+        .delete()
+        .eq('id', requestId);
+
+      if (error) {
+        throw error;
+      }
+
+      return true;
     } finally {
       setIsPending(false);
     }

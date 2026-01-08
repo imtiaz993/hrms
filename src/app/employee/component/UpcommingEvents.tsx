@@ -26,8 +26,8 @@ const UpcommingEvents = ({ cardBase }: Props) => {
 
       if (error || !data) return;
       const upcomingBirthdays = data
-        .filter((emp) => emp.date_of_birth)
-        .map((emp) => {
+        .filter((emp:any) => emp.date_of_birth)
+        .map((emp:any) => {
           const dob = new Date(emp.date_of_birth);
           const birthdayThisYear = new Date(
             currentYear,
@@ -41,20 +41,20 @@ const UpcommingEvents = ({ cardBase }: Props) => {
           };
         })
         .filter(
-          (e) =>
+          (e:any) =>
             e.eventDate > today &&
             e.eventDate <= endOfMonth &&
             e.eventDate.getMonth() === currentMonth
         )
-        .map((e) => ({
+        .map((e:any) => ({
           id: e.emp.id,
           employeeName: `${e.emp.first_name} ${e.emp.last_name} ${e.emp.date_of_birth}`,
           eventDate: e.eventDate,
         }))
-        .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime());
+        .sort((a:any, b:any) => a.eventDate.getTime() - b.eventDate.getTime());
       const upcomingAnniversaries = data
-        .filter((emp) => emp.join_date)
-        .map((emp) => {
+        .filter((emp:any) => emp.join_date)
+        .map((emp:any) => {
           const join = new Date(emp.join_date);
           const anniversaryThisYear = new Date(
             currentYear,
@@ -71,19 +71,19 @@ const UpcommingEvents = ({ cardBase }: Props) => {
           };
         })
         .filter(
-          (e) =>
+          (e:any) =>
             e.eventDate > today &&
             e.eventDate <= endOfMonth &&
             e.yearsCompleted > 0 &&
             e.eventDate.getMonth() === currentMonth
         )
-        .map((e) => ({
+        .map((e:any) => ({
           id: e.emp.id,
           employeeName: `${e.emp.first_name} ${e.emp.last_name} ${e.emp.date_of_birth}`,
           yearsCompleted: e.yearsCompleted,
           eventDate: e.eventDate,
         }))
-        .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime());
+        .sort((a:any, b:any) => a.eventDate.getTime() - b.eventDate.getTime());
 
       setUpcomingBirthdays(upcomingBirthdays);
       setUpcomingAnniversaries(upcomingAnniversaries);

@@ -36,26 +36,26 @@ export default function UserInfoCard({ cardBase }: Props) {
         return;
       }
       const birthdays = data
-        .filter((emp) => {
+        .filter((emp:any) => {
           if (!emp.date_of_birth) return false;
 
           const dob = new Date(emp.date_of_birth);
 
           return dob.getMonth() === todayMonth && dob.getDate() === todayDate;
         })
-        .map((emp) => ({
+        .map((emp:any) => ({
           employeeName: `${emp.first_name} ${emp.last_name}`,
         }));
 
       const anniversaries = data
-        .filter((emp) => {
+        .filter((emp:any) => {
           if (!emp.join_date) return false;
 
           const join = new Date(emp.join_date);
 
           return join.getMonth() === todayMonth && join.getDate() === todayDate;
         })
-        .map((emp) => {
+        .map((emp:any) => {
           const join = new Date(emp.join_date!);
           const yearsCompleted = currentYear - join.getFullYear();
           return {
@@ -63,7 +63,7 @@ export default function UserInfoCard({ cardBase }: Props) {
             yearsCompleted,
           };
         })
-        .filter((a) => a.yearsCompleted >= 0);
+        .filter((a:any) => a.yearsCompleted >= 0);
 
       setTodayBirthdays(birthdays);
       setTodayAnniversaries(anniversaries);

@@ -12,11 +12,10 @@ import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout as logoutAction } from "@/store/authSlice";
 import UpcomingHoliday from "../component/UpcomingHolidays";
-import { useGetTodayStatus } from "@/hooks/useTimeEntry";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, Plus } from "lucide-react";
+import { User, LogOut, Plus, RefreshCw } from "lucide-react";
 import { AttendanceKPICards } from "@/components/attendance/attendance-kpi-cards";
 import { LeaveRequestsList } from "@/components/leave/leave-requests-list";
 import { ProfilePopup } from "@/components/employee/profile-popup";
@@ -44,6 +43,8 @@ export default function EmployeeDashboardPage() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [todayStatus, setTodayStatus] = useState<null>(null);
+const [statusLoading, setStatusLoading] = useState(true);
 
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [sickLeaves, setSickLeaves] = useState(0);
@@ -51,6 +52,64 @@ export default function EmployeeDashboardPage() {
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<any>();
+  const [holidays, setHolidays] = useState<[]>([]);
+
+const fetchTodayStatus = async () => {
+  setStatusLoading(true);
+
+  if (!currentUser?.id) {
+    setTodayStatus(null);
+    setStatusLoading(false);
+    return;
+  }
+
+  const today = format(new Date(), "yyyy-MM-dd");
+
+  const { data: entries, error } = await supabase
+    .from("time_entries")
+    .select("*")
+    .eq("employee_id", currentUser.id)
+    .gte("date", today + "T00:00:00")
+    .lte("date", today + "T23:59:59")
+    .order("clock_in", { ascending: false });
+
+  if (error || !entries || entries.length === 0) {
+    setTodayStatus(null);
+  } else {
+    const latestEntry = entries[0];
+    if (latestEntry.clock_out) {
+      setTodayStatus({
+        status: "completed",
+        timeEntryId: latestEntry.id,
+        clockIn: latestEntry.clock_in,
+        clockOut: latestEntry.clock_out,
+        totalHours: latestEntry.total_hours,
+        date: "",
+        timeIn: null,
+        timeOut: null,
+        elapsedHours: null,
+        overtimeHours: 0,
+        isLate: false,
+        lateByMinutes: null,
+      });
+    } else {
+      setTodayStatus(
+        mapTimeEntryToTodayStatus(
+          latestEntry,
+          currentUser.standard_hours_per_day,
+          currentUser.standard_shift_start
+        )
+      );
+    }
+  }
+
+  setStatusLoading(false);
+};
+useEffect(() => {
+  if (!currentUser?.id) return;
+  fetchTodayStatus();
+}, [currentUser?.id, currentUser?.standard_hours_per_day, currentUser?.standard_shift_start]);
+
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -87,14 +146,101 @@ export default function EmployeeDashboardPage() {
     checkAuth();
   }, [router]);
 
-  const {
-    data: todayStatus,
-    isLoading: statusLoading,
-  } = useGetTodayStatus(
-    currentUser?.id || "",
-    currentUser?.standard_hours_per_day || 8,
-    currentUser?.standard_shift_start || "09:00"
-  );
+
+  const handleRefreshAll = async () => {
+
+
+    if (!currentUser?.id) {
+     
+      return;
+    }
+
+    setLoading(true);
+
+    await Promise.all([
+      (async () => {
+        const { data: employee, error: empError } = await supabase
+          .from("employees")
+          .select("*")
+          .eq("id", currentUser.id)
+          .single();
+
+        if (empError) console.error("Error fetching employee:", empError);
+        else {
+         
+          setSickLeaves(Number(employee.total_sick_leaves));
+          setCasualLeaves(Number(employee.total_casual_leaves));
+        }
+      })(),
+      (async () => {
+
+  await fetchTodayStatus();
+ 
+})(),
+
+
+      (async () => {
+        await refetchStatus();
+      
+      })(),
+
+      (async () => {
+        const { data, error } = await supabase
+          .from("leave_requests")
+          .select("*")
+          .eq("employee_id", currentUser.id)
+          .order("start_date", { ascending: false });
+
+        if (error) console.error(" Error fetching leave requests:", error);
+        else {
+   
+          setLeaveRequests(data || []);
+        }
+      })(),
+
+      (async () => {
+        
+        await fetchEntries();
+      
+      })(),
+      (async () => {
+       
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth();
+        const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
+        endOfMonth.setHours(23, 59, 59, 999);
+        const { data: holidaysData, error } = await supabase
+          .from("holidays")
+          .select("id, name, date, is_recurring");
+
+        if (error || !holidaysData) {
+          console.error(" Error fetching holidays:", error);
+          return;
+        }
+        const upcomingHolidays = holidaysData
+          .map((h: Holiday) => {
+            const eventDate = new Date(h.date);
+            eventDate.setHours(0, 0, 0, 0);
+            return { ...h, eventDate };
+          })
+          .filter(
+            (h) =>
+              h.eventDate.getFullYear() === currentYear &&
+              h.eventDate.getMonth() === currentMonth &&
+              h.eventDate >= today &&
+              h.eventDate <= endOfMonth
+          )
+          .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime());
+
+        setHolidays(upcomingHolidays);
+        
+      })(), 
+    ]); 
+    setLoading(false);
+  
+  };
 
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -123,6 +269,10 @@ export default function EmployeeDashboardPage() {
     const combined = `${first}${last}`.trim();
     return combined ? combined.toUpperCase() : "?";
   }, [currentUser]);
+
+  const refetchStatus = async () => {
+    await Promise.all([fetchEntries()]);
+  };
 
   const handleLogout = async () => {
     try {
@@ -347,6 +497,7 @@ export default function EmployeeDashboardPage() {
   }
   const cardBase =
     "relative overflow-hidden rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg";
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-white text-slate-900">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/80 backdrop-blur">
@@ -457,6 +608,12 @@ export default function EmployeeDashboardPage() {
           <p className="text-xs text-slate-400">
             Showing data for{" "}
             {format(new Date(selectedYear, selectedMonth - 1, 1), "MMM yyyy")}
+            <button
+              onClick={handleRefreshAll}
+              className="p-2 rounded-full hover:bg-gray-200"
+            >
+              <RefreshCw size={14} />
+            </button>
           </p>
         </div>
 
@@ -495,6 +652,7 @@ export default function EmployeeDashboardPage() {
               currentUser={currentUser}
               refetchStatus={refetchStatus}
               cardBase={cardBase}
+                refetchStatus={fetchTodayStatus}
             />
           </div>
         </section>
@@ -584,6 +742,7 @@ export default function EmployeeDashboardPage() {
                   <LeaveRequestsList
                     requests={leaveRequests}
                     employeeId={currentUser.id}
+                    setLeaves={setLeaveRequests}
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center rounded-2xl bg-slate-50 py-8 text-center">
@@ -625,6 +784,8 @@ export default function EmployeeDashboardPage() {
         <LeaveRequestPopup
           employeeId={currentUser.id}
           onClose={() => setShowLeaveRequest(false)}
+          leaves={leaveRequests}
+          setLeaves={setLeaveRequests}
         />
       )}
       {showSalaryView && (

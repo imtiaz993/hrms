@@ -47,13 +47,13 @@ export function WorkingHoursChartCard({
 }: WorkingHoursChartCardProps) {
   const totals = useMemo(() => {
     const scheduled = chartData.reduce(
-      (sum, item) =>
+      (sum:any, item:any) =>
         isSaturday(item.date) || isSunday(item.date)
           ? sum + 0
           : sum + item.standard_hours,
       0
     );
-    const worked = chartData.reduce((sum, item) => sum + item.total_hours, 0);
+    const worked = chartData.reduce((sum:any, item:any) => sum + item.total_hours, 0);
     return {
       scheduled,
       worked,
@@ -105,7 +105,7 @@ export function WorkingHoursChartCard({
       )}
       <div className="space-y-3">
         <div className="relative flex h-64 items-end justify-between gap-1 rounded-2xl bg-slate-50/60 px-3 pb-3 pt-4">
-          {chartData.map((item, index) => {
+          {chartData.map((item:any, index:any) => {
             const actualHeight = (item.total_hours / item.standard_hours) * 100;
 
             return (
@@ -205,7 +205,7 @@ export function WorkingHoursChartCard({
               )}
             />
             <span className="text-[11px] font-medium text-slate-600">
-              {label}
+              {label as string}
             </span>
           </div>
         ))}

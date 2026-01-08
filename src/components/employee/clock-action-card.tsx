@@ -86,7 +86,7 @@ const isWeekend=()=>{
     }
   };
  const handleClockOut = async () => {
-  if (!status.timeEntryId) {
+  if (!status) {
     setMessage({ type: "error", text: "No active time entry found." });
     return;
   }
@@ -98,7 +98,7 @@ const isWeekend=()=>{
     const now = new Date();
 
     const { error } = await supabase.rpc("calculate_total_hours", {
-      p_time_entry_id: status.timeEntryId,
+      p_time_entry_id: status,
       p_clock_out: now.toISOString(),
     });
 
