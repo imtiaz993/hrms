@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SalaryRecord } from "@/types";
-import { formatCurrency } from "@/hooks/useSalary";
+
 import { DollarSign, Clock, TrendingUp, Minus } from "lucide-react";
 
 interface SalarySummaryCardsProps {
@@ -14,6 +14,12 @@ export function SalarySummaryCards({
   record,
   currency,
 }: SalarySummaryCardsProps) {
+   function formatCurrency(amount: number, currency: string = 'USD'): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+  }).format(amount);
+}
   const cardBase =
     "relative overflow-hidden rounded-2xl border border-slate-100 bg-white/85 backdrop-blur-sm shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md";
 

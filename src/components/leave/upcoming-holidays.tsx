@@ -2,13 +2,22 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Holiday } from "@/types";
+
 import { formatDate } from "@/lib/time-utils";
 import { Calendar } from "lucide-react";
 
-interface UpcomingHolidaysProps {
-  holidays: Holiday[];
+interface UpcomingHoliday {
+  id: string;
+  name: string;
+  date: string;
+  description?: string | null;
+  is_recurring?: boolean;
 }
+
+interface UpcomingHolidaysProps {
+  holidays: UpcomingHoliday[];
+}
+
 
 export function UpcomingHolidays({ holidays }: UpcomingHolidaysProps) {
   const cardBase =

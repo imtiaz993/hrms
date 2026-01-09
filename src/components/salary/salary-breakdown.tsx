@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SalaryRecord } from '@/types';
-import { formatCurrency } from '@/hooks/useSalary';
+
 
 interface SalaryBreakdownProps {
   record: SalaryRecord;
@@ -12,7 +12,12 @@ interface SalaryBreakdownProps {
 export function SalaryBreakdown({ record, currency }: SalaryBreakdownProps) {
   const totalDeductions = record.unpaid_leave_deduction + record.other_deductions;
   const grossPay = record.base_pay + record.overtime_pay + record.allowances;
-
+function formatCurrency(amount: number, currency: string = 'USD'): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+  }).format(amount);
+}
   const cardBase =
     'relative overflow-hidden rounded-2xl border border-slate-100 bg-white/85 backdrop-blur-sm shadow-sm';
 
