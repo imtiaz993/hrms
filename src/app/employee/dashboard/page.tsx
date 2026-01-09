@@ -12,7 +12,6 @@ import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout as logoutAction } from "@/store/authSlice";
 import UpcomingHoliday from "../component/UpcomingHolidays";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { User, LogOut, Plus, RefreshCw } from "lucide-react";
@@ -30,237 +29,401 @@ import AttendanceTodayCard from "../component/Attendance";
 import { AttendanceAnalytics, DailyAttendance } from "@/types";
 import { LeaveRequest } from "@/types";
 
+interface TimeEntry {
+  date: string;
+  total_hours: number;
+  standard_hours: number;
+  is_late: boolean;
+  is_early_leave: boolean;
+  time_in: string;
+  time_out: string | null;
+}
+ interface TodayStatus {
+  date: string;
+  status: "not_clocked_in" | "clocked_in" | "completed";
+  timeIn: string | null;
+  timeOut: string | null;
+  elapsedHours: number | null;
+  totalHours: number | null;
+  overtimeHours: number;
+  isLate: boolean;
+  lateByMinutes: number | null;
+  timeEntryId:number
+  clockIn:string|null;
+clockOut:string;
+
+}
 export default function EmployeeDashboardPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { currentUser } = useAppSelector((state) => state.auth);
-
   const [showProfile, setShowProfile] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showLeaveRequest, setShowLeaveRequest] = useState(false);
   const [showSalaryView, setShowSalaryView] = useState(false);
-
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [todayStatus, setTodayStatus] = useState<null>(null);
-const [statusLoading, setStatusLoading] = useState(true);
-
+ const [todayStatus, setTodayStatus] = useState<TodayStatus | null>(null);
+  const [statusLoading, setStatusLoading] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [sickLeaves, setSickLeaves] = useState(0);
   const [casualLeaves, setCasualLeaves] = useState(0);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<any>();
+  const [upcomingBirthdays, setUpcomingBirthdays] = useState<
+    { id: string; employeeName: string }[]
+  >([]);
+  const [upcomingAnniversaries, setUpcomingAnniversaries] = useState<
+    { id: string; employeeName: string; yearsCompleted: number }[]
+  >([]);
   const [holidays, setHolidays] = useState<[]>([]);
+  const [todayBirthdays, setTodayBirthdays] = useState<
+    { employeeName: string }[]
+  >([]);
+  const [todayAnniversaries, setTodayAnniversaries] = useState<
+    { employeeName: string; yearsCompleted: number }[]
+  >([]);
 
-const fetchTodayStatus = async () => {
-  setStatusLoading(true);
+  const [entries, setEntries] = useState<TimeEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!currentUser?.id) {
-    setTodayStatus(null);
-    setStatusLoading(false);
-    return;
-  }
+  const fetchUpcomingEvents = async () => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
+    const { data, error } = await supabase.rpc(
+      "employees_current_month_future"
+    );
 
-  const today = format(new Date(), "yyyy-MM-dd");
+    if (error || !data) return;
+    const upcomingBirthdays = data
+      .filter((emp: any) => emp.date_of_birth)
+      .map((emp: any) => {
+        const dob = new Date(emp.date_of_birth);
+        const birthdayThisYear = new Date(
+          currentYear,
+          dob.getMonth(),
+          dob.getDate()
+        );
 
-  const { data: entries, error } = await supabase
-    .from("time_entries")
-    .select("*")
-    .eq("employee_id", currentUser.id)
-    .gte("date", today + "T00:00:00")
-    .lte("date", today + "T23:59:59")
-    .order("clock_in", { ascending: false });
+        return {
+          emp,
+          eventDate: birthdayThisYear,
+        };
+      })
+      .filter(
+        (e: any) =>
+          e.eventDate > today &&
+          e.eventDate <= endOfMonth &&
+          e.eventDate.getMonth() === currentMonth
+      )
+      .map((e: any) => ({
+        id: e.emp.id,
+        employeeName: `${e.emp.first_name} ${e.emp.last_name} ${e.emp.date_of_birth}`,
+        eventDate: e.eventDate,
+      }))
+      .sort((a: any, b: any) => a.eventDate.getTime() - b.eventDate.getTime());
+    const upcomingAnniversaries = data
+      .filter((emp: any) => emp.join_date)
+      .map((emp: any) => {
+        const join = new Date(emp.join_date);
+        const anniversaryThisYear = new Date(
+          currentYear,
+          join.getMonth(),
+          join.getDate()
+        );
 
-  if (error || !entries || entries.length === 0) {
-    setTodayStatus(null);
-  } else {
-    const latestEntry = entries[0];
-    if (latestEntry.clock_out) {
-      setTodayStatus({
+        const yearsCompleted = currentYear - join.getFullYear();
+
+        return {
+          emp,
+          eventDate: anniversaryThisYear,
+          yearsCompleted,
+        };
+      })
+      .filter(
+        (e: any) =>
+          e.eventDate > today &&
+          e.eventDate <= endOfMonth &&
+          e.yearsCompleted > 0 &&
+          e.eventDate.getMonth() === currentMonth
+      )
+      .map((e: any) => ({
+        id: e.emp.id,
+        employeeName: `${e.emp.first_name} ${e.emp.last_name} ${e.emp.date_of_birth}`,
+        yearsCompleted: e.yearsCompleted,
+        eventDate: e.eventDate,
+      }))
+      .sort((a: any, b: any) => a.eventDate.getTime() - b.eventDate.getTime());
+
+    setUpcomingBirthdays(upcomingBirthdays);
+    setUpcomingAnniversaries(upcomingAnniversaries);
+  };
+
+  const fetchTodayEvents = async () => {
+    const today = new Date();
+    const todayMonth = today.getMonth();
+    const todayDate = today.getDate();
+    const currentYear = today.getFullYear();
+
+    const { data, error } = await supabase.rpc("employees_today");
+
+    if (error) {
+      console.error("Supabase error:", error);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      console.error("No employees found");
+      return;
+    }
+    const birthdays = data
+      .filter((emp: any) => {
+        if (!emp.date_of_birth) return false;
+
+        const dob = new Date(emp.date_of_birth);
+
+        return dob.getMonth() === todayMonth && dob.getDate() === todayDate;
+      })
+      .map((emp: any) => ({
+        employeeName: `${emp.first_name} ${emp.last_name}`,
+      }));
+
+    const anniversaries = data
+      .filter((emp: any) => {
+        if (!emp.join_date) return false;
+
+        const join = new Date(emp.join_date);
+
+        return join.getMonth() === todayMonth && join.getDate() === todayDate;
+      })
+      .map((emp: any) => {
+        const join = new Date(emp.join_date!);
+        const yearsCompleted = currentYear - join.getFullYear();
+        return {
+          employeeName: `${emp.first_name} ${emp.last_name}`,
+          yearsCompleted,
+        };
+      })
+      .filter((a: any) => a.yearsCompleted >= 0);
+
+    setTodayBirthdays(birthdays);
+    setTodayAnniversaries(anniversaries);
+  };
+  function mapTimeEntryToTodayStatus(
+    entry: any,
+    standardHours: number,
+    standardShiftStart: string
+  ): TodayStatus {
+    if (entry.clock_in && entry.clock_out) {
+      return {
         status: "completed",
-        timeEntryId: latestEntry.id,
-        clockIn: latestEntry.clock_in,
-        clockOut: latestEntry.clock_out,
-        totalHours: latestEntry.total_hours,
+        timeEntryId: entry.id,
+        clockIn: entry.clock_in,
+        clockOut: entry.clock_out,
+  
+        totalHours: 0,
+        date: "",
+  
+        timeIn: null,
+        timeOut: null,
+        elapsedHours: null,
+  
+        overtimeHours: 0,
+        isLate: false,
+        lateByMinutes: null,
+      };
+    }
+  
+    if (entry.clock_in && !entry.clock_out) {
+      return {
+        status: "clocked_in",
+        timeEntryId: entry.id,
+        clockIn: entry.clock_in,
+        clockOut:"",
+         totalHours: 0,
+        date: "",
+  
+        timeIn: null,
+        timeOut: null,
+        elapsedHours: null,
+  
+        overtimeHours: 0,
+        isLate: false,
+        lateByMinutes: null,
+      };
+    }
+  
+    return {
+      status: "not_clocked_in",
+      
+        timeEntryId: NaN,
+        clockIn: "",
+        clockOut:"",
+       totalHours: 0,
         date: "",
         timeIn: null,
         timeOut: null,
         elapsedHours: null,
+  
         overtimeHours: 0,
         isLate: false,
         lateByMinutes: null,
-      });
-    } else {
-      setTodayStatus(
-        mapTimeEntryToTodayStatus(
-          latestEntry,
-          currentUser.standard_hours_per_day,
-          currentUser.standard_shift_start
-        )
-      );
-    }
+    };
   }
+  
+  const fetchTodayStatus = async () => {
+    setStatusLoading(true);
 
-  setStatusLoading(false);
-};
-useEffect(() => {
-  if (!currentUser?.id) return;
-  fetchTodayStatus();
-}, [currentUser?.id, currentUser?.standard_hours_per_day, currentUser?.standard_shift_start]);
+    if (!currentUser?.id) {
+      setTodayStatus(null);
+      setStatusLoading(false);
+      return;
+    }
 
+    const today = format(new Date(), "yyyy-MM-dd");
+
+    const { data: entries, error } = await supabase
+      .from("time_entries")
+      .select("*")
+      .eq("employee_id", currentUser.id)
+      .gte("date", today + "T00:00:00")
+      .lte("date", today + "T23:59:59")
+      .order("clock_in", { ascending: false });
+
+    if (error || !entries || entries.length === 0) {
+      setTodayStatus(null);
+    } else {
+      const latestEntry = entries[0];
+      if (latestEntry.clock_out) {
+        setTodayStatus({
+          status: "completed",
+          timeEntryId: latestEntry.id,
+          clockIn: latestEntry.clock_in,
+          clockOut: latestEntry.clock_out,
+          totalHours: latestEntry.total_hours,
+          date: "",
+          timeIn: null,
+          timeOut: null,
+          elapsedHours: null,
+          overtimeHours: 0,
+          isLate: false,
+          lateByMinutes: null,
+        });
+      } else {
+        setTodayStatus(
+          mapTimeEntryToTodayStatus(
+            latestEntry,
+            currentUser.standard_hours_per_day,
+            currentUser.standard_shift_start
+          )
+        );
+      }
+    }
+
+    setStatusLoading(false);
+  };
+  const fetchEmployee = async (employeeId: string) => {
+    const { data: employee, error } = await supabase
+      .from("employees")
+      .select("*")
+      .eq("id", employeeId)
+      .single();
+
+    if (error || !employee) {
+      throw error;
+    }
+
+    setSickLeaves(Number(employee.total_sick_leaves));
+    setCasualLeaves(Number(employee.total_casual_leaves));
+
+    return employee;
+  };
+  const fetchLeaves = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("leave_requests")
+      .select("*")
+      .eq("employee_id", currentUser?.id)
+      .order("start_date", { ascending: false });
+
+    if (error) setError(error);
+    else setLeaveRequests(data || []);
+
+    setLoading(false);
+  };
+
+  const fetchEntries = async () => {
+    setIsLoading(true);
+
+    const start = format(
+      startOfMonth(new Date(selectedYear, selectedMonth - 1)),
+      "yyyy-MM-dd"
+    );
+    const end = format(
+      endOfMonth(new Date(selectedYear, selectedMonth - 1)),
+      "yyyy-MM-dd"
+    );
+    const { data, error } = await supabase
+      .from("time_entries")
+      .select("*")
+      .eq("employee_id", currentUser?.id)
+      .gte("date", start)
+      .lte("date", end);
+    if (error) {
+      console.error("Error fetching time entries:", error);
+      setEntries([]);
+    } else {
+      setEntries(data || []);
+    }
+    setIsLoading(false);
+  };
+  const fetchAllData = () => {
+    fetchTodayStatus();
+    fetchTodayEvents();
+    fetchUpcomingEvents();
+    fetchLeaves();
+    fetchEntries();
+  };
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    fetchAllData();
+  }, [
+    currentUser?.id,
+    currentUser?.standard_hours_per_day,
+    currentUser?.standard_shift_start,
+  ]);
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: userData, error: userError } =
-        await supabase.auth.getUser();
+      const { data: userData, error } = await supabase.auth.getUser();
 
-      if (userError || !userData?.user) {
+      if (error || !userData?.user) {
         router.replace("/login");
         return;
       }
 
       const authUserId = userData.user.id;
 
-      const { data: employee, error: employeeError } = await supabase
-        .from("employees")
-        .select("*")
-        .eq("id", authUserId)
-        .single();
+      try {
+        const employee = await fetchEmployee(authUserId);
 
-      if (employeeError || !employee) {
+        if (employee.is_admin) {
+          router.replace("/admin/dashboard");
+          return;
+        }
+
+        setCheckingAuth(false);
+      } catch {
         router.replace("/login");
-        return;
       }
-      setSickLeaves(Number(employee.total_sick_leaves));
-      setCasualLeaves(Number(employee.total_casual_leaves));
-
-      if (employee.is_admin) {
-        router.replace("/admin/dashboard");
-        return;
-      }
-      setCheckingAuth(false);
     };
 
     checkAuth();
   }, [router]);
-
-
-  const handleRefreshAll = async () => {
-
-
-    if (!currentUser?.id) {
-     
-      return;
-    }
-
-    setLoading(true);
-
-    await Promise.all([
-      (async () => {
-        const { data: employee, error: empError } = await supabase
-          .from("employees")
-          .select("*")
-          .eq("id", currentUser.id)
-          .single();
-
-        if (empError) console.error("Error fetching employee:", empError);
-        else {
-         
-          setSickLeaves(Number(employee.total_sick_leaves));
-          setCasualLeaves(Number(employee.total_casual_leaves));
-        }
-      })(),
-      (async () => {
-
-  await fetchTodayStatus();
- 
-})(),
-
-
-      (async () => {
-        await refetchStatus();
-      
-      })(),
-
-      (async () => {
-        const { data, error } = await supabase
-          .from("leave_requests")
-          .select("*")
-          .eq("employee_id", currentUser.id)
-          .order("start_date", { ascending: false });
-
-        if (error) console.error(" Error fetching leave requests:", error);
-        else {
-   
-          setLeaveRequests(data || []);
-        }
-      })(),
-
-      (async () => {
-        
-        await fetchEntries();
-      
-      })(),
-      (async () => {
-       
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const currentYear = today.getFullYear();
-        const currentMonth = today.getMonth();
-        const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
-        endOfMonth.setHours(23, 59, 59, 999);
-        const { data: holidaysData, error } = await supabase
-          .from("holidays")
-          .select("id, name, date, is_recurring");
-
-        if (error || !holidaysData) {
-          console.error(" Error fetching holidays:", error);
-          return;
-        }
-        const upcomingHolidays = holidaysData
-          .map((h: Holiday) => {
-            const eventDate = new Date(h.date);
-            eventDate.setHours(0, 0, 0, 0);
-            return { ...h, eventDate };
-          })
-          .filter(
-            (h) =>
-              h.eventDate.getFullYear() === currentYear &&
-              h.eventDate.getMonth() === currentMonth &&
-              h.eventDate >= today &&
-              h.eventDate <= endOfMonth
-          )
-          .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime());
-
-        setHolidays(upcomingHolidays);
-        
-      })(), 
-    ]); 
-    setLoading(false);
-  
-  };
-
-  useEffect(() => {
-    if (!currentUser?.id) return;
-
-    const fetchLeaves = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("leave_requests")
-        .select("*")
-        .eq("employee_id", currentUser.id)
-        .order("start_date", { ascending: false });
-
-      if (error) setError(error);
-      else setLeaveRequests(data || []);
-
-      setLoading(false);
-    };
-
-    fetchLeaves();
-  }, [currentUser?.id]);
 
   const profileInitials = useMemo(() => {
     if (!currentUser) return "?";
@@ -291,48 +454,6 @@ useEffect(() => {
   };
 
   const closeProfileMenu = () => setProfileMenuOpen(false);
-  interface TimeEntry {
-    date: string;
-    total_hours: number;
-    standard_hours: number;
-    is_late: boolean;
-    is_early_leave: boolean;
-    time_in: string;
-    time_out: string | null;
-  }
-
-  const [entries, setEntries] = useState<TimeEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchEntries = async () => {
-    setIsLoading(true);
-
-    const start = format(
-      startOfMonth(new Date(selectedYear, selectedMonth - 1)),
-      "yyyy-MM-dd"
-    );
-    const end = format(
-      endOfMonth(new Date(selectedYear, selectedMonth - 1)),
-      "yyyy-MM-dd"
-    );
-    const { data, error } = await supabase
-      .from("time_entries")
-      .select("*")
-      .eq("employee_id", currentUser?.id)
-      .gte("date", start)
-      .lte("date", end);
-    if (error) {
-      console.error("Error fetching time entries:", error);
-      setEntries([]);
-    } else {
-      setEntries(data || []);
-    }
-    setIsLoading(false);
-  };
-  useEffect(() => {
-    if (!currentUser?.id || selectedMonth <= 0 || selectedYear <= 0) return;
-    fetchEntries();
-  }, [currentUser?.id, selectedMonth, selectedYear]);
 
   const months = useMemo(() => {
     if (!entries.length) {
@@ -609,7 +730,9 @@ useEffect(() => {
             Showing data for{" "}
             {format(new Date(selectedYear, selectedMonth - 1, 1), "MMM yyyy")}
             <button
-              onClick={handleRefreshAll}
+              onClick={() => {
+                fetchAllData();
+              }}
               className="p-2 rounded-full hover:bg-gray-200"
             >
               <RefreshCw size={14} />
@@ -628,7 +751,11 @@ useEffect(() => {
           <div className="flex w-[1210px] lg:flex-row gap-4">
             {/* LEFT: My Info + Today's Events */}
             <div className=" flex-1 lg:w-1/2 border-indigo-100">
-              <UserInfoCard cardBase={cardBase} />
+              <UserInfoCard
+                cardBase={cardBase}
+                todayBirthdays={todayBirthdays}
+                todayAnniversaries={todayAnniversaries}
+              />
               <Card className={`${cardBase} mt-3 h-[400px]`}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base font-semibold text-slate-900">
@@ -652,12 +779,16 @@ useEffect(() => {
               currentUser={currentUser}
               refetchStatus={refetchStatus}
               cardBase={cardBase}
-                refetchStatus={fetchTodayStatus}
+              // refetchStatus={fetchTodayStatus}
             />
           </div>
         </section>
         <div className="flex w-[1210px] lg:flex-row gap-4">
-          <UpcommingEvents cardBase={cardBase} />
+          <UpcommingEvents
+            upcomingBirthdays={upcomingBirthdays}
+            upcomingAnniversaries={upcomingAnniversaries}
+            cardBase={cardBase}
+          />
           <UpcomingHoliday cardBase={cardBase} />
         </div>
         <section>
@@ -731,10 +862,18 @@ useEffect(() => {
               </p>
             </div>
             <Card className={cardBase}>
-              <CardHeader className="pb-3">
+              <CardHeader className="">
                 <CardTitle className="text-base font-semibold text-slate-900">
                   Leave Requests
                 </CardTitle>
+                <Button
+                  onClick={() => setShowLeaveRequest(true)}
+                  className="mt-4 rounded-full px-1 text-sm"
+                  variant="outline"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Request leave
+                </Button>
               </CardHeader>
 
               <CardContent>
@@ -749,14 +888,6 @@ useEffect(() => {
                     <p className="text-sm text-slate-500">
                       No leave requests yet.
                     </p>
-                    <Button
-                      onClick={() => setShowLeaveRequest(true)}
-                      className="mt-4 rounded-full px-4 text-sm"
-                      variant="outline"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Request leave
-                    </Button>
                   </div>
                 )}
               </CardContent>

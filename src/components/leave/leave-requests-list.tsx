@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LeaveRequest, LeaveStatus, LeaveType } from "@/types";
-import { useCancelLeaveRequest } from "@/hooks/useLeave";
+import { supabase } from "@/lib/Supabase";
 import { formatDate } from "@/lib/time-utils";
 import { Calendar, AlertCircle, X } from "lucide-react";
 import { isAfter, parseISO } from "date-fns";
@@ -51,15 +51,32 @@ export function LeaveRequestsList({
 }: LeaveRequestsListProps) {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [isCancelling, setIsCancelling] = useState(false);
 
-  const cancelMutation = useCancelLeaveRequest();
+  const cancelLeaveRequest = async (requestId: string) => {
+    setIsCancelling(true);
+
+    try {
+      const { error } = await supabase
+        .from("leave_requests")
+        .delete()
+        .eq("id", requestId);
+
+      if (error) throw error;
+
+      return true;
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const handleCancel = async (requestId: string) => {
     setError("");
     setCancellingId(requestId);
 
     try {
-      await cancelMutation.mutateAsync({ requestId, employeeId });
+      await cancelLeaveRequest(requestId);
+
       setLeaves((prev: LeaveRequest[]) =>
         prev.filter((leave) => leave.id !== requestId)
       );
