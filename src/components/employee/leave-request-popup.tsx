@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { X, AlertCircle, CheckCircle2 } from "lucide-react";
 import { LeaveType, LeaveRequest } from "@/types";
-import { parseISO, startOfDay, isBefore } from "date-fns";
-import { calculateLeaveDays, hasOverlappingLeave } from "@/hooks/useLeave";
+import { parseISO, startOfDay, isBefore, differenceInCalendarDays, isAfter } from "date-fns";
+
 
 interface LeaveRequestPopupProps {
   employeeId: string;
@@ -38,6 +38,50 @@ export function LeaveRequestPopup({
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  function calculateLeaveDays(
+    startDate: string,
+    endDate: string,
+    isHalfDay: boolean
+  ): number {
+    if (isHalfDay) {
+      return 0.5;
+    }
+  
+    const start = startOfDay(parseISO(startDate));
+    const end = startOfDay(parseISO(endDate));
+    const days = differenceInCalendarDays(end, start) + 1;
+  
+    return days;
+  }
+
+
+   function hasOverlappingLeave(
+    requests: LeaveRequest[],
+    startDate: string,
+    endDate: string
+  ): boolean {
+    const newStart = parseISO(startDate);
+    const newEnd = parseISO(endDate);
+  
+    return requests.some((req) => {
+      if (req.status === "rejected") return false;
+  
+      const reqStart = parseISO(req.start_date);
+      const reqEnd = parseISO(req.end_date);
+  
+      return (
+        ((isAfter(newStart, reqStart) ||
+          newStart.getTime() === reqStart.getTime()) &&
+          (isBefore(newStart, reqEnd) ||
+            newStart.getTime() === reqEnd.getTime())) ||
+        ((isAfter(newEnd, reqStart) || newEnd.getTime() === reqStart.getTime()) &&
+          (isBefore(newEnd, reqEnd) || newEnd.getTime() === reqEnd.getTime())) ||
+        ((isBefore(newStart, reqStart) ||
+          newStart.getTime() === reqStart.getTime()) &&
+          (isAfter(newEnd, reqEnd) || newEnd.getTime() === reqEnd.getTime()))
+      );
+    });
+  }
   
 
  

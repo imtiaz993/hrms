@@ -7,70 +7,13 @@ import { Cake, Award } from "lucide-react";
 
 interface Props {
   cardBase: string;
+  todayAnniversaries:any;
+  todayBirthdays:any;
 }
-export default function UserInfoCard({ cardBase }: Props) {
-  const [todayBirthdays, setTodayBirthdays] = useState<
-    { employeeName: string }[]
-  >([]);
-  
-  const [todayAnniversaries, setTodayAnniversaries] = useState<
-    { employeeName: string; yearsCompleted: number }[]
-  >([]);
+export default function UserInfoCard({ cardBase,todayAnniversaries,todayBirthdays}: Props) {
 
-  useEffect(() => {
-    const fetchTodayEvents = async () => {
-      const today = new Date();
-      const todayMonth = today.getMonth();
-      const todayDate = today.getDate();
-      const currentYear = today.getFullYear();
 
-      const { data, error } = await supabase.rpc("employees_today");
-
-      if (error) {
-        console.error("Supabase error:", error);
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        console.error("No employees found");
-        return;
-      }
-      const birthdays = data
-        .filter((emp:any) => {
-          if (!emp.date_of_birth) return false;
-
-          const dob = new Date(emp.date_of_birth);
-
-          return dob.getMonth() === todayMonth && dob.getDate() === todayDate;
-        })
-        .map((emp:any) => ({
-          employeeName: `${emp.first_name} ${emp.last_name}`,
-        }));
-
-      const anniversaries = data
-        .filter((emp:any) => {
-          if (!emp.join_date) return false;
-
-          const join = new Date(emp.join_date);
-
-          return join.getMonth() === todayMonth && join.getDate() === todayDate;
-        })
-        .map((emp:any) => {
-          const join = new Date(emp.join_date!);
-          const yearsCompleted = currentYear - join.getFullYear();
-          return {
-            employeeName: `${emp.first_name} ${emp.last_name}`,
-            yearsCompleted,
-          };
-        })
-        .filter((a:any) => a.yearsCompleted >= 0);
-
-      setTodayBirthdays(birthdays);
-      setTodayAnniversaries(anniversaries);
-    };
-
-    fetchTodayEvents();
-  }, []);
+ 
   
   return (
     <Card className={`${cardBase}  flex-1 `}>
@@ -89,7 +32,7 @@ export default function UserInfoCard({ cardBase }: Props) {
                   Birthdays
                 </p>
                 <div className="mt-1 space-y-0.5">
-                  {todayBirthdays.map((b, index) => (
+                  {todayBirthdays.map((b:any, index:any) => (
                     <p key={index} className="text-base text-slate-700">
                       {b.employeeName}
                     </p>
@@ -104,7 +47,7 @@ export default function UserInfoCard({ cardBase }: Props) {
                   Work Anniversaries
                 </p>
                 <div className="mt-1 space-y-0.5">
-                  {todayAnniversaries.map((a, index) => (
+                  {todayAnniversaries.map((a:any, index:any) => (
                     <p key={index} className="text-base text-slate-700">
                       {a.employeeName} ({a.yearsCompleted} years)
                     </p>

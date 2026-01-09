@@ -5,93 +5,14 @@ import { Cake, Award } from "lucide-react";
 
 interface Props {
   cardBase: string;
+  upcomingAnniversaries: any;
+  upcomingBirthdays: any;
 }
-const UpcommingEvents = ({ cardBase }: Props) => {
-  const [upcomingBirthdays, setUpcomingBirthdays] = useState<
-    { id: string; employeeName: string }[]
-  >([]);
-
-  const [upcomingAnniversaries, setUpcomingAnniversaries] = useState<
-    { id: string; employeeName: string; yearsCompleted: number }[]
-  >([]);
-  useEffect(() => {
-    const fetchUpcomingEvents = async () => {
-      const today = new Date();
-      const currentYear = today.getFullYear();
-      const currentMonth = today.getMonth();
-      const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
-      const { data, error } = await supabase.rpc(
-        "employees_current_month_future"
-      );
-
-      if (error || !data) return;
-      const upcomingBirthdays = data
-        .filter((emp:any) => emp.date_of_birth)
-        .map((emp:any) => {
-          const dob = new Date(emp.date_of_birth);
-          const birthdayThisYear = new Date(
-            currentYear,
-            dob.getMonth(),
-            dob.getDate()
-          );
-
-          return {
-            emp,
-            eventDate: birthdayThisYear,
-          };
-        })
-        .filter(
-          (e:any) =>
-            e.eventDate > today &&
-            e.eventDate <= endOfMonth &&
-            e.eventDate.getMonth() === currentMonth
-        )
-        .map((e:any) => ({
-          id: e.emp.id,
-          employeeName: `${e.emp.first_name} ${e.emp.last_name} ${e.emp.date_of_birth}`,
-          eventDate: e.eventDate,
-        }))
-        .sort((a:any, b:any) => a.eventDate.getTime() - b.eventDate.getTime());
-      const upcomingAnniversaries = data
-        .filter((emp:any) => emp.join_date)
-        .map((emp:any) => {
-          const join = new Date(emp.join_date);
-          const anniversaryThisYear = new Date(
-            currentYear,
-            join.getMonth(),
-            join.getDate()
-          );
-
-          const yearsCompleted = currentYear - join.getFullYear();
-
-          return {
-            emp,
-            eventDate: anniversaryThisYear,
-            yearsCompleted,
-          };
-        })
-        .filter(
-          (e:any) =>
-            e.eventDate > today &&
-            e.eventDate <= endOfMonth &&
-            e.yearsCompleted > 0 &&
-            e.eventDate.getMonth() === currentMonth
-        )
-        .map((e:any) => ({
-          id: e.emp.id,
-          employeeName: `${e.emp.first_name} ${e.emp.last_name} ${e.emp.date_of_birth}`,
-          yearsCompleted: e.yearsCompleted,
-          eventDate: e.eventDate,
-        }))
-        .sort((a:any, b:any) => a.eventDate.getTime() - b.eventDate.getTime());
-
-      setUpcomingBirthdays(upcomingBirthdays);
-      setUpcomingAnniversaries(upcomingAnniversaries);
-    };
-
-    fetchUpcomingEvents();
-  }, []);
-
+const UpcommingEvents = ({
+  cardBase,
+  upcomingAnniversaries,
+  upcomingBirthdays,
+}: Props) => {
   return (
     <Card className={`${cardBase} flex-1 lg:w-1/2`}>
       <section aria-labelledby="upcoming-events-heading" className="space-y-4">
@@ -112,11 +33,13 @@ const UpcommingEvents = ({ cardBase }: Props) => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {upcomingBirthdays.map((b) => (
-                    <p key={b.id} className="text-xs text-slate-700">
-                      {b.employeeName}
-                    </p>
-                  ))}
+                  {upcomingBirthdays.map(
+                    (b: { id: string | number; employeeName: string }) => (
+                      <p key={b.id} className="text-xs text-slate-700">
+                        {b.employeeName}
+                      </p>
+                    )
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -132,7 +55,7 @@ const UpcommingEvents = ({ cardBase }: Props) => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {upcomingAnniversaries.map((a) => (
+                  {upcomingAnniversaries.map((a:{employeeName:string, yearsCompleted:string, id: string | number;}) => (
                     <p key={a.id} className="text-xs text-slate-700">
                       {a.employeeName} ({a.yearsCompleted} years)
                     </p>
