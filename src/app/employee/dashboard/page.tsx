@@ -28,6 +28,9 @@ import UpcommingEvents from "../component/UpcommingEvents";
 import AttendanceTodayCard from "../component/Attendance";
 import { AttendanceAnalytics, DailyAttendance } from "@/types";
 import { LeaveRequest } from "@/types";
+import FCMTokenManager from "./FCMTokenManager";
+import { getToken } from "firebase/messaging";
+import { getFirebaseMessaging } from "../../../firebase";
 
 interface TimeEntry {
   date: string;
@@ -90,6 +93,37 @@ export default function EmployeeDashboardPage() {
 
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+    const [fcmToken, setFcmToken] = useState<string | null>(null);
+ useEffect(() => {
+    const requestPermissionAndGetToken = async () => {
+      try {
+        if (!("Notification" in window)) return console.log("Browser not supported");
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          console.log("Notification permission denied");
+          return;
+        }
+        const messaging = await getFirebaseMessaging();
+        if (!messaging) return;
+        //  Register the service worker
+        const swRegistration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+        // Get the FCM token
+        const token = await getToken(messaging, {
+          vapidKey: "BLJaC9ebeDDCWMDUspWw0N-4q-UKZ5nQfcNDBoEPYeQbU9UsFZaUtdqSF6tR6WvtVxv-J4kpBHTlJyRqk2z5jZc", // <- Replace with your actual VAPID key
+          serviceWorkerRegistration: swRegistration,
+        });
+
+        if (token) {
+          console.log(" FCM registration token:", token);
+          setFcmToken(token);
+        }
+      } catch (err) {
+        console.error("Error generating FCM token:", err);
+      }
+    };
+
+    requestPermissionAndGetToken();
+  }, []);
 
   const fetchUpcomingEvents = async () => {
     const today = new Date();
@@ -629,6 +663,7 @@ export default function EmployeeDashboardPage() {
               Employee Dashboard
             </h1>
           </div>
+          
           <div className="flex items-center gap-3">
             <div className="relative">
               <button
