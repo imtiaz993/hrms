@@ -1,8 +1,8 @@
-name: Daily Slack Message
+name: Slack Reminder
 
 "on":
   schedule:
-    - cron: "* * * * *"   # runs every minute
+    - cron: "*/5 * * * *"  # Runs every 5 minutes (minimum granularity)
   workflow_dispatch:
 
 jobs:
@@ -20,6 +20,6 @@ jobs:
             --data-binary @- <<EOF
           {
             "channel": "${SLACK_CHANNEL_ID}",
-            "text": "Daily reminder 🚀 Please post your updates."
+            "text": "Scheduled reminder from GitHub Actions."
           }
           EOF
