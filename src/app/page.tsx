@@ -26,4 +26,5 @@ export default function HomePage() {
   }, [isAuthenticated, isLoading, currentUser, router]);
 
   return <Loader />;
+  
 }
