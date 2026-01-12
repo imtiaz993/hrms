@@ -3,7 +3,7 @@ name: Daily Slack Message
 on:
   schedule:
     # Runs every day at 09:00 UTC
-    - cron: "44 5 * * *"
+    - cron: "46 17 * * *"
   workflow_dispatch: {}
 
 jobs:
