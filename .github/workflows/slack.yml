@@ -1,0 +1,26 @@
+name: Daily Slack Message
+
+on:
+  schedule:
+    # Runs every day at 09:00 UTC
+    - cron: "34 5 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post message to Slack
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
+        run: |
+          curl -sS -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            --data-binary @- <<EOF
+          {
+            "channel": "${SLACK_CHANNEL_ID}",
+            "text": "Daily reminder 🚀 Please post your updates."
+          }
+          EOF

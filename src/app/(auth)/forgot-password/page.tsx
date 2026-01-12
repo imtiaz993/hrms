@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/Supabase";
+import Loader from "@/components/loader";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -76,11 +77,7 @@ export default function ForgotPasswordPage() {
   };
 
   if (!sessionChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Checking session...
-      </div>
-    );
+    return <Loader />;
   }
 
   return (
