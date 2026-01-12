@@ -1,7 +1,7 @@
 name: Slack Reminder
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '22 18 * * *'
   workflow_dispatch:
 jobs:
   notify:
