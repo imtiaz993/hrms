@@ -1,10 +1,8 @@
 name: Slack Reminder
-
 on:
   schedule:
-    - cron: "*/5 * * * *"   # runs every 5 minutes (GitHub’s minimum interval)
+    - cron: '*/5 * * * *'
   workflow_dispatch:
-
 jobs:
   notify:
     runs-on: ubuntu-latest
