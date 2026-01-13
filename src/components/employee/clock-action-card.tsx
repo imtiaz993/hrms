@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState ,useEffect} from "react";
 import {
   Card,
   CardContent,
@@ -36,6 +36,8 @@ export function ClockActionCard({
   } | null>(null);
   const [isClockInLoading, setIsClockInLoading] = useState(false);
   const [isClockOutLoading, setIsClockOutLoading] = useState(false);
+ 
+  const [employeeName, setEmployeeName] = useState<string>("");
   const timeToMinutes = (time: string) => {
     const [h, m] = time.split(":").map(Number);
     return h * 60 + m;
@@ -51,38 +53,49 @@ const isWeekend=()=>{
 
 
    
+    useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+      
+        setEmployeeName(user.user_metadata?.full_name || user.email || "Employee");
+      }
+    };
+    fetchUser();
+  }, []);
+
   const handleClockIn = async () => {
-   
     setMessage(null);
-    setIsClockInLoading(true);
     try {
       const now = new Date();
-      const today = format(now, "yyyy-MM-dd");
-      const clockInMinutes = getMinutesFromISO(now.toISOString());
-      const shiftStartMinutes = timeToMinutes(standardShiftStart);
-      const graceTime=15;
-      const isLate = clockInMinutes > shiftStartMinutes+graceTime;
+      const today = now.toISOString().split("T")[0];
+
       const { error } = await supabase.from("time_entries").insert({
         employee_id: employeeId,
         date: today,
         clock_in: now.toISOString(),
         standard_hours: standardHours,
-        shift_start: "15:00:00",
-        is_late: isLate,
+        shift_start: standardShiftStart,
       });
+
       if (error) throw error;
-      setMessage({
-        type: "success",
-        text: "Clocked in successfully!",
-      });
+
+      setMessage({ type: "success", text: "Clocked in successfully!" });
       onActionComplete?.();
-    } catch (error: any) {
-      setMessage({
-        type: "error",
-        text: error.message || "Failed to clock in",
+
+      // 🔹 Send notification to admin dynamically
+      await fetch("/api/send-clockin-notification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId,
+          employeeName,         
+          title: "Clock-in Alert",
+          body: `${employeeName} has clocked in.`,
+        }),
       });
-    } finally {
-      setIsClockInLoading(false);
+    } catch (err: any) {
+      setMessage({ type: "error", text: err.message || "Failed to clock in" });
     }
   };
  const handleClockOut = async () => {

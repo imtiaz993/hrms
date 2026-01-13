@@ -28,9 +28,9 @@ import UpcommingEvents from "../component/UpcommingEvents";
 import AttendanceTodayCard from "../component/Attendance";
 import { AttendanceAnalytics, DailyAttendance } from "@/types";
 import { LeaveRequest } from "@/types";
-import FCMTokenManager from "./FCMTokenManager";
-import { getToken } from "firebase/messaging";
-import { getFirebaseMessaging } from "../../../firebase";
+import { getToken, Messaging, onMessage } from "firebase/messaging";
+import { getFirebaseMessaging, messaging } from "../../../firebase";
+import { useToast } from "@/components/ui/toast";
 
 interface TimeEntry {
   date: string;
@@ -41,7 +41,7 @@ interface TimeEntry {
   time_in: string;
   time_out: string | null;
 }
- interface TodayStatus {
+interface TodayStatus {
   date: string;
   status: "not_clocked_in" | "clocked_in" | "completed";
   timeIn: string | null;
@@ -51,10 +51,9 @@ interface TimeEntry {
   overtimeHours: number;
   isLate: boolean;
   lateByMinutes: number | null;
-  timeEntryId:number
-  clockIn:string|null;
-clockOut:string;
-
+  timeEntryId: number;
+  clockIn: string | null;
+  clockOut: string;
 }
 export default function EmployeeDashboardPage() {
   const router = useRouter();
@@ -67,7 +66,7 @@ export default function EmployeeDashboardPage() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
- const [todayStatus, setTodayStatus] = useState<TodayStatus | null>(null);
+  const [todayStatus, setTodayStatus] = useState<TodayStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [sickLeaves, setSickLeaves] = useState(0);
@@ -91,11 +90,18 @@ export default function EmployeeDashboardPage() {
 
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-    const [fcmToken, setFcmToken] = useState<string | null>(null);
- useEffect(() => {
+  const [fcmToken, setFcmToken] = useState<string | null>(null);
+  useEffect(() => {
     const requestPermissionAndGetToken = async () => {
       try {
-        if (!("Notification" in window)) return console.log("Browser not supported");
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) return console.log("User not logged in");
+
+        if (!("Notification" in window))
+          return console.log("Browser not supported");
         const permission = await Notification.requestPermission();
         if (permission !== "granted") {
           console.log("Notification permission denied");
@@ -104,10 +110,13 @@ export default function EmployeeDashboardPage() {
         const messaging = await getFirebaseMessaging();
         if (!messaging) return;
         //  Register the service worker
-        const swRegistration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+        const swRegistration = await navigator.serviceWorker.register(
+          "/firebase-messaging-sw.js"
+        );
         // Get the FCM token
         const token = await getToken(messaging, {
-          vapidKey: "BLJaC9ebeDDCWMDUspWw0N-4q-UKZ5nQfcNDBoEPYeQbU9UsFZaUtdqSF6tR6WvtVxv-J4kpBHTlJyRqk2z5jZc", // <- Replace with your actual VAPID key
+          vapidKey:
+            "BLJaC9ebeDDCWMDUspWw0N-4q-UKZ5nQfcNDBoEPYeQbU9UsFZaUtdqSF6tR6WvtVxv-J4kpBHTlJyRqk2z5jZc", // <- Replace with your actual VAPID key
           serviceWorkerRegistration: swRegistration,
         });
 
@@ -115,12 +124,22 @@ export default function EmployeeDashboardPage() {
           console.log(" FCM registration token:", token);
           setFcmToken(token);
         }
+        const res = await fetch("/api/save-fcm-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, userId: user.id }),
+        });
+
+        const data = await res.json();
+        console.log("API response:", data);
       } catch (err) {
         console.error("Error generating FCM token:", err);
       }
     };
 
-    requestPermissionAndGetToken();
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      requestPermissionAndGetToken();
+    }
   }, []);
 
   const fetchUpcomingEvents = async () => {
@@ -258,57 +277,57 @@ export default function EmployeeDashboardPage() {
         timeEntryId: entry.id,
         clockIn: entry.clock_in,
         clockOut: entry.clock_out,
-  
+
         totalHours: 0,
         date: "",
-  
+
         timeIn: null,
         timeOut: null,
         elapsedHours: null,
-  
+
         overtimeHours: 0,
         isLate: false,
         lateByMinutes: null,
       };
     }
-  
+
     if (entry.clock_in && !entry.clock_out) {
       return {
         status: "clocked_in",
         timeEntryId: entry.id,
         clockIn: entry.clock_in,
-        clockOut:"",
-         totalHours: 0,
+        clockOut: "",
+        totalHours: 0,
         date: "",
-  
+
         timeIn: null,
         timeOut: null,
         elapsedHours: null,
-  
+
         overtimeHours: 0,
         isLate: false,
         lateByMinutes: null,
       };
     }
-  
+
     return {
       status: "not_clocked_in",
-      
-        timeEntryId: NaN,
-        clockIn: "",
-        clockOut:"",
-       totalHours: 0,
-        date: "",
-        timeIn: null,
-        timeOut: null,
-        elapsedHours: null,
-  
-        overtimeHours: 0,
-        isLate: false,
-        lateByMinutes: null,
+
+      timeEntryId: NaN,
+      clockIn: "",
+      clockOut: "",
+      totalHours: 0,
+      date: "",
+      timeIn: null,
+      timeOut: null,
+      elapsedHours: null,
+
+      overtimeHours: 0,
+      isLate: false,
+      lateByMinutes: null,
     };
   }
-  
+
   const fetchTodayStatus = async () => {
     setStatusLoading(true);
 
@@ -640,6 +659,24 @@ export default function EmployeeDashboardPage() {
     };
   }, [currentUser?.id, selectedMonth, selectedYear, entries]);
 
+  const { addToast } = useToast();
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      const unsubscribe = onMessage(messaging as Messaging, (payload: any) => {
+        console.log(payload);
+        addToast({
+          title: payload.title,
+          description: payload.body,
+          variant: "success",
+        });
+      });
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, []);
+
   if (!currentUser) {
     return null;
   }
@@ -662,7 +699,7 @@ export default function EmployeeDashboardPage() {
               Employee Dashboard
             </h1>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <div className="relative">
               <button

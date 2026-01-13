@@ -1,4 +1,3 @@
-
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getMessaging, isSupported } from "firebase/messaging";
 import { getAnalytics } from "firebase/analytics";
@@ -15,6 +14,9 @@ export const firebaseApp =
   getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const analytics =
   typeof window !== "undefined" ? getAnalytics(firebaseApp) : null;
+
+export const messaging =
+  typeof window !== "undefined" ? getMessaging(firebaseApp) : null;
 
 //  Firebase Cloud Messaging (safe check)
 export const getFirebaseMessaging = async () => {
