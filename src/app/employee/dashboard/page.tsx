@@ -55,6 +55,12 @@ interface TodayStatus {
   clockIn: string | null;
   clockOut: string;
 }
+interface Holiday {
+  id: string;
+  name: string;
+  date: string;
+  is_recurring: boolean;
+}
 export default function EmployeeDashboardPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -68,19 +74,16 @@ export default function EmployeeDashboardPage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [todayStatus, setTodayStatus] = useState<TodayStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
-  const [checkingAuth, setCheckingAuth] = useState(true);
   const [sickLeaves, setSickLeaves] = useState(0);
   const [casualLeaves, setCasualLeaves] = useState(0);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<any>();
   const [upcomingBirthdays, setUpcomingBirthdays] = useState<
     { id: string; employeeName: string }[]
   >([]);
   const [upcomingAnniversaries, setUpcomingAnniversaries] = useState<
     { id: string; employeeName: string; yearsCompleted: number }[]
   >([]);
-  const [holidays, setHolidays] = useState<[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [todayBirthdays, setTodayBirthdays] = useState<
     { employeeName: string }[]
   >([]);
@@ -379,11 +382,11 @@ export default function EmployeeDashboardPage() {
 
     setStatusLoading(false);
   };
-  const fetchEmployee = async (employeeId: string) => {
+  const fetchEmployee = async () => {
     const { data: employee, error } = await supabase
       .from("employees")
       .select("*")
-      .eq("id", employeeId)
+      .eq("id", currentUser?.id)
       .single();
 
     if (error || !employee) {
@@ -396,17 +399,14 @@ export default function EmployeeDashboardPage() {
     return employee;
   };
   const fetchLeaves = async () => {
-    setLoading(true);
     const { data, error } = await supabase
       .from("leave_requests")
       .select("*")
       .eq("employee_id", currentUser?.id)
       .order("start_date", { ascending: false });
 
-    if (error) setError(error);
+    if (error) console.log(error);
     else setLeaveRequests(data || []);
-
-    setLoading(false);
   };
 
   const fetchEntries = async () => {
@@ -434,12 +434,48 @@ export default function EmployeeDashboardPage() {
     }
     setIsLoading(false);
   };
+  const fetchHolidays = async () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
+    endOfMonth.setHours(23, 59, 59, 999);
+
+    const { data, error } = await supabase
+      .from("holidays")
+      .select("id, name, date, is_recurring");
+
+    if (error || !data) return;
+
+    const upcomingHolidays = data
+      .map((h: Holiday) => {
+        const eventDate = new Date(h.date);
+        eventDate.setHours(0, 0, 0, 0);
+
+        return { ...h, eventDate };
+      })
+      .filter((h) => {
+        return (
+          h.eventDate.getFullYear() === currentYear &&
+          h.eventDate.getMonth() === currentMonth &&
+          h.eventDate >= today &&
+          h.eventDate <= endOfMonth
+        );
+      })
+      .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime());
+
+    setHolidays(upcomingHolidays);
+  };
   const fetchAllData = () => {
     fetchTodayStatus();
     fetchTodayEvents();
     fetchUpcomingEvents();
+    fetchEmployee();
     fetchLeaves();
     fetchEntries();
+    fetchHolidays();
   };
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -449,34 +485,6 @@ export default function EmployeeDashboardPage() {
     currentUser?.standard_hours_per_day,
     currentUser?.standard_shift_start,
   ]);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: userData, error } = await supabase.auth.getUser();
-
-      if (error || !userData?.user) {
-        router.replace("/login");
-        return;
-      }
-
-      const authUserId = userData.user.id;
-
-      try {
-        const employee = await fetchEmployee(authUserId);
-
-        if (employee.is_admin) {
-          router.replace("/admin/dashboard");
-          return;
-        }
-
-        setCheckingAuth(false);
-      } catch {
-        router.replace("/login");
-      }
-    };
-
-    checkAuth();
-  }, [router]);
 
   const profileInitials = useMemo(() => {
     if (!currentUser) return "?";
@@ -680,13 +688,7 @@ export default function EmployeeDashboardPage() {
   if (!currentUser) {
     return null;
   }
-  if (checkingAuth) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">Checking access…</p>
-      </div>
-    );
-  }
+
   const cardBase =
     "relative overflow-hidden rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg";
 
@@ -851,7 +853,6 @@ export default function EmployeeDashboardPage() {
               currentUser={currentUser}
               refetchStatus={refetchStatus}
               cardBase={cardBase}
-              // refetchStatus={fetchTodayStatus}
             />
           </div>
         </section>
@@ -861,7 +862,7 @@ export default function EmployeeDashboardPage() {
             upcomingAnniversaries={upcomingAnniversaries}
             cardBase={cardBase}
           />
-          <UpcomingHoliday cardBase={cardBase} />
+          <UpcomingHoliday cardBase={cardBase} holidays={holidays} />
         </div>
         <section>
           <Card className={`${cardBase} lg:col-span-1`}>

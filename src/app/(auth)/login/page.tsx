@@ -18,6 +18,7 @@ import { useLocalData } from "@/lib/local-data";
 import { useAppDispatch } from "@/store/hooks";
 import { setUser } from "@/store/authSlice";
 import { supabase } from "@/lib/Supabase";
+import Loader from "@/components/loader";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -100,11 +101,7 @@ export default function LoginPage() {
   };
 
   if (!sessionChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Checking session...
-      </div>
-    );
+    return <Loader />;
   }
 
   return (
