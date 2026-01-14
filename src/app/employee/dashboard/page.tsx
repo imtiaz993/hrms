@@ -28,10 +28,6 @@ import UpcommingEvents from "../component/UpcommingEvents";
 import AttendanceTodayCard from "../component/Attendance";
 import { AttendanceAnalytics, DailyAttendance } from "@/types";
 import { LeaveRequest } from "@/types";
-import { getToken, Messaging, onMessage } from "firebase/messaging";
-import { getFirebaseMessaging, messaging } from "../../../firebase";
-import { useToast } from "@/components/ui/toast";
-import { requestPermissionAndGetToken } from "@/lib/fcmToken";
 
 interface TimeEntry {
   date: string;
@@ -80,7 +76,7 @@ export default function EmployeeDashboardPage() {
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<any>();
-  const [notification, setNotification] = useState<any>();
+  const [notification, setNotification] = useState<any>([]);
   const [isOpen, setOpen] = useState(false);
   const [upcomingBirthdays, setUpcomingBirthdays] = useState<
     { id: string; employeeName: string }[]
@@ -640,23 +636,6 @@ export default function EmployeeDashboardPage() {
     };
   }, [currentUser?.id, selectedMonth, selectedYear, entries]);
 
-  const { addToast } = useToast();
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      const unsubscribe = onMessage(messaging as Messaging, (payload: any) => {
-        console.log(payload);
-        addToast({
-          title: payload.title,
-          description: payload.body,
-          variant: "success",
-        });
-      });
-      return () => {
-        unsubscribe();
-      };
-    }
-  }, []);
 
   if (!currentUser) {
     return null;

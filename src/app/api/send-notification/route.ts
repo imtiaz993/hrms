@@ -70,9 +70,12 @@ export async function POST(req: Request) {
       );
     }
 
+    const tokens=adminTokens.map((token) => token.token)
+
+
     // 🔹 Send notification via Firebase Admin
     const response = await admin.messaging().sendEachForMulticast({
-      tokens: adminTokens,
+      tokens: tokens,
       notification: {
         title,
         body,

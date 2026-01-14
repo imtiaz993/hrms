@@ -1,17 +1,26 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAppSelector } from '@/store/hooks';
-import { AdminSidebar } from '@/components/admin/sidebar';
-import { AdminHeader } from '@/components/admin/header';
-import { ProfilePopup } from '@/components/employee/profile-popup';
-import { ChangePasswordPopup } from '@/components/employee/change-password-popup';
-import { requestPermissionAndGetToken } from '@/lib/fcmToken';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAppSelector } from "@/store/hooks";
+import { AdminSidebar } from "@/components/admin/sidebar";
+import { AdminHeader } from "@/components/admin/header";
+import { ProfilePopup } from "@/components/employee/profile-popup";
+import { ChangePasswordPopup } from "@/components/employee/change-password-popup";
+import { Messaging, onMessage } from "firebase/messaging";
+import { messaging } from "../../../firebase";
+import { useToast } from "@/components/ui/toast";
+import { requestPermissionAndGetToken } from "@/lib/fcmToken";
 
-export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
+export default function AdminDashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
-  const { currentUser, isAuthenticated, isLoading } = useAppSelector((state) => state.auth);
+  const { currentUser, isAuthenticated, isLoading } = useAppSelector(
+    (state) => state.auth
+  );
   const [showProfile, setShowProfile] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
 
@@ -23,20 +32,37 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
     if (isLoading) return;
 
     if (!isAuthenticated) {
-      router.replace('/login');
+      router.replace("/login");
       return;
     }
 
     if (!isAdmin) {
-      router.replace('/employee/dashboard');
+      router.replace("/employee/dashboard");
       return;
     }
   }, [isAuthenticated, isAdmin, isLoading, router]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      requestPermissionAndGetToken({ type: "admin" });
+    }
+  }, []);
+
+  const { addToast } = useToast();
 
   useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      requestPermissionAndGetToken({type:"admin"});
+      const unsubscribe = onMessage(messaging as Messaging, (payload: any) => {
+        console.log(payload);
+        addToast({
+          title: payload.title,
+          description: payload.body,
+          variant: "success",
+        });
+      });
+      return () => {
+        unsubscribe();
+      };
     }
   }, []);
 
@@ -64,9 +90,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
           onShowChangePassword={() => setShowChangePassword(true)}
         />
 
-        <main className="px-4 sm:px-6 lg:px-8 py-8">
-          {children}
-        </main>
+        <main className="px-4 sm:px-6 lg:px-8 py-8">{children}</main>
       </div>
 
       {showProfile && currentUser && (

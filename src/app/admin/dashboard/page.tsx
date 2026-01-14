@@ -148,7 +148,7 @@ export default function AdminDashboardPage() {
 
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<any>();
-  const [notification, setNotification] = useState<any>();
+  const [notification, setNotification] = useState<any>([]);
   const [isOpen, setOpen] = useState(false);
 
   const fetchNotification = async () => {
