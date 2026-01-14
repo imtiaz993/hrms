@@ -7,6 +7,7 @@ import { AdminSidebar } from '@/components/admin/sidebar';
 import { AdminHeader } from '@/components/admin/header';
 import { ProfilePopup } from '@/components/employee/profile-popup';
 import { ChangePasswordPopup } from '@/components/employee/change-password-popup';
+import { requestPermissionAndGetToken } from '@/lib/fcmToken';
 
 export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -31,6 +32,13 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
       return;
     }
   }, [isAuthenticated, isAdmin, isLoading, router]);
+
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      requestPermissionAndGetToken({type:"admin"});
+    }
+  }, []);
 
   if (isLoading) {
     return (

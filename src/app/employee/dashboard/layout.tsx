@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAppSelector } from '@/store/hooks';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAppSelector } from "@/store/hooks";
+import { requestPermissionAndGetToken } from "@/lib/fcmToken";
 
 export default function EmployeeDashboardLayout({
   children,
@@ -22,15 +23,21 @@ export default function EmployeeDashboardLayout({
     if (isLoading) return;
 
     if (!isAuthenticated) {
-      router.replace('/login');
+      router.replace("/login");
       return;
     }
 
     if (isAdmin) {
-      router.replace('/admin/dashboard');
+      router.replace("/admin/dashboard");
       return;
     }
   }, [isAuthenticated, isAdmin, isLoading, router]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      requestPermissionAndGetToken({ type: "employee" });
+    }
+  }, []);
 
   if (isLoading) {
     return (

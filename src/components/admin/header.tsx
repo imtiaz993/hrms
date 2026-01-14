@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppDispatch } from '@/store/hooks';
 import { logout as logoutAction } from '@/store/authSlice';
-import { supabase } from '@/lib/Supabase';
+import { supabase } from '@/lib/supabaseUser';
 import { User, LogOut, Lock } from 'lucide-react';
 import { Employee } from '@/types';
 

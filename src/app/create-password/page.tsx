@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/lib/Supabase";
+import { supabase } from "@/lib/supabaseUser";
 
 export default function CreatePasswordPage() {
   const router = useRouter();

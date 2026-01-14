@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from "@/lib/Supabase";
+import { supabase } from "@/lib/supabaseUser";
 import { format } from 'date-fns';
 
 import {

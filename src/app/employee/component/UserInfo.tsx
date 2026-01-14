@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/Supabase";
+import { supabase } from "@/lib/supabaseUser";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Cake, Award } from "lucide-react";
 

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LeaveRequest, LeaveStatus, LeaveType } from "@/types";
-import { supabase } from "@/lib/Supabase";
+import { supabase } from "@/lib/supabaseUser";
 import { formatDate } from "@/lib/time-utils";
 import { Calendar, AlertCircle, X } from "lucide-react";
 import { isAfter, parseISO } from "date-fns";
@@ -95,6 +95,9 @@ export function LeaveRequestsList({
       isAfter(startDate, today) ||
       startDate.toDateString() === today.toDateString()
     );
+                  
+    console.log("canCancelRequest",canCancelRequest);
+    
   };
 
   const formatDuration = (request: LeaveRequest): string => {
