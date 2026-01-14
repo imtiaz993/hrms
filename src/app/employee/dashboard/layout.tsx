@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/store/hooks";
+import { requestPermissionAndGetToken } from "@/lib/fcmToken";
 import Loader from "@/components/loader";
 
 export default function EmployeeDashboardLayout({
@@ -32,6 +33,12 @@ export default function EmployeeDashboardLayout({
       return;
     }
   }, [isAuthenticated, isAdmin, isLoading, router]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      requestPermissionAndGetToken({ type: "employee" });
+    }
+  }, []);
 
   if (isLoading) {
     return <Loader />;

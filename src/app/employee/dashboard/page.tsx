@@ -22,7 +22,7 @@ import { ChangePasswordPopup } from "@/components/employee/change-password-popup
 import { LeaveRequestPopup } from "@/components/employee/leave-request-popup";
 import { SalaryViewPopup } from "@/components/employee/salary-view-popup";
 import { WorkingHoursChartCard } from "@/components/employee/working-hours-chart-card";
-import { supabase } from "@/lib/Supabase";
+import { supabase } from "@/lib/supabaseUser";
 import UserInfoCard from "../component/UserInfo";
 import UpcommingEvents from "../component/UpcommingEvents";
 import AttendanceTodayCard from "../component/Attendance";
@@ -31,6 +31,7 @@ import { LeaveRequest } from "@/types";
 import { getToken, Messaging, onMessage } from "firebase/messaging";
 import { getFirebaseMessaging, messaging } from "../../../firebase";
 import { useToast } from "@/components/ui/toast";
+import { requestPermissionAndGetToken } from "@/lib/fcmToken";
 
 interface TimeEntry {
   date: string;
@@ -77,6 +78,10 @@ export default function EmployeeDashboardPage() {
   const [sickLeaves, setSickLeaves] = useState(0);
   const [casualLeaves, setCasualLeaves] = useState(0);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<any>();
+  const [notification, setNotification] = useState<any>();
+  const [isOpen, setOpen] = useState(false);
   const [upcomingBirthdays, setUpcomingBirthdays] = useState<
     { id: string; employeeName: string }[]
   >([]);
@@ -93,57 +98,25 @@ export default function EmployeeDashboardPage() {
 
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [fcmToken, setFcmToken] = useState<string | null>(null);
-  useEffect(() => {
-    const requestPermissionAndGetToken = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+  const fetchNotification = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("type", "user")
+      .eq("id", currentUser?.id);
+    if (error) setError(error);
+    else setNotification(data || []);
+    console.log("notification", data);
 
-        if (!user) return console.log("User not logged in");
-
-        if (!("Notification" in window))
-          return console.log("Browser not supported");
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted") {
-          console.log("Notification permission denied");
-          return;
-        }
-        const messaging = await getFirebaseMessaging();
-        if (!messaging) return;
-        //  Register the service worker
-        const swRegistration = await navigator.serviceWorker.register(
-          "/firebase-messaging-sw.js"
-        );
-        // Get the FCM token
-        const token = await getToken(messaging, {
-          vapidKey:
-            "BLJaC9ebeDDCWMDUspWw0N-4q-UKZ5nQfcNDBoEPYeQbU9UsFZaUtdqSF6tR6WvtVxv-J4kpBHTlJyRqk2z5jZc", // <- Replace with your actual VAPID key
-          serviceWorkerRegistration: swRegistration,
-        });
-
-        if (token) {
-          console.log(" FCM registration token:", token);
-          setFcmToken(token);
-        }
-        const res = await fetch("/api/save-fcm-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token, userId: user.id }),
-        });
-
-        const data = await res.json();
-        console.log("API response:", data);
-      } catch (err) {
-        console.error("Error generating FCM token:", err);
-      }
-    };
-
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      requestPermissionAndGetToken();
+    setLoading(false);
+  };
+  const handleIconClick = () => {
+    setOpen(!isOpen);
+    if (!isOpen) {
+      fetchNotification();
     }
-  }, []);
+  };
 
   const fetchUpcomingEvents = async () => {
     const today = new Date();
@@ -812,6 +785,38 @@ export default function EmployeeDashboardPage() {
               <RefreshCw size={14} />
             </button>
           </p>
+          <div className="relative">
+            {/* Notification Icon */}
+            <button onClick={handleIconClick} className="relative">
+              🔔
+            </button>
+
+            {/* Dropdown */}
+            {isOpen && (
+              <div className="absolute right-0 mt-2 max-w-80 bg-white shadow-lg rounded-lg z-50 max-h-80   overflow-y-auto">
+                {loading ? (
+                  <p className="p-4 text-gray-500">Loading...</p>
+                ) : notification.length === 0 ? (
+                  <p className="p-4 text-gray-500">No notifications</p>
+                ) : (
+                  notification.map((n: any) => (
+                    <div
+                      key={n.id}
+                      className="p-3 border-b hover:bg-gray-100 cursor-pointer"
+                    >
+                      <p className="font-semibold">{n.title}</p>
+                      <p className="text-sm text-gray-600">
+                        {n.body || n.message}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(n.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <AttendanceKPICards analytics={data} />

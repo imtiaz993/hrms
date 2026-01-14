@@ -1,6 +1,6 @@
 "use client";
 
-import { useState ,useEffect} from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -9,7 +9,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/Supabase";
+import { supabase } from "@/lib/supabaseUser";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TodayStatus } from "@/types";
 import { format } from "date-fns";
@@ -36,7 +36,7 @@ export function ClockActionCard({
   } | null>(null);
   const [isClockInLoading, setIsClockInLoading] = useState(false);
   const [isClockOutLoading, setIsClockOutLoading] = useState(false);
- 
+
   const [employeeName, setEmployeeName] = useState<string>("");
   const timeToMinutes = (time: string) => {
     const [h, m] = time.split(":").map(Number);
@@ -46,19 +46,20 @@ export function ClockActionCard({
     const date = new Date(iso);
     return date.getHours() * 60 + date.getMinutes();
   };
-const isWeekend=()=>{
-  const day= new Date().getDay();
-  return (day===0)||(day===6);
-}
+  const isWeekend = () => {
+    const day = new Date().getDay();
+    return day === 0 || day === 6;
+  };
 
-
-   
-    useEffect(() => {
+  useEffect(() => {
     const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
-      
-        setEmployeeName(user.user_metadata?.full_name || user.email || "Employee");
+        setEmployeeName(
+          user.user_metadata?.full_name || user.email || "Employee"
+        );
       }
     };
     fetchUser();
@@ -84,12 +85,11 @@ const isWeekend=()=>{
       onActionComplete?.();
 
       // 🔹 Send notification to admin dynamically
-      await fetch("/api/send-clockin-notification", {
+      await fetch("/api/send-notification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           employeeId,
-          employeeName,         
           title: "Clock-in Alert",
           body: `${employeeName} has clocked in.`,
         }),
@@ -98,40 +98,40 @@ const isWeekend=()=>{
       setMessage({ type: "error", text: err.message || "Failed to clock in" });
     }
   };
- const handleClockOut = async () => {
-  if (!status) {
-    setMessage({ type: "error", text: "No active time entry found." });
-    return;
-  }
+  const handleClockOut = async () => {
+    if (!status) {
+      setMessage({ type: "error", text: "No active time entry found." });
+      return;
+    }
 
-  setIsClockOutLoading(true);
-  setMessage(null);
+    setIsClockOutLoading(true);
+    setMessage(null);
 
-  try {
-    const now = new Date();
+    try {
+      const now = new Date();
 
-    const { error } = await supabase.rpc("calculate_total_hours", {
-      p_time_entry_id: status,
-      p_clock_out: now.toISOString(),
-    });
+      const { error } = await supabase.rpc("calculate_total_hours", {
+        p_time_entry_id: status.timeEntryId,
+        p_clock_out: now.toISOString(),
+      });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    setMessage({
-      type: "success",
-      text: "Clocked out successfully! Total hours calculated.",
-    });
+      setMessage({
+        type: "success",
+        text: "Clocked out successfully! Total hours calculated.",
+      });
 
-    onActionComplete?.();
-  } catch (error: any) {
-    setMessage({
-      type: "error",
-      text: error.message || "Failed to clock out",
-    });
-  } finally {
-    setIsClockOutLoading(false);
-  }
-};
+      onActionComplete?.();
+    } catch (error: any) {
+      setMessage({
+        type: "error",
+        text: error.message || "Failed to clock out",
+      });
+    } finally {
+      setIsClockOutLoading(false);
+    }
+  };
 
   const currentStatus = status?.status ?? "not_clocked_in";
   const currentTime = format(new Date(), "h:mm a");

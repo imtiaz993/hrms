@@ -17,7 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useLocalData } from "@/lib/local-data";
 import { useAppDispatch } from "@/store/hooks";
 import { setUser } from "@/store/authSlice";
-import { supabase } from "@/lib/Supabase";
+import { supabase } from "@/lib/supabaseUser";
 import Loader from "@/components/loader";
 
 export default function LoginPage() {
