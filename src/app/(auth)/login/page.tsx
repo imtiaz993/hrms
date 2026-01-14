@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,14 +14,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useLocalData } from "@/lib/local-data";
+import { useAppDispatch } from "@/store/hooks";
+import { setUser } from "@/store/authSlice";
 import { supabase } from "@/lib/supabaseUser";
+import Loader from "@/components/loader";
 
-export default function ForgotPasswordPage() {
+export default function LoginPage() {
   const router = useRouter();
-
+  const dispatch = useAppDispatch();
+  const { authenticate } = useLocalData();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
 
@@ -47,65 +52,72 @@ export default function ForgotPasswordPage() {
     guard();
   }, [router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setSuccess(false);
     setIsLoading(true);
 
     try {
-      const origin =
-        typeof window !== "undefined" ? window.location.origin : "";
-
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-        email,
+      const { data, error: authError } = await supabase.auth.signInWithPassword(
         {
-          redirectTo: `${origin}/reset-password`,
+          email,
+          password,
         }
       );
+      if (authError) {
+        throw new Error(
+          authError.message || "Failed to login. Please check your credentials."
+        );
+      }
+      const supaUser = data.user;
+      if (!supaUser) {
+        throw new Error("Unable to login. Please try again.");
+      }
+      const { data: profile, error: profileError } = await supabase
+        .from("employees")
+        .select("*")
+        .eq("id", supaUser.id)
+        .single();
+      if (profileError || !profile) {
+        throw new Error("Unable to load your profile. Please contact support.");
+      }
+      const appUser = profile;
 
-      if (resetError)
-        throw new Error(resetError.message || "Failed to send reset email.");
+      localStorage.setItem("hrmsCurrentUser", JSON.stringify(appUser));
+      dispatch(setUser(appUser));
 
-      setSuccess(true);
+      if (appUser.is_admin) {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/employee/dashboard");
+      }
     } catch (err: any) {
-      setError(err.message || "Failed to send reset email.");
+      setError(
+        err.message || "Failed to login. Please check your credentials."
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   if (!sessionChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Checking session...
-      </div>
-    );
+    return <Loader />;
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Forgot Password</CardTitle>
+          <CardTitle>Login</CardTitle>
           <CardDescription>
-            Enter your email address and we'll send you a link to reset your
-            password
+            Enter your credentials to access your account
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4">
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {success && (
-              <Alert variant="success">
-                <AlertDescription>
-                  Password reset link sent! Check your email for instructions.
-                </AlertDescription>
               </Alert>
             )}
 
@@ -118,26 +130,35 @@ export default function ForgotPasswordPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={isLoading || success}
+                disabled={isLoading}
               />
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading || success}
-            >
-              {isLoading ? "Sending..." : "Send Reset Link"}
-            </Button>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
 
-            <div className="text-center">
+            <div className="flex justify-end">
               <Link
-                href="/login"
+                href="/forgot-password"
                 className="text-sm text-blue-600 hover:underline"
               >
-                Back to login
+                Forgot password?
               </Link>
             </div>
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Logging in..." : "Login"}
+            </Button>
           </form>
         </CardContent>
       </Card>
