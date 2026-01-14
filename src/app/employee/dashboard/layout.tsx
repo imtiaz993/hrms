@@ -3,8 +3,11 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/store/hooks";
-import { requestPermissionAndGetToken } from "@/lib/fcmToken";
 import Loader from "@/components/loader";
+import { Messaging, onMessage } from "firebase/messaging";
+import { messaging } from "../../../firebase";
+import { useToast } from "@/components/ui/toast";
+import { requestPermissionAndGetToken } from "@/lib/fcmToken";
 
 export default function EmployeeDashboardLayout({
   children,
@@ -37,6 +40,24 @@ export default function EmployeeDashboardLayout({
   useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       requestPermissionAndGetToken({ type: "employee" });
+    }
+  }, []);
+
+  const { addToast } = useToast();
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      const unsubscribe = onMessage(messaging as Messaging, (payload: any) => {
+        console.log(payload);
+        addToast({
+          title: payload.title,
+          description: payload.body,
+          variant: "success",
+        });
+      });
+      return () => {
+        unsubscribe();
+      };
     }
   }, []);
 
