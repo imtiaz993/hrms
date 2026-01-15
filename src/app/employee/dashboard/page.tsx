@@ -28,6 +28,7 @@ import UpcommingEvents from "../component/UpcommingEvents";
 import AttendanceTodayCard from "../component/Attendance";
 import { AttendanceAnalytics, DailyAttendance } from "@/types";
 import { LeaveRequest } from "@/types";
+import { Bell } from "lucide-react";
 
 interface TimeEntry {
   date: string;
@@ -636,7 +637,6 @@ export default function EmployeeDashboardPage() {
     };
   }, [currentUser?.id, selectedMonth, selectedYear, entries]);
 
-
   if (!currentUser) {
     return null;
   }
@@ -655,6 +655,40 @@ export default function EmployeeDashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <div className="relative">
+              {/* Notification Icon */}
+              <button
+                onClick={handleIconClick}
+                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 shadow-sm transition hover:bg-slate-100"
+              >
+                <Bell className="h-5 w-5" />
+              </button>
+              {/* Dropdown */}
+              {isOpen && (
+                <div className="absolute right-0 mt-2 w-96 bg-white shadow-lg rounded-lg z-50 max-h-80   overflow-y-auto">
+                  {loading ? (
+                    <p className="p-4 text-gray-500">Loading...</p>
+                  ) : notification.length === 0 ? (
+                    <p className="p-4 text-gray-500">No notifications</p>
+                  ) : (
+                    notification.map((n: any) => (
+                      <div
+                        key={n.id}
+                        className="p-3 border-b hover:bg-gray-100 cursor-pointer"
+                      >
+                        <p className="font-semibold">{n.title}</p>
+                        <p className="text-sm text-gray-600">
+                          {n.body || n.message}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(n.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
             <div className="relative">
               <button
                 type="button"
@@ -764,62 +798,33 @@ export default function EmployeeDashboardPage() {
               <RefreshCw size={14} />
             </button>
           </p>
-          <div className="relative">
-            {/* Notification Icon */}
-            <button onClick={handleIconClick} className="relative">
-              🔔
-            </button>
-
-            {/* Dropdown */}
-            {isOpen && (
-              <div className="absolute right-0 mt-2 max-w-80 bg-white shadow-lg rounded-lg z-50 max-h-80   overflow-y-auto">
-                {loading ? (
-                  <p className="p-4 text-gray-500">Loading...</p>
-                ) : notification.length === 0 ? (
-                  <p className="p-4 text-gray-500">No notifications</p>
-                ) : (
-                  notification.map((n: any) => (
-                    <div
-                      key={n.id}
-                      className="p-3 border-b hover:bg-gray-100 cursor-pointer"
-                    >
-                      <p className="font-semibold">{n.title}</p>
-                      <p className="text-sm text-gray-600">
-                        {n.body || n.message}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {new Date(n.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
         </div>
 
         <AttendanceKPICards analytics={data} />
         <section
           aria-labelledby="today-overview-heading"
-          className="grid grid-cols-1 gap-6 lg:grid-cols-2"
+          className="grid grid-cols-1 gap-6"
         >
           <h2 id="today-overview-heading" className="sr-only">
             Today overview
           </h2>
-          <div className="flex w-[1210px] lg:flex-row gap-4">
+
+          <div className="flex flex-col w-full gap-4 lg:flex-row">
             {/* LEFT: My Info + Today's Events */}
-            <div className=" flex-1 lg:w-1/2 border-indigo-100">
+            <div className="w-full lg:w-full">
               <UserInfoCard
                 cardBase={cardBase}
                 todayBirthdays={todayBirthdays}
                 todayAnniversaries={todayAnniversaries}
               />
-              <Card className={`${cardBase} mt-3 h-[400px]`}>
+
+              <Card className={`${cardBase} mt-3 h-auto lg:h-[400px]`}>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base font-semibold text-slate-900">
                     Salary Section
                   </CardTitle>
                 </CardHeader>
+
                 <CardContent>
                   <Button
                     onClick={() => setShowSalaryView(true)}
@@ -831,23 +836,34 @@ export default function EmployeeDashboardPage() {
                 </CardContent>
               </Card>
             </div>
-            <AttendanceTodayCard
-              statusLoading={statusLoading}
-              todayStatus={todayStatus}
-              currentUser={currentUser}
-              refetchStatus={refetchStatus}
+
+            {/* RIGHT: Attendance */}
+            <div className="w-full lg:w-full">
+              <AttendanceTodayCard
+                statusLoading={statusLoading}
+                todayStatus={todayStatus}
+                currentUser={currentUser}
+                refetchStatus={refetchStatus}
+                cardBase={cardBase}
+              />
+            </div>
+          </div>
+        </section>
+        {/* responsivenes */}
+        <div className="flex flex-col gap-4 lg:flex-row">
+          <div className="w-full lg:w-1/2 ">
+            <UpcommingEvents
+              upcomingBirthdays={upcomingBirthdays}
+              upcomingAnniversaries={upcomingAnniversaries}
               cardBase={cardBase}
             />
           </div>
-        </section>
-        <div className="flex w-[1210px] lg:flex-row gap-4">
-          <UpcommingEvents
-            upcomingBirthdays={upcomingBirthdays}
-            upcomingAnniversaries={upcomingAnniversaries}
-            cardBase={cardBase}
-          />
-          <UpcomingHoliday cardBase={cardBase} holidays={holidays} />
+
+          <div className="w-full lg:w-1/2">
+            <UpcomingHoliday cardBase={cardBase} holidays={holidays} />
+          </div>
         </div>
+
         <section>
           <Card className={`${cardBase} lg:col-span-1`}>
             <CardHeader className="pb-3">
@@ -858,24 +874,22 @@ export default function EmployeeDashboardPage() {
                 Switch months to explore your recent patterns.
               </p>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-xl bg-slate-50/80 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Working Hours Analytics
-                </p>
-                <div className="mt-2">
-                  <WorkingHoursChartCard
-                    selectedMonth={selectedMonth}
-                    selectedYear={selectedYear}
-                    standardHoursPerDay={currentUser.standard_hours_per_day}
-                    onMonthChange={handleMonthChange}
-                    availableMonths={months || []}
-                    chartData={chartData}
-                    isLoading={isLoading}
-                  />
-                </div>
+            <div className="rounded-xl bg-slate-50/80 p-3 md:p-9">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Working Hours Analytics
+              </p>
+              <div className="mt-2">
+                <WorkingHoursChartCard
+                  selectedMonth={selectedMonth}
+                  selectedYear={selectedYear}
+                  standardHoursPerDay={currentUser.standard_hours_per_day}
+                  onMonthChange={handleMonthChange}
+                  availableMonths={months || []}
+                  chartData={chartData}
+                  isLoading={isLoading}
+                />
               </div>
-            </CardContent>
+            </div>
           </Card>
         </section>
         <section

@@ -84,7 +84,7 @@ export function ClockActionCard({
       setMessage({ type: "success", text: "Clocked in successfully!" });
       onActionComplete?.();
 
-      // 🔹 Send notification to admin dynamically
+      //  Send notification to admin dynamically
       await fetch("/api/send-notification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

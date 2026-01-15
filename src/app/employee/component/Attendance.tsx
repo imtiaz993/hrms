@@ -24,7 +24,7 @@ const AttendanceTodayCard = ({
   cardBase,
 }: AttendanceTodayCardProps) => {
   return (
-    <Card className={`${cardBase} flex-1 lg:w-1/2 border-indigo-100`}>
+    <Card className={`${cardBase} flex-1  lg:w-full lg:h-[553px] border-indigo-100`}>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between text-base font-semibold text-slate-900">
           <span>Attendance Today</span>

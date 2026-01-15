@@ -1,6 +1,6 @@
 
 
-// Import Firebase scripts for service worker
+
 importScripts('https://www.gstatic.com/firebasejs/10.3.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.3.0/firebase-messaging-compat.js');
 
