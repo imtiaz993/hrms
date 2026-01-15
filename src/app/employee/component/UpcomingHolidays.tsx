@@ -10,7 +10,7 @@ interface Props {
 const UpcomingHoliday = ({ cardBase, holidays }: Props) => {
   return (
     <>
-      <Card className={`${cardBase} flex-1 lg:w-1/2`}>
+      <Card className={`${cardBase} flex-1 md:full  lg:w-full`}>
         <CardHeader className="pb-3">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">

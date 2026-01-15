@@ -61,7 +61,6 @@ export async function POST(req: Request) {
       );
     }
 
-    console.log("Notification saved to DB:", data);
 
     if (!adminTokens || adminTokens.length === 0) {
       return NextResponse.json(

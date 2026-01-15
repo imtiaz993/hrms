@@ -27,7 +27,7 @@ export function ProfilePopup({
 }: ProfilePopupProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-100 bg-white/95 shadow-xl">
+      <Card className="w-full max-w-2xl sm:max-w-3xl max-h-[90vh] overflow-y-auto  overflow-x-hidden rounded-2xl border border-slate-100 bg-white/95 shadow-xl">
         <CardHeader className="sticky top-0 z-10 flex flex-row items-center justify-between border-b border-slate-100 bg-white/95 pb-3">
           <CardTitle className="text-base font-semibold text-slate-900">
             Personal Information
@@ -163,7 +163,7 @@ function InfoRow({ icon: Icon, label, value }: InfoRowProps) {
         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
           {label}
         </p>
-        <p className="mt-0.5 text-sm font-medium text-slate-900 break-words">
+        <p className="mt-0.5 text-xs font-medium text-slate-900 break-words">
           {value}
         </p>
       </div>
