@@ -84,8 +84,8 @@ export function ClockActionCard({
       setMessage({ type: "success", text: "Clocked in successfully!" });
       onActionComplete?.();
 
-      //  Send notification to admin dynamically
-      await fetch("/api/send-notification", {
+    
+      await fetch("/api/send-notification/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -123,6 +123,15 @@ export function ClockActionCard({
       });
 
       onActionComplete?.();
+       await fetch("/api/send-notification/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId,
+          title: "Clock-out Alert",
+          body: `${employeeName} has clocked in.`,
+        }),
+      });
     } catch (error: any) {
       setMessage({
         type: "error",

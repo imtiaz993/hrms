@@ -33,7 +33,7 @@ export function LeaveRequestPopup({
   const [leaveType, setLeaveType] = useState<LeaveType>("paid");
   const [isHalfDay, setIsHalfDay] = useState(false);
   const [reason, setReason] = useState("");
-
+  const [employeeName, setEmployeeName] = useState<string>("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -147,6 +147,15 @@ export function LeaveRequestPopup({
 
       setSuccess(true);
       setTimeout(onClose, 1500);
+        await fetch("/api/send-notification/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId,
+          title: "Leave Request Submitted",
+          body: ` A new leave request has been submitted by ${employeeName} .`,
+        }),
+      });
     } catch (err: any) {
       console.error("Error submitting leave request:", err);
       setError(err.message || "Failed to submit leave request.");
