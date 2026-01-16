@@ -52,6 +52,7 @@ export function LeaveRequestsList({
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
+   const [employeeName, setEmployeeName] = useState<string>("");
 
   const cancelLeaveRequest = async (requestId: string) => {
     setIsCancelling(true);
@@ -63,7 +64,15 @@ export function LeaveRequestsList({
         .eq("id", requestId);
 
       if (error) throw error;
-
+      await fetch("/api/send-notification/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId,
+          title: "Leave Request Cancelled",
+          body: `${employeeName} has cancelled their leave request.`,
+        }),
+      });
       return true;
     } finally {
       setIsCancelling(false);
@@ -95,9 +104,8 @@ export function LeaveRequestsList({
       isAfter(startDate, today) ||
       startDate.toDateString() === today.toDateString()
     );
-                  
-    console.log("canCancelRequest",canCancelRequest);
-    
+
+    console.log("canCancelRequest", canCancelRequest);
   };
 
   const formatDuration = (request: LeaveRequest): string => {
