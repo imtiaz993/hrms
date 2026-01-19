@@ -14,8 +14,9 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabaseUser";
+import { Suspense } from "react";
 
-export default function CreatePasswordPage() {
+export function CreatePasswordClient() {
   const router = useRouter();
 
   const [password, setPassword] = useState("");
@@ -202,5 +203,13 @@ export default function CreatePasswordPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<p>Loading…</p>}>
+      <CreatePasswordClient />
+    </Suspense>
   );
 }
