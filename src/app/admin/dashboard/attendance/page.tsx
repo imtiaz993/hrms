@@ -31,7 +31,7 @@ export default function AttendanceOverviewPage() {
   } = useGetTodayAttendanceOverview(searchQuery, department, statusFilter);
 
   const { data: departments } = useGetDepartments();
-  const { data: employees = [] } = useGetAllEmployees('', 'all', 'active');
+  const { data: employees = [] } = useGetAllEmployees();
 
 
 

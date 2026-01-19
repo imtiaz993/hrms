@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAppDispatch } from '@/store/hooks';
-import { logout as logoutAction } from '@/store/authSlice';
-import { supabase } from '@/lib/supabaseUser';
-import { User, LogOut, Lock } from 'lucide-react';
-import { Employee } from '@/types';
+import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useAppDispatch } from "@/store/hooks";
+import { logout as logoutAction } from "@/store/authSlice";
+import { supabase } from "@/lib/Supabase";
+import { User, LogOut, Lock } from "lucide-react";
+import { Employee } from "@/types";
 
 interface AdminHeaderProps {
   currentUser: Employee;
@@ -24,47 +24,26 @@ export function AdminHeader({
   const dispatch = useAppDispatch();
 
   const profileInitials = useMemo(() => {
-    if (!currentUser) return '?';
-    const first = currentUser.first_name?.charAt(0) ?? '';
-    const last = currentUser.last_name?.charAt(0) ?? '';
+    if (!currentUser) return "?";
+    const first = currentUser.first_name?.charAt(0) ?? "";
+    const last = currentUser.last_name?.charAt(0) ?? "";
     const combined = `${first}${last}`.trim();
-    return combined ? combined.toUpperCase() : '?';
+    return combined ? combined.toUpperCase() : "?";
   }, [currentUser]);
 
   const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (err) {
-      console.error('Error signing out:', err);
-    }
-
-    localStorage.removeItem('hrmsCurrentUser');
+    await supabase.auth.signOut();
+    localStorage.removeItem("hrmsCurrentUser");
     dispatch(logoutAction());
-    router.replace('/login');
+    router.replace("/login");
   };
 
   return (
     <header className="sticky top-0 z-40 border-b border-gray-200 bg-white">
-      <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex-1 lg:ml-64">
-          <div className="space-y-0.5">
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
-              Admin
-            </p>
-            <h1 className="text-lg font-semibold text-gray-900 sm:text-xl">
-              Admin Dashboard
-            </h1>
-          </div>
-        </div>
+      <div className="flex h-[68px] items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex-1 lg:ml-64"></div>
 
         <div className="flex items-center gap-3">
-          <div className="hidden sm:block text-right">
-            <p className="text-sm font-medium text-gray-900">
-              {currentUser.first_name} {currentUser.last_name}
-            </p>
-            <p className="text-xs text-gray-500">{currentUser.designation}</p>
-          </div>
-
           <div className="relative">
             <button
               type="button"

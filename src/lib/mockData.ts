@@ -37,6 +37,7 @@ export const initialEmployees: Employee[] = [
     standard_shift_end: "17:00",
     standard_hours_per_day: 8,
     is_admin: true,
+    is_deleted: false,
     is_active: true,
     created_at: iso(new Date(now.getFullYear(), 0, 5)),
     updated_at: iso(new Date(now.getFullYear(), 10, 1)),
@@ -62,6 +63,7 @@ export const initialEmployees: Employee[] = [
     standard_shift_end: "17:30",
     standard_hours_per_day: 8,
     is_admin: false,
+    is_deleted: false,
     is_active: true,
     created_at: iso(new Date(now.getFullYear(), 1, 10)),
     updated_at: iso(new Date(now.getFullYear(), 9, 15)),
@@ -89,6 +91,7 @@ export const initialEmployees: Employee[] = [
     is_admin: false,
     is_active: true,
     created_at: iso(new Date(2023, 5, 15)),
+    is_deleted: false,
     updated_at: iso(new Date(now.getFullYear(), 8, 20)),
   },
   {
@@ -115,6 +118,7 @@ export const initialEmployees: Employee[] = [
     is_active: true,
     created_at: iso(new Date(2022, 2, 20)),
     updated_at: iso(new Date(now.getFullYear(), 7, 10)),
+    is_deleted: false,
   },
 ];
 
