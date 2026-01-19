@@ -2,12 +2,20 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Holiday } from "@/types";
+
 import { formatDate } from "@/lib/time-utils";
 import { Calendar } from "lucide-react";
 
+interface UpcomingHoliday {
+  id: string;
+  name: string;
+  date: string;
+  description?: string | null;
+  is_recurring?: boolean;
+}
+
 interface UpcomingHolidaysProps {
-  holidays: Holiday[];
+  holidays: UpcomingHoliday[];
 }
 
 export function UpcomingHolidays({ holidays }: UpcomingHolidaysProps) {
@@ -38,15 +46,16 @@ export function UpcomingHolidays({ holidays }: UpcomingHolidaysProps) {
   }
 
   return (
-    <Card className={cardBase}>
+    <Card className={`${cardBase} w-full rounded-2xl`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold text-slate-900">
           Upcoming Holidays
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {holidays.map((holiday) => (
+
+      <CardContent className="space-y-3 py-4">
+        {holidays && holidays.length > 0 ? (
+          holidays.map((holiday: any) => (
             <div
               key={holiday.id}
               className="flex items-start justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50/60 px-3 py-2.5"
@@ -80,8 +89,12 @@ export function UpcomingHolidays({ holidays }: UpcomingHolidaysProps) {
                 </span>
               </div>
             </div>
-          ))}
-        </div>
+          ))
+        ) : (
+          <p className="text-base text-center text-slate-400 py-4">
+            No upcoming holidays
+          </p>
+        )}
       </CardContent>
     </Card>
   );

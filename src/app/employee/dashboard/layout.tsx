@@ -1,8 +1,13 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAppSelector } from '@/store/hooks';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAppSelector } from "@/store/hooks";
+import Loader from "@/components/loader";
+import { Messaging, onMessage } from "firebase/messaging";
+import { messaging } from "../../../firebase";
+import { useToast } from "@/components/ui/toast";
+import { requestPermissionAndGetToken } from "@/lib/fcmToken";
 
 export default function EmployeeDashboardLayout({
   children,
@@ -22,25 +27,42 @@ export default function EmployeeDashboardLayout({
     if (isLoading) return;
 
     if (!isAuthenticated) {
-      router.replace('/login');
+      router.replace("/login");
       return;
     }
 
     if (isAdmin) {
-      router.replace('/admin/dashboard');
+      router.replace("/admin/dashboard");
       return;
     }
   }, [isAuthenticated, isAdmin, isLoading, router]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      requestPermissionAndGetToken({ type: "employee" });
+    }
+  }, []);
+
+  const { addToast } = useToast();
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      const unsubscribe = onMessage(messaging as Messaging, (payload: any) => {
+        console.log(payload);
+        addToast({
+          title: payload.title,
+          description: payload.body,
+          variant: "success",
+        });
+      });
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, []);
+
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <Loader />;
   }
 
   // While redirecting, render nothing

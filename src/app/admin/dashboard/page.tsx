@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+<<<<<<< HEAD
 import { useState, useMemo } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { useGetAllEmployees } from "@/hooks/admin/useEmployees";
@@ -9,11 +10,20 @@ import {
   useGetUpcomingAnniversaries,
 } from "@/hooks/useEvents";
 import { useGetUpcomingHolidays } from "@/hooks/useLeave";
+=======
+import { useState, useMemo, useEffect } from "react";
+import { useAppSelector } from "@/store/hooks";
+import { useGetAllEmployees } from "@/hooks/admin/useEmployees";
+>>>>>>> 5e711551130adcb224547d834a967358bdb38d65
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Users,
   Calendar,
+<<<<<<< HEAD
+=======
+  CalendarIcon,
+>>>>>>> 5e711551130adcb224547d834a967358bdb38d65
   Cake,
   Award,
   Clock,
@@ -25,21 +35,32 @@ import { UpcomingHolidays } from "@/components/leave/upcoming-holidays";
 import { ProfilePopup } from "@/components/employee/profile-popup";
 import { ChangePasswordPopup } from "@/components/employee/change-password-popup";
 import { format } from "date-fns";
+<<<<<<< HEAD
+=======
+import { supabase } from "@/lib/supabaseUser";
+
+interface Holiday {
+  id: string;
+  name: string;
+  date: string;
+  is_recurring: boolean;
+}
+interface Props {
+  cardBase: string;
+}
+>>>>>>> 5e711551130adcb224547d834a967358bdb38d65
 
 export default function AdminDashboardPage() {
   const router = useRouter();
   const { currentUser } = useAppSelector((state) => state.auth);
   const { data: employees } = useGetAllEmployees();
-  const { data: holidays } = useGetUpcomingHolidays(90);
-  const { data: birthdays } = useGetUpcomingBirthdays(30);
-  const { data: anniversaries } = useGetUpcomingAnniversaries(30);
-
   const [showProfile, setShowProfile] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
-
   const activeEmployees = employees?.filter((emp) => emp.is_active).length || 0;
   const totalEmployees = employees?.length || 0;
-
+  const [birthdays, setBirthdays] = useState<any[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [anniversaries, setAnniversaries] = useState<any[]>([]);
   const todayBirthdays = useMemo(() => {
     const today = format(new Date(), "yyyy-MM-dd");
     return birthdays?.filter((b) => b.eventDate === today) || [];
@@ -57,10 +78,114 @@ export default function AdminDashboardPage() {
     const combined = `${first}${last}`.trim();
     return combined ? combined.toUpperCase() : "?";
   }, [currentUser]);
+  const UpcomingHoliday = ({ cardBase }: Props) => {
+    useEffect(() => {
+      const fetchHolidays = async () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth();
+        const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
+        endOfMonth.setHours(23, 59, 59, 999);
+
+        const { data, error } = await supabase
+          .from("holidays")
+          .select("id, name, date, is_recurring");
+
+        if (error || !data) return;
+
+        const upcomingHolidays = data
+          .map((h: Holiday) => {
+            const eventDate = new Date(h.date);
+            eventDate.setHours(0, 0, 0, 0);
+
+            return { ...h, eventDate };
+          })
+          .filter((h: any) => {
+            return (
+              h.eventDate.getFullYear() === currentYear &&
+              h.eventDate.getMonth() === currentMonth &&
+              h.eventDate >= today &&
+              h.eventDate <= endOfMonth
+            );
+          })
+          .sort(
+            (a: any, b: any) => a.eventDate.getTime() - b.eventDate.getTime()
+          );
+
+        setHolidays(upcomingHolidays);
+      };
+
+      fetchHolidays();
+    }, []);
+
+    return (
+      <>
+        <Card className={`${cardBase} flex-1 lg:w-1/2`}>
+          <CardHeader className="pb-3">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
+                <span> Upcoming Holidays</span>
+              </CardTitle>
+            </CardHeader>
+
+            {holidays.map((h) => (
+              <Card key={h.id} className={cardBase}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
+                    {h.name}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-slate-700">
+                    {new Date(h.date).toLocaleDateString(undefined, {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+            {(!holidays || holidays.length === 0) && (
+              <div className="flex flex-col items-center justify-center rounded-2xl py-8 text-center">
+                <CalendarIcon className="mb-3 h-10 w-10 text-slate-300" />
+                <p className="text-sm text-slate-500">No upcoming holidays.</p>
+              </div>
+            )}
+          </CardHeader>
+        </Card>
+      </>
+    );
+  };
 
   const cardBase =
     "relative overflow-hidden rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg";
 
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<any>();
+  const [notification, setNotification] = useState<any>([]);
+  const [isOpen, setOpen] = useState(false);
+
+  const fetchNotification = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("type", "admin");
+    if (error) setError(error);
+    else setNotification(data || []);
+    console.log("notification", data);
+
+    setLoading(false);
+  };
+  const handleIconClick = () => {
+    setOpen(!isOpen);
+    if (!isOpen) {
+      fetchNotification();
+    }
+  };
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -68,6 +193,48 @@ export default function AdminDashboardPage() {
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-1">Overview of your organization</p>
         </div>
+<<<<<<< HEAD
+=======
+        <div className="relative">
+          {/* Notification Icon */}
+          <button onClick={handleIconClick} className="relative">
+            🔔
+          </button>
+
+          {/* Dropdown */}
+          {isOpen && (
+            <div className="absolute right-0 mt-2 max-w-80 bg-white shadow-lg rounded-lg z-50 max-h-80   overflow-y-auto">
+              {loading ? (
+                <p className="p-4 text-gray-500">Loading...</p>
+              ) : notification.length === 0 ? (
+                <p className="p-4 text-gray-500">No notifications</p>
+              ) : (
+                notification.map((n:any) => (
+                  <div
+                    key={n.id}
+                    className="p-3 border-b hover:bg-gray-100 cursor-pointer"
+                  >
+                    <p className="font-semibold">{n.title}</p>
+                    <p className="text-sm text-gray-600">
+                      {n.body || n.message}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {new Date(n.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={() => setShowProfile(true)}
+          className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-blue-100 bg-blue-50 text-sm font-semibold text-blue-700 shadow-sm transition-all duration-150 hover:bg-blue-100 hover:border-blue-200"
+        >
+          <span>{profileInitials}</span>
+        </button>
+>>>>>>> 5e711551130adcb224547d834a967358bdb38d65
       </div>
 
       <section>
@@ -170,7 +337,11 @@ export default function AdminDashboardPage() {
               <DollarSign className="h-5 w-5 text-blue-600" />
             </CardHeader>
             <CardContent>
+<<<<<<< HEAD
               <div className="text-2xl sm:text-3xl font-bold text-gray-900 whitespace-nowrap">
+=======
+              <div className="text-3xl font-bold text-gray-900">
+>>>>>>> 5e711551130adcb224547d834a967358bdb38d65
                 USD 1945.50
               </div>
               <p className="text-xs text-gray-500 mt-1">Total company cost</p>

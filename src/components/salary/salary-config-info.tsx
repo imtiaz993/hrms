@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SalaryConfig } from '@/types';
-import { formatCurrency, calculateHourlyRate } from '@/hooks/useSalary';
+
 
 interface SalaryConfigInfoProps {
   config: SalaryConfig;
@@ -18,6 +18,17 @@ export function SalaryConfigInfo({
       ? config.base_amount
       : calculateHourlyRate(config.base_amount, standardHoursPerDay);
 
+ function calculateHourlyRate(baseSalary: number, standardHoursPerDay: number): number {
+  const workingDaysPerMonth = 22;
+  const monthlyHours = workingDaysPerMonth * standardHoursPerDay;
+  return baseSalary / monthlyHours;
+}
+ function formatCurrency(amount: number, currency: string = 'USD'): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+  }).format(amount);
+}
   const cardBase =
     'relative overflow-hidden rounded-2xl border border-slate-100 bg-slate-50/80 backdrop-blur-sm';
 

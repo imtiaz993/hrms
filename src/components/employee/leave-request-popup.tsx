@@ -1,48 +1,100 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useLocalData } from '@/lib/local-data';
-import { useGetLeaveRequests } from '@/hooks/useLeave';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { X, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { LeaveType, LeaveRequest } from '@/types';
-import { format, parseISO, isBefore, startOfDay } from 'date-fns';
-import {
-  calculateLeaveDays,
-  hasOverlappingLeave,
-} from '@/hooks/useLeave';
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseUser";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { X, AlertCircle, CheckCircle2 } from "lucide-react";
+import { LeaveType, LeaveRequest } from "@/types";
+import { parseISO, startOfDay, isBefore, differenceInCalendarDays, isAfter } from "date-fns";
+
 
 interface LeaveRequestPopupProps {
   employeeId: string;
   onClose: () => void;
+   leaves:any;
+ setLeaves:any;
+  onLeaveSubmitted?: () => void; 
 }
 
 export function LeaveRequestPopup({
+  leaves,
+ setLeaves,
   employeeId,
   onClose,
+  onLeaveSubmitted,
 }: LeaveRequestPopupProps) {
-  const { createLeaveRequest } = useLocalData();
-  const { data: existingRequests = [] } = useGetLeaveRequests(employeeId);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [leaveType, setLeaveType] = useState<LeaveType>('paid');
+  
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [leaveType, setLeaveType] = useState<LeaveType>("paid");
   const [isHalfDay, setIsHalfDay] = useState(false);
-  const [reason, setReason] = useState('');
-  const [error, setError] = useState('');
+  const [reason, setReason] = useState("");
+  const [employeeName, setEmployeeName] = useState<string>("");
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  function calculateLeaveDays(
+    startDate: string,
+    endDate: string,
+    isHalfDay: boolean
+  ): number {
+    if (isHalfDay) {
+      return 0.5;
+    }
+  
+    const start = startOfDay(parseISO(startDate));
+    const end = startOfDay(parseISO(endDate));
+    const days = differenceInCalendarDays(end, start) + 1;
+  
+    return days;
+  }
+
+
+   function hasOverlappingLeave(
+    requests: LeaveRequest[],
+    startDate: string,
+    endDate: string
+  ): boolean {
+    const newStart = parseISO(startDate);
+    const newEnd = parseISO(endDate);
+  
+    return requests.some((req) => {
+      if (req.status === "rejected") return false;
+  
+      const reqStart = parseISO(req.start_date);
+      const reqEnd = parseISO(req.end_date);
+  
+      return (
+        ((isAfter(newStart, reqStart) ||
+          newStart.getTime() === reqStart.getTime()) &&
+          (isBefore(newStart, reqEnd) ||
+            newStart.getTime() === reqEnd.getTime())) ||
+        ((isAfter(newEnd, reqStart) || newEnd.getTime() === reqStart.getTime()) &&
+          (isBefore(newEnd, reqEnd) || newEnd.getTime() === reqEnd.getTime())) ||
+        ((isBefore(newStart, reqStart) ||
+          newStart.getTime() === reqStart.getTime()) &&
+          (isAfter(newEnd, reqEnd) || newEnd.getTime() === reqEnd.getTime()))
+      );
+    });
+  }
+  
+
+ 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+ 
+
+    setError("");
     setSuccess(false);
 
     if (!startDate || !endDate) {
-      setError('Please select start and end dates.');
+      setError("Please select start and end dates.");
       return;
     }
 
@@ -51,53 +103,62 @@ export function LeaveRequestPopup({
     const today = startOfDay(new Date());
 
     if (isBefore(start, today)) {
-      setError('Start date cannot be in the past.');
+      setError("Start date cannot be in the past.");
       return;
     }
 
     if (isBefore(end, start)) {
-      setError('End date must be on or after start date.');
+      setError("End date must be on or after start date.");
       return;
     }
 
     if (isHalfDay && startDate !== endDate) {
-      setError('Half-day leave can only be for a single day.');
+      setError("Half-day leave can only be for a single day.");
       return;
     }
 
-    if (hasOverlappingLeave(existingRequests, startDate, endDate)) {
-      setError(
-        'You already have a pending or approved leave request for these dates.'
-      );
+    if (hasOverlappingLeave(leaves.filter((l:any)=>(l.status!="rejected")), startDate, endDate)) {
+      setError("You already have a pending or approved leave request for these dates.");
       return;
     }
 
     const totalDays = calculateLeaveDays(startDate, endDate, isHalfDay);
-    const now = new Date().toISOString();
-
+  
     setIsLoading(true);
-    try {
-      const newRequest: LeaveRequest = {
-        id: `lr-${Date.now()}`,
-        employee_id: employeeId,
-        leave_type: leaveType,
-        start_date: startDate,
-        end_date: endDate,
-        is_half_day: isHalfDay,
-        total_days: totalDays,
-        reason: reason || undefined,
-        status: 'pending',
-        created_at: now,
-        updated_at: now,
-      };
 
-      createLeaveRequest(newRequest);
+    try {
+      const { data, error } = await supabase.from("leave_requests").insert([
+        {
+          employee_id: employeeId,
+          leave_type: leaveType,
+          start_date: startDate,
+          end_date: endDate,
+          is_half_day: isHalfDay,
+          total_days: totalDays,
+          reason: reason || null,
+          status: "pending",
+        },
+      ]).select().single()
+      
+      
+      setLeaves((prev:any)=>([...prev,data]))
+
+      if (error) throw error;
+
       setSuccess(true);
-      setTimeout(() => {
-        onClose();
-      }, 1500);
+      setTimeout(onClose, 1500);
+        await fetch("/api/send-notification/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId,
+          title: "Leave Request Submitted",
+          body: ` A new leave request has been submitted by ${employeeName} .`,
+        }),
+      });
     } catch (err: any) {
-      setError(err.message || 'Failed to submit leave request.');
+      console.error("Error submitting leave request:", err);
+      setError(err.message || "Failed to submit leave request.");
     } finally {
       setIsLoading(false);
     }
@@ -105,29 +166,20 @@ export function LeaveRequestPopup({
 
   const durationText =
     startDate && endDate
-      ? (() => {
-          const days = calculateLeaveDays(startDate, endDate, isHalfDay);
-          return `${days} day${days !== 1 ? 's' : ''}`;
-        })()
+      ? `${calculateLeaveDays(startDate, endDate, isHalfDay)} day(s)`
       : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-100 bg-white/95 shadow-xl">
-        <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 pb-3">
-          <CardTitle className="text-base font-semibold text-slate-900">
-            Request Leave
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="rounded-full hover:bg-slate-100"
-          >
-            <X className="h-4 w-4 text-slate-500" />
+      <Card className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Request Leave</CardTitle>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
           </Button>
         </CardHeader>
-        <CardContent className="pt-4">
+
+        <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <Alert variant="destructive">
@@ -135,56 +187,43 @@ export function LeaveRequestPopup({
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-
             {success && (
               <Alert variant="success">
                 <CheckCircle2 className="h-4 w-4" />
-                <AlertDescription>
-                  Leave request submitted successfully!
-                </AlertDescription>
+                <AlertDescription>Leave request submitted successfully!</AlertDescription>
               </Alert>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date *</Label>
+            <div className="grid lg:grid-cols-2  sm:grid-cols-1 gap-4">
+              <div>
+                <Label>Start Date</Label>
                 <Input
-                  id="startDate"
                   type="date"
                   value={startDate}
                   onChange={(e) => {
                     setStartDate(e.target.value);
                     if (!endDate) setEndDate(e.target.value);
                   }}
-                  min={format(new Date(), 'yyyy-MM-dd')}
-                  required
-                  disabled={isLoading || success}
+                  min={new Date().toISOString().split("T")[0]}
                 />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="endDate">End Date *</Label>
+              <div>
+                <Label>End Date</Label>
                 <Input
-                  id="endDate"
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  min={startDate || format(new Date(), 'yyyy-MM-dd')}
-                  required
-                  disabled={isLoading || success}
+                  min={startDate || new Date().toISOString().split("T")[0]}
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="leaveType">Leave Type *</Label>
+            <div>
+              <Label>Leave Type</Label>
               <select
-                id="leaveType"
                 value={leaveType}
                 onChange={(e) => setLeaveType(e.target.value as LeaveType)}
-                className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/5"
-                required
-                disabled={isLoading || success}
+                className="w-full rounded-md border px-3 py-2"
               >
                 <option value="paid">Paid Leave</option>
                 <option value="sick">Sick Leave</option>
@@ -192,56 +231,36 @@ export function LeaveRequestPopup({
               </select>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <input
                 type="checkbox"
-                id="isHalfDay"
                 checked={isHalfDay}
                 onChange={(e) => setIsHalfDay(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900/30"
-                disabled={isLoading || success}
               />
-              <Label htmlFor="isHalfDay" className="cursor-pointer text-sm">
-                Half-day leave
-              </Label>
+              <Label>Half Day</Label>
             </div>
 
             {durationText && (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="text-sm text-slate-800">
-                  <strong>Duration:</strong> {durationText}
-                </p>
-              </div>
+              <p className="text-sm text-slate-700">
+                <strong>Duration:</strong> {durationText}
+              </p>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="reason">Reason (Optional)</Label>
+            <div>
+              <Label>Reason</Label>
               <textarea
-                id="reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="Enter reason for leave..."
-                className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/5"
-                disabled={isLoading || success}
+                className="w-full rounded-md border px-3 py-2"
               />
             </div>
 
-            <div className="flex gap-3 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                className="flex-1 rounded-xl"
-                disabled={isLoading}
-              >
+            <div className="flex gap-3">
+              <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                className="flex-1 rounded-xl"
-                disabled={isLoading || success}
-              >
-                {isLoading ? 'Submitting...' : 'Submit Request'}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Submitting..." : "Submit"}
               </Button>
             </div>
           </form>

@@ -13,9 +13,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/lib/Supabase";
+import { supabase } from "@/lib/supabaseUser";
 
-export default function CreatePasswordPage() {
+export default function ResetPasswordPage() {
   const router = useRouter();
 
   const [password, setPassword] = useState("");
@@ -23,13 +23,12 @@ export default function CreatePasswordPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
 
-  // 🔐 ACCESS CONTROL + SESSION VALIDATION
+
   useEffect(() => {
-    const validateAccess = async () => {
-      // 1️⃣ Already logged-in user → block page
+    const guard = async () => {
+
       const hrmsCurrentUser = localStorage.getItem("hrmsCurrentUser");
       if (hrmsCurrentUser) {
         if(hrmsCurrentUser.includes('"is_admin":true')) {
@@ -41,38 +40,22 @@ export default function CreatePasswordPage() {
         }
       }
 
-      // 2️⃣ Page allowed ONLY if token exists
       const token = localStorage.getItem("token");
       if (!token) {
         router.replace("/login");
         return;
       }
 
-      // 3️⃣ Validate Supabase session (magic link)
-      const { data, error } = await supabase.auth.getUser();
-
-      if (error || !data?.user) {
-        router.replace("/login");
-        return;
-      }
-
-      setEmail(data.user.email ?? null);
       setSessionChecked(true);
     };
 
-    validateAccess();
+    guard();
   }, [router]);
 
-  // 🔑 PASSWORD CREATION
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-
-    if (!email) {
-      setError("Session expired. Please request a new password link.");
-      return;
-    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -87,50 +70,40 @@ export default function CreatePasswordPage() {
     setIsLoading(true);
 
     try {
-      // 1️⃣ Update password
       const { error: updateError } = await supabase.auth.updateUser({
         password,
       });
 
-      if (updateError) throw new Error(updateError.message);
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
 
-      // 2️⃣ Logout user immediately
       await supabase.auth.signOut();
 
-      setSuccess("Password created successfully. Redirecting to login...");
-
-      // 3️⃣ Redirect to login
+      setSuccess("Password updated successfully. Redirecting to login...");
       router.replace("/login");
     } catch (err: any) {
-      setError(err?.message || "Failed to create password. Please try again.");
+      setError(err?.message || "Failed to reset password. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ⏳ Loading state while checking session
   if (!sessionChecked) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">Checking your link...</p>
+      <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
+        Checking access...
       </div>
     );
   }
 
-  // ✅ VALID SESSION UI
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Create Password</CardTitle>
-          <CardDescription>
-            Enter your new password below
-            {email && (
-              <span className="block text-xs text-muted-foreground mt-1">
-                Creating password for <strong>{email}</strong>
-              </span>
-            )}
-          </CardDescription>
+          <CardTitle>Reset Password</CardTitle>
+          <CardDescription>Enter your new password below</CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -174,7 +147,7 @@ export default function CreatePasswordPage() {
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating..." : "Create Password"}
+              {isLoading ? "Resetting..." : "Reset Password"}
             </Button>
           </form>
         </CardContent>

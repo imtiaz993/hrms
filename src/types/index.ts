@@ -1,3 +1,4 @@
+
 export interface Employee {
   id: string;
   email: string;
@@ -25,6 +26,38 @@ export interface Employee {
   is_deleted: boolean;
 }
 
+
+export interface UpcomingEvent {
+  id: string;
+  employeeName: string;
+  department: string;
+  eventDate: string;
+  daysUntil: number;
+  yearsCompleted?: number;
+}
+
+
+export interface DailyAttendance {
+  date: string;
+  status: "present" | "absent" | "late" | "early_leave" | "future";
+  timeIn?: string;
+  timeOut?: string;
+  totalHours?: number;
+  isLate: boolean;
+  isEarlyLeave: boolean;
+}
+
+export interface AttendanceAnalytics {
+  presentDays: number;
+  absentDays: number;
+  lateArrivals: number;
+  earlyLeaves: number;
+  totalHoursWorked: number;
+  averageHoursPerDay: number;
+  dailyAttendance: DailyAttendance[];
+}
+
+
 export interface TimeEntry {
   id: string;
   employee_id: string;
@@ -42,7 +75,7 @@ export interface TimeEntry {
 
 export interface TodayStatus {
   date: string;
-  status: 'not_clocked_in' | 'clocked_in' | 'completed';
+  status: "not_clocked_in" | "clocked_in" | "completed";
   timeIn: string | null;
   timeOut: string | null;
   elapsedHours: number | null;
@@ -50,7 +83,13 @@ export interface TodayStatus {
   overtimeHours: number;
   isLate: boolean;
   lateByMinutes: number | null;
+  timeEntryId:number
+  clockIn:string|null;
+clockOut:string;
+
 }
+
+
 
 export interface AttendanceRow {
   id: string;
@@ -58,7 +97,7 @@ export interface AttendanceRow {
   timeIn: string;
   timeOut: string | null;
   totalHours: string;
-  status: 'on_time' | 'late' | 'early_leave' | 'incomplete';
+  status: "on_time" | "late" | "early_leave" | "incomplete";
   statusLabel: string;
 }
 
@@ -73,8 +112,8 @@ export interface ClockOutRequest {
   timestamp: string;
 }
 
-export type LeaveType = 'paid' | 'sick' | 'unpaid';
-export type LeaveStatus = 'pending' | 'approved' | 'rejected';
+export type LeaveType = "paid" | "sick" | "unpaid";
+export type LeaveStatus = "pending" | "approved" | "rejected";
 
 export interface LeaveBalance {
   id: string;
@@ -125,7 +164,7 @@ export interface CreateLeaveRequest {
   reason?: string;
 }
 
-export type SalaryType = 'monthly' | 'hourly';
+export type SalaryType = "monthly" | "hourly";
 
 export interface SalaryConfig {
   id: string;
@@ -177,7 +216,7 @@ export interface PayrollSettings {
   hourly_rate: number;
   overtime_multiplier: number;
   standard_working_days_per_month: number;
-  deduction_type: 'hourly' | 'daily';
+  deduction_type: "hourly" | "daily";
   daily_deduction_rate: number;
   currency: string;
   created_at: string;
@@ -202,7 +241,7 @@ export interface EmployeeSalaryCalculation {
   net_salary: number;
 }
 
-export type ExtraWorkType = 'weekend' | 'holiday' | 'overtime' | 'other';
+export type ExtraWorkType = "weekend" | "holiday" | "overtime" | "other";
 
 export interface ExtraWork {
   id: string;
@@ -211,7 +250,7 @@ export interface ExtraWork {
   work_type: ExtraWorkType;
   hours_worked: number;
   reason?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   approver_comment?: string;
   created_at: string;
   updated_at: string;

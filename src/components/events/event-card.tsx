@@ -2,10 +2,10 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { UpcomingEvent } from "@/hooks/useEvents";
 import { Cake, Award } from "lucide-react";
 import { formatDate } from "@/lib/time-utils";
 import { cn } from "@/lib/utils";
+import { UpcomingEvent } from "@/types";
 
 interface EventCardProps {
   event: UpcomingEvent;

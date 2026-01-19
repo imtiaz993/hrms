@@ -180,7 +180,7 @@ export function LocalDataProvider({ children }: { children: React.ReactNode }) {
         notes: '',
         created_at: timestamp,
         updated_at: timestamp,
-      };
+      };    
 
       setTimeEntries((prev: TimeEntry[]) => [newEntry, ...prev]);
       return newEntry;

@@ -3,13 +3,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useGetTodayAttendanceOverview } from '@/hooks/admin/useAttendance';
 import { useGetDepartments, useGetAllEmployees } from '@/hooks/admin/useEmployees';
-import { useGetAttendanceAnalytics } from '@/hooks/useAttendanceAnalytics';
+
 import { AttendanceKPICards } from '@/components/admin/attendance/attendance-kpi-cards';
 import { TodayAttendanceTable } from '@/components/admin/attendance/today-attendance-table';
-import { AttendanceChartCard } from '@/components/employee/attendance-chart-card';
-import { WorkingHoursChartCard } from '@/components/employee/working-hours-chart-card';
-import { AttendanceHeatmap } from '@/components/attendance/attendance-heatmap';
-import { AttendanceInsights } from '@/components/attendance/attendance-insights';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,7 +33,7 @@ export default function AttendanceOverviewPage() {
   const { data: departments } = useGetDepartments();
   const { data: employees = [] } = useGetAllEmployees();
 
-  const { data: analyticsData } = useGetAttendanceAnalytics(selectedEmployeeId, selectedMonth, selectedYear);
+
 
   const [selectedDay, setSelectedDay] = useState<any>(null);
 
@@ -160,13 +157,11 @@ export default function AttendanceOverviewPage() {
                   </select>
                 </div>
               </div>
-
               <div className="mt-4 text-xs text-gray-500">
                 Last updated: {getTimeSinceUpdate()}
               </div>
             </CardContent>
           </Card>
-
           {data.records.length === 0 ? (
             <Card>
               <CardContent className="py-12">
@@ -217,7 +212,7 @@ export default function AttendanceOverviewPage() {
             </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <Card>
+              {/* <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Attendance Overview</CardTitle>
                 </CardHeader>
@@ -230,36 +225,9 @@ export default function AttendanceOverviewPage() {
                     availableMonths={availableMonths}
                   />
                 </CardContent>
-              </Card>
+              </Card> */}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Working Hours</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <WorkingHoursChartCard
-                    employeeId={selectedEmployeeId}
-                    selectedMonth={selectedMonth}
-                    selectedYear={selectedYear}
-                    standardHoursPerDay={selectedEmployee?.standard_hours_per_day || 8}
-                    onMonthChange={handleMonthChange}
-                    availableMonths={availableMonths}
-                  />
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="mb-6">
-              <AttendanceHeatmap
-                dailyAttendance={analyticsData?.dailyAttendance || []}
-                month={selectedMonth}
-                year={selectedYear}
-                onDayClick={setSelectedDay}
-              />
-            </div>
-
-            <div>
-              <AttendanceInsights analytics={analyticsData || { presentDays: 0, absentDays: 0, lateArrivals: 0, earlyLeaves: 0, totalHoursWorked: 0, averageHoursPerDay: 0, dailyAttendance: [] }} />
+            
             </div>
           </div>
         </>

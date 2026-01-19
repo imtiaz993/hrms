@@ -16,7 +16,8 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAppDispatch } from "@/store/hooks";
 import { setUser } from "@/store/authSlice";
-import { supabase } from "@/lib/Supabase";
+import { supabase } from "@/lib/supabaseUser";
+import Loader from "@/components/loader";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -157,11 +158,7 @@ export default function LoginPage() {
   };
 
   if (!sessionChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Checking session...
-      </div>
-    );
+    return <Loader />;
   }
 
   return (
