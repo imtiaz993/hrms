@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabaseUser";
 import { Suspense } from "react";
 
-export function CreatePasswordClient() {
+function CreatePasswordClient() {
   const router = useRouter();
 
   const [password, setPassword] = useState("");
