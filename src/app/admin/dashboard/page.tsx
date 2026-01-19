@@ -1,29 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-<<<<<<< HEAD
-import { useState, useMemo } from "react";
-import { useAppSelector } from "@/store/hooks";
-import { useGetAllEmployees } from "@/hooks/admin/useEmployees";
-import {
-  useGetUpcomingBirthdays,
-  useGetUpcomingAnniversaries,
-} from "@/hooks/useEvents";
-import { useGetUpcomingHolidays } from "@/hooks/useLeave";
-=======
 import { useState, useMemo, useEffect } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { useGetAllEmployees } from "@/hooks/admin/useEmployees";
->>>>>>> 5e711551130adcb224547d834a967358bdb38d65
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   Users,
   Calendar,
-<<<<<<< HEAD
-=======
   CalendarIcon,
->>>>>>> 5e711551130adcb224547d834a967358bdb38d65
   Cake,
   Award,
   Clock,
@@ -35,8 +20,6 @@ import { UpcomingHolidays } from "@/components/leave/upcoming-holidays";
 import { ProfilePopup } from "@/components/employee/profile-popup";
 import { ChangePasswordPopup } from "@/components/employee/change-password-popup";
 import { format } from "date-fns";
-<<<<<<< HEAD
-=======
 import { supabase } from "@/lib/supabaseUser";
 
 interface Holiday {
@@ -48,7 +31,6 @@ interface Holiday {
 interface Props {
   cardBase: string;
 }
->>>>>>> 5e711551130adcb224547d834a967358bdb38d65
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -193,8 +175,6 @@ export default function AdminDashboardPage() {
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-1">Overview of your organization</p>
         </div>
-<<<<<<< HEAD
-=======
         <div className="relative">
           {/* Notification Icon */}
           <button onClick={handleIconClick} className="relative">
@@ -234,7 +214,6 @@ export default function AdminDashboardPage() {
         >
           <span>{profileInitials}</span>
         </button>
->>>>>>> 5e711551130adcb224547d834a967358bdb38d65
       </div>
 
       <section>
@@ -337,11 +316,7 @@ export default function AdminDashboardPage() {
               <DollarSign className="h-5 w-5 text-blue-600" />
             </CardHeader>
             <CardContent>
-<<<<<<< HEAD
-              <div className="text-2xl sm:text-3xl font-bold text-gray-900 whitespace-nowrap">
-=======
               <div className="text-3xl font-bold text-gray-900">
->>>>>>> 5e711551130adcb224547d834a967358bdb38d65
                 USD 1945.50
               </div>
               <p className="text-xs text-gray-500 mt-1">Total company cost</p>
