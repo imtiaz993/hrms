@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -116,6 +116,28 @@ export default function CreatePasswordPage() {
   //     </div>
   //   );
   // }
+
+  const searchParams = useSearchParams();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const code = searchParams.get("code");
+
+    if (!code) {
+      console.error("No auth code in URL");
+      return;
+    }
+
+    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+      if (error) {
+        console.error(error);
+        return;
+      }
+      setReady(true);
+    });
+  }, [searchParams]);
+
+  if (!ready) return <p>Loading…</p>;
 
   // ✅ VALID SESSION UI
   return (
