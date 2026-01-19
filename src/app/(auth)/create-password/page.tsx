@@ -27,42 +27,42 @@ function CreatePasswordClient() {
   const [email, setEmail] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
 
-  // // 🔐 ACCESS CONTROL + SESSION VALIDATION
-  // useEffect(() => {
-  //   const validateAccess = async () => {
-  //     // 1️⃣ Already logged-in user → block page
-  //     const hrmsCurrentUser = localStorage.getItem("hrmsCurrentUser");
-  //     if (hrmsCurrentUser) {
-  //       if(hrmsCurrentUser.includes('"is_admin":true')) {
-  //         router.replace("/admin/dashboard");
-  //         return;
-  //       }else {
-  //       router.replace("/employee/dashboard");
-  //       return;
-  //       }
-  //     }
+  // 🔐 ACCESS CONTROL + SESSION VALIDATION
+  useEffect(() => {
+    const validateAccess = async () => {
+      // 1️⃣ Already logged-in user → block page
+      // const hrmsCurrentUser = localStorage.getItem("hrmsCurrentUser");
+      // if (hrmsCurrentUser) {
+      //   if (hrmsCurrentUser.includes('"is_admin":true')) {
+      //     router.replace("/admin/dashboard");
+      //     return;
+      //   } else {
+      //     router.replace("/employee/dashboard");
+      //     return;
+      //   }
+      // }
 
-  //     // 2️⃣ Page allowed ONLY if token exists
-  //     const token = localStorage.getItem("token");
-  //     if (!token) {
-  //       router.replace("/login");
-  //       return;
-  //     }
+      // 2️⃣ Page allowed ONLY if token exists
+      // const token = localStorage.getItem("token");
+      // if (!token) {
+      //   router.replace("/login");
+      //   return;
+      // }
 
-  //     // 3️⃣ Validate Supabase session (magic link)
-  //     const { data, error } = await supabase.auth.getUser();
+      // 3️⃣ Validate Supabase session (magic link)
+      const { data, error } = await supabase.auth.getUser();
 
-  //     if (error || !data?.user) {
-  //       router.replace("/login");
-  //       return;
-  //     }
+      if (error || !data?.user) {
+        router.replace("/login");
+        return;
+      }
 
-  //     setEmail(data.user.email ?? null);
-  //     setSessionChecked(true);
-  //   };
+      setEmail(data.user.email ?? null);
+      setSessionChecked(true);
+    };
 
-  //   validateAccess();
-  // }, [router]);
+    validateAccess();
+  }, [router]);
 
   // 🔑 PASSWORD CREATION
   const handleSubmit = async (e: React.FormEvent) => {
@@ -110,35 +110,13 @@ function CreatePasswordClient() {
   };
 
   // ⏳ Loading state while checking session
-  // if (!sessionChecked) {
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center">
-  //       <p className="text-sm text-muted-foreground">Checking your link...</p>
-  //     </div>
-  //   );
-  // }
-
-  const searchParams = useSearchParams();
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const code = searchParams.get("code");
-
-    if (!code) {
-      console.error("No auth code in URL");
-      return;
-    }
-
-    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-      if (error) {
-        console.error(error);
-        return;
-      }
-      setReady(true);
-    });
-  }, [searchParams]);
-
-  if (!ready) return <p>Loading…</p>;
+  if (!sessionChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Checking your link...</p>
+      </div>
+    );
+  }
 
   // ✅ VALID SESSION UI
   return (
