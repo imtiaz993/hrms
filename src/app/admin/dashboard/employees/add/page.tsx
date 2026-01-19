@@ -185,6 +185,8 @@ export default function AddEmployeePage() {
       setIsInviting(false);
     }
   };
+  console.log("submitError",submitError);
+  
 
   return (
     <div className="space-y-6 max-w-4xl">

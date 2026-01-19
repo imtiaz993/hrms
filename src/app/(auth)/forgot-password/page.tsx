@@ -26,27 +26,27 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [sessionChecked, setSessionChecked] = useState(false);
 
-  useEffect(() => {
-    const guard = async () => {
-      const { data } = await supabase.auth.getSession();
-      const session = data?.session;
+  // useEffect(() => {
+  //   const guard = async () => {
+  //     const { data } = await supabase.auth.getSession();
+  //     const session = data?.session;
 
-      if (session?.user) {
-        const u = session.user;
+  //     if (session?.user) {
+  //       const u = session.user;
 
-        const isAdmin =
-          Boolean((u as any)?.app_metadata?.is_admin) ||
-          Boolean((u as any)?.raw_app_meta_data?.is_admin);
+  //       const isAdmin =
+  //         Boolean((u as any)?.app_metadata?.is_admin) ||
+  //         Boolean((u as any)?.raw_app_meta_data?.is_admin);
 
-        router.replace(isAdmin ? "/admin/dashboard" : "/employee/dashboard");
-        return;
-      }
+  //       router.replace(isAdmin ? "/admin/dashboard" : "/employee/dashboard");
+  //       return;
+  //     }
 
-      setSessionChecked(true);
-    };
+  //     setSessionChecked(true);
+  //   };
 
-    guard();
-  }, [router]);
+  //   guard();
+  // }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

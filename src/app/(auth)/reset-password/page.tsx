@@ -26,31 +26,31 @@ export default function ResetPasswordPage() {
   const [sessionChecked, setSessionChecked] = useState(false);
 
 
-  useEffect(() => {
-    const guard = async () => {
+  // useEffect(() => {
+  //   const guard = async () => {
 
-      const hrmsCurrentUser = localStorage.getItem("hrmsCurrentUser");
-      if (hrmsCurrentUser) {
-        if(hrmsCurrentUser.includes('"is_admin":true')) {
-          router.replace("/admin/dashboard");
-          return;
-        }else {
-        router.replace("/employee/dashboard");
-        return;
-        }
-      }
+  //     const hrmsCurrentUser = localStorage.getItem("hrmsCurrentUser");
+  //     if (hrmsCurrentUser) {
+  //       if(hrmsCurrentUser.includes('"is_admin":true')) {
+  //         router.replace("/admin/dashboard");
+  //         return;
+  //       }else {
+  //       router.replace("/employee/dashboard");
+  //       return;
+  //       }
+  //     }
 
-      const token = localStorage.getItem("token");
-      if (!token) {
-        router.replace("/login");
-        return;
-      }
+  //     const token = localStorage.getItem("token");
+  //     if (!token) {
+  //       router.replace("/login");
+  //       return;
+  //     }
 
-      setSessionChecked(true);
-    };
+  //     setSessionChecked(true);
+  //   };
 
-    guard();
-  }, [router]);
+  //   guard();
+  // }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
