@@ -145,29 +145,10 @@ export default function AdminDashboardPage() {
   const cardBase =
     "relative overflow-hidden rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg";
 
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<any>();
-  const [notification, setNotification] = useState<any>([]);
-  const [isOpen, setOpen] = useState(false);
 
-  const fetchNotification = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("type", "admin");
-    if (error) setError(error);
-    else setNotification(data || []);
-    console.log("notification", data);
+ 
 
-    setLoading(false);
-  };
-  const handleIconClick = () => {
-    setOpen(!isOpen);
-    if (!isOpen) {
-      fetchNotification();
-    }
-  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -175,45 +156,9 @@ export default function AdminDashboardPage() {
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-1">Overview of your organization</p>
         </div>
-        <div className="relative">
-          {/* Notification Icon */}
-          <button onClick={handleIconClick} className="relative">
-            🔔
-          </button>
+       
 
-          {/* Dropdown */}
-          {isOpen && (
-            <div className="absolute right-0 mt-2 max-w-80 bg-white shadow-lg rounded-lg z-50 max-h-80   overflow-y-auto">
-              {loading ? (
-                <p className="p-4 text-gray-500">Loading...</p>
-              ) : notification.length === 0 ? (
-                <p className="p-4 text-gray-500">No notifications</p>
-              ) : (
-                notification.map((n:any) => (
-                  <div
-                    key={n.id}
-                    className="p-3 border-b hover:bg-gray-100 cursor-pointer"
-                  >
-                    <p className="font-semibold">{n.title}</p>
-                    <p className="text-sm text-gray-600">
-                      {n.body || n.message}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {new Date(n.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </div>
-
-        <button
-          onClick={() => setShowProfile(true)}
-          className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-blue-100 bg-blue-50 text-sm font-semibold text-blue-700 shadow-sm transition-all duration-150 hover:bg-blue-100 hover:border-blue-200"
-        >
-          <span>{profileInitials}</span>
-        </button>
+     
       </div>
 
       <section>

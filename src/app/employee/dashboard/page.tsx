@@ -849,7 +849,7 @@ export default function EmployeeDashboardPage() {
             </div>
           </div>
         </section>
-        {/* responsivenes */}
+       
         <div className="flex flex-col gap-4 lg:flex-row">
           <div className="w-full lg:w-1/2 ">
             <UpcommingEvents
