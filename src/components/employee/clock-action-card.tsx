@@ -160,6 +160,23 @@ export function ClockActionCard({
     }
   };
 
+  useEffect(() => {
+    // Only run when actively clocked in and we have a start time
+    if (status?.status !== "clocked_in" || !clockInValue) return;
+
+    // Force immediate render (no 1s delay on first paint)
+    setTick(0);
+
+    const intervalId = window.setInterval(() => {
+      setTick((prev) => prev + 1);
+    }, 1000);
+
+    // Cleanup on unmount / status change
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [status?.status, clockInValue]);
+
   return (
     <Card className="rounded-2xl border border-slate-100 bg-white/90 shadow-sm">
       <CardHeader className="pb-3">
