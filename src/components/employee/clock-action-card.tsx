@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -13,7 +13,7 @@ import { supabase } from "@/lib/supabaseUser";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TodayStatus } from "@/types";
 import { format } from "date-fns";
-import { Clock, CheckCircle2 } from "lucide-react";
+import { Clock, CheckCircle2, Timer } from "lucide-react";
 
 interface ClockActionCardProps {
   status: TodayStatus;
@@ -23,6 +23,7 @@ interface ClockActionCardProps {
   standardShiftEnd: string;
   onActionComplete?: () => void;
 }
+
 export function ClockActionCard({
   status,
   employeeId,
@@ -35,8 +36,10 @@ export function ClockActionCard({
     text: string;
   } | null>(null);
   const [isClockOutLoading, setIsClockOutLoading] = useState(false);
-
   const [employeeName, setEmployeeName] = useState<string>("");
+
+  // Live tick for elapsed time (updates every 30s; change to 1s if you want)
+  const [tick, setTick] = useState(0);
 
   const isWeekend = () => {
     const day = new Date().getDay();
@@ -56,6 +59,34 @@ export function ClockActionCard({
     };
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    if (status?.status !== "clocked_in") return;
+    const id = window.setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => window.clearInterval(id);
+  }, [status?.status]);
+
+  const clockInValue =
+    status?.timeIn || status?.clockIn || (status as any)?.clock_in || null;
+
+  const elapsedLabel = useMemo(() => {
+    if (status?.status !== "clocked_in" || !clockInValue) return null;
+
+    const start = new Date(clockInValue).getTime();
+    const now = Date.now();
+    const diffMs = Math.max(0, now - start);
+
+    const totalSeconds = Math.floor(diffMs / 1000);
+
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const hh = String(hours).padStart(2, "0");
+    const mm = String(minutes).padStart(2, "0");
+    const ss = String(seconds).padStart(2, "0");
+    return `${hh}:${mm}:${ss}`;
+  }, [status?.status, clockInValue, tick]);
 
   const handleClockIn = async () => {
     setMessage(null);
@@ -88,6 +119,7 @@ export function ClockActionCard({
       setMessage({ type: "error", text: err.message || "Failed to clock in" });
     }
   };
+
   const handleClockOut = async () => {
     if (!status) {
       setMessage({ type: "error", text: "No active time entry found." });
@@ -108,13 +140,14 @@ export function ClockActionCard({
       if (error) throw error;
 
       onActionComplete?.();
+
       await fetch("/api/send-notification/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           employeeId,
           title: "Clock-out Alert",
-          body: `${employeeName} has clocked in.`,
+          body: `${employeeName} has clocked out.`,
         }),
       });
     } catch (error: any) {
@@ -127,7 +160,6 @@ export function ClockActionCard({
     }
   };
 
-  const currentTime = format(new Date(), "h:mm a");
   return (
     <Card className="rounded-2xl border border-slate-100 bg-white/90 shadow-sm">
       <CardHeader className="pb-3">
@@ -138,20 +170,22 @@ export function ClockActionCard({
           Record your work hours for today
         </CardDescription>
       </CardHeader>
+
       <CardContent className="space-y-4 pt-1">
         {message && (
           <Alert variant={message.type === "error" ? "destructive" : "success"}>
             <AlertDescription>{message.text}</AlertDescription>
           </Alert>
         )}
-        <div className="rounded-2xl bg-slate-50/80 py-4 text-center">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Current Time
-          </p>
-          <p className="mt-1 text-3xl font-semibold text-slate-900">
-            {currentTime}
-          </p>
-        </div>
+
+        {/* If clocked in -> show elapsed since clock in (updates live) */}
+        {status?.status === "clocked_in" && (
+          <div className="rounded-2xl bg-indigo-50/70 py-4 text-center">
+            <p className="mt-1 text-3xl font-semibold text-indigo-900">
+              {elapsedLabel ?? "00:00"}
+            </p>
+          </div>
+        )}
 
         {status.status === "not_clocked_in" && !isWeekend() && (
           <Button
@@ -160,10 +194,11 @@ export function ClockActionCard({
             size="lg"
           >
             <Clock className="mr-2 h-5 w-5" />
-            {"Clock In"}
+            Clock In
           </Button>
         )}
-        {status.status == "clocked_in" && (
+
+        {status.status === "clocked_in" && (
           <Button
             onClick={handleClockOut}
             disabled={isClockOutLoading}
@@ -176,7 +211,7 @@ export function ClockActionCard({
           </Button>
         )}
 
-        {status.status == "completed" && (
+        {status.status === "completed" && (
           <div className="rounded-2xl bg-emerald-50/80 p-4 text-center text-sm font-medium text-emerald-700">
             You&apos;ve completed your shift for today!
           </div>
