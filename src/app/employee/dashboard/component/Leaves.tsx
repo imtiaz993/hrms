@@ -30,10 +30,9 @@ const Leaves = ({
             Leaves
           </CardTitle>
 
-          <div className="text-sm text-slate-400">
+          <div className="text-sm text-slate-400 grid grid-cols-2">
             <p>Sick Leaves: {sickLeaves}</p>
             <p>Casual Leaves: {casualLeaves}</p>
-            <p>total Leaves: {casualLeaves + sickLeaves}</p>
           </div>
           <Button
             onClick={() => setShowLeaveRequest(true)}
