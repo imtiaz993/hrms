@@ -13,6 +13,7 @@ const AttendanceTodayCard = ({
   todayStatus,
   currentUser,
   refetchStatus,
+  statusLoading,
 }: AttendanceTodayCardProps) => {
   return (
     <ClockActionCard
@@ -23,6 +24,7 @@ const AttendanceTodayCard = ({
       standardShiftEnd={currentUser.standard_shift_end}
       employeeName={currentUser?.first_name + " " + currentUser?.last_name}
       onActionComplete={refetchStatus}
+      isLoading={statusLoading}
     />
   );
 };
