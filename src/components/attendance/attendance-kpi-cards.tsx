@@ -7,14 +7,41 @@ import { CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
 interface AttendanceKPICardsProps {
   cardBase: any;
   analytics: AttendanceAnalytics;
-  isLoading:boolean
+  isLoading: boolean;
 }
+
+const KpiSkeletonCard = ({ cardBase }: { cardBase: any }) => {
+  return (
+    <Card className={cardBase}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div className="h-3 w-24 rounded bg-slate-200 animate-pulse" />
+        <div className="h-7 w-7 rounded-full bg-slate-200 animate-pulse" />
+      </CardHeader>
+      <CardContent>
+        <div className="h-7 w-14 rounded bg-slate-200 animate-pulse" />
+        <div className="mt-2 h-3 w-32 rounded bg-slate-200 animate-pulse" />
+      </CardContent>
+    </Card>
+  );
+};
 
 export function AttendanceKPICards({
   cardBase,
   analytics,
-  isLoading
+  isLoading,
 }: AttendanceKPICardsProps) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <KpiSkeletonCard cardBase={cardBase} />
+        <KpiSkeletonCard cardBase={cardBase} />
+        <KpiSkeletonCard cardBase={cardBase} />
+        <KpiSkeletonCard cardBase={cardBase} />
+        <KpiSkeletonCard cardBase={cardBase} />
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
       <Card className={cardBase}>
@@ -66,7 +93,7 @@ export function AttendanceKPICards({
           <div className="text-2xl font-semibold text-emerald-600">
             {Math.max(analytics.presentDays - analytics.lateArrivals, 0)}
           </div>
-          <p className="mt-1 text-xs text-slate-500">Days on-time </p>
+          <p className="mt-1 text-xs text-slate-500">Days on-time</p>
         </CardContent>
       </Card>
 
