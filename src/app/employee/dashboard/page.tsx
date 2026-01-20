@@ -121,7 +121,7 @@ export default function EmployeeDashboardPage() {
     const currentMonth = today.getMonth();
     const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
     const { data, error } = await supabase.rpc(
-      "employees_current_month_future"
+      "employees_current_month_future",
     );
 
     if (error || !data) return;
@@ -132,7 +132,7 @@ export default function EmployeeDashboardPage() {
         const birthdayThisYear = new Date(
           currentYear,
           dob.getMonth(),
-          dob.getDate()
+          dob.getDate(),
         );
 
         return {
@@ -144,7 +144,7 @@ export default function EmployeeDashboardPage() {
         (e: any) =>
           e.eventDate > today &&
           e.eventDate <= endOfMonth &&
-          e.eventDate.getMonth() === currentMonth
+          e.eventDate.getMonth() === currentMonth,
       )
       .map((e: any) => ({
         id: e.emp.id,
@@ -159,7 +159,7 @@ export default function EmployeeDashboardPage() {
         const anniversaryThisYear = new Date(
           currentYear,
           join.getMonth(),
-          join.getDate()
+          join.getDate(),
         );
 
         const yearsCompleted = currentYear - join.getFullYear();
@@ -175,7 +175,7 @@ export default function EmployeeDashboardPage() {
           e.eventDate > today &&
           e.eventDate <= endOfMonth &&
           e.yearsCompleted > 0 &&
-          e.eventDate.getMonth() === currentMonth
+          e.eventDate.getMonth() === currentMonth,
       )
       .map((e: any) => ({
         id: e.emp.id,
@@ -242,7 +242,7 @@ export default function EmployeeDashboardPage() {
   function mapTimeEntryToTodayStatus(
     entry: any,
     standardHours: number,
-    standardShiftStart: string
+    standardShiftStart: string,
   ): TodayStatus {
     if (entry.clock_in && entry.clock_out) {
       return {
@@ -344,8 +344,8 @@ export default function EmployeeDashboardPage() {
           mapTimeEntryToTodayStatus(
             latestEntry,
             currentUser.standard_hours_per_day,
-            currentUser.standard_shift_start
-          )
+            currentUser.standard_shift_start,
+          ),
         );
       }
     }
@@ -384,11 +384,11 @@ export default function EmployeeDashboardPage() {
 
     const start = format(
       startOfMonth(new Date(selectedYear, selectedMonth - 1)),
-      "yyyy-MM-dd"
+      "yyyy-MM-dd",
     );
     const end = format(
       endOfMonth(new Date(selectedYear, selectedMonth - 1)),
-      "yyyy-MM-dd"
+      "yyyy-MM-dd",
     );
     const { data, error } = await supabase
       .from("time_entries")
@@ -515,7 +515,7 @@ export default function EmployeeDashboardPage() {
           year: Number(yearStr),
           label: format(
             new Date(Number(yearStr), Number(monthStr) - 1),
-            "MMMM yyyy"
+            "MMMM yyyy",
           ),
         };
       });
@@ -771,21 +771,10 @@ export default function EmployeeDashboardPage() {
         </div>
       </header>
       <main
-        className="mx-auto flex max-w-7xl flex-col gap-10 px-4 pb-10 pt-8 sm:px-6 lg:px-8"
+        className="mx-auto flex max-w-7xl flex-col gap-5 px-4 pb-10 pt-8 sm:px-6 lg:px-8"
         aria-label="Employee dashboard content"
       >
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <h2
-              id="attendance-analytics-heading"
-              className="text-lg font-semibold text-slate-900 sm:text-xl"
-            >
-              Attendance Analytics
-            </h2>
-            <p className="text-sm text-slate-500">
-              See your attendance patterns and trends for the selected period.
-            </p>
-          </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <p className="text-xs text-slate-400">
             Showing data for{" "}
             {format(new Date(selectedYear, selectedMonth - 1, 1), "MMM yyyy")}
@@ -805,40 +794,9 @@ export default function EmployeeDashboardPage() {
           aria-labelledby="today-overview-heading"
           className="grid grid-cols-1 gap-6"
         >
-          <h2 id="today-overview-heading" className="sr-only">
-            Today overview
-          </h2>
-
-          <div className="flex flex-col w-full gap-4 lg:flex-row">
+          <div className="grid md:grid-cols-3 gap-2">
             {/* LEFT: My Info + Today's Events */}
-            <div className="w-full lg:w-full">
-              <UserInfoCard
-                cardBase={cardBase}
-                todayBirthdays={todayBirthdays}
-                todayAnniversaries={todayAnniversaries}
-              />
-
-              <Card className={`${cardBase} mt-3 h-auto lg:h-[400px]`}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold text-slate-900">
-                    Salary Section
-                  </CardTitle>
-                </CardHeader>
-
-                <CardContent>
-                  <Button
-                    onClick={() => setShowSalaryView(true)}
-                    className="w-full rounded-full text-sm font-medium"
-                    variant="outline"
-                  >
-                    Salary summary
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* RIGHT: Attendance */}
-            <div className="w-full lg:w-full">
+            <div>
               <AttendanceTodayCard
                 statusLoading={statusLoading}
                 todayStatus={todayStatus}
@@ -847,96 +805,76 @@ export default function EmployeeDashboardPage() {
                 cardBase={cardBase}
               />
             </div>
+
+            {/* RIGHT: Attendance */}
+            <section className="lg:col-span-2">
+              <Card className={`${cardBase}`}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold text-slate-900">
+                    Quick Attendance Overview
+                  </CardTitle>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Switch months to explore your recent patterns.
+                  </p>
+                </CardHeader>
+                <div className="rounded-xl p-3 md:px-9">
+                  <div className="mt-2">
+                    <WorkingHoursChartCard
+                      selectedMonth={selectedMonth}
+                      selectedYear={selectedYear}
+                      standardHoursPerDay={currentUser.standard_hours_per_day}
+                      onMonthChange={handleMonthChange}
+                      availableMonths={months || []}
+                      chartData={chartData}
+                      isLoading={isLoading}
+                    />
+                  </div>
+                </div>
+              </Card>
+            </section>
           </div>
         </section>
-       
-        <div className="flex flex-col gap-4 lg:flex-row">
-          <div className="w-full lg:w-1/2 ">
-            <UpcommingEvents
-              upcomingBirthdays={upcomingBirthdays}
-              upcomingAnniversaries={upcomingAnniversaries}
-              cardBase={cardBase}
-            />
-          </div>
 
-          <div className="w-full lg:w-1/2">
-            <UpcomingHoliday cardBase={cardBase} holidays={holidays} />
-          </div>
+        <div className="grid md:grid-cols-3 gap-4">
+          <UserInfoCard
+            cardBase={cardBase}
+            todayBirthdays={todayBirthdays}
+            todayAnniversaries={todayAnniversaries}
+          />
+          <UpcommingEvents
+            upcomingBirthdays={upcomingBirthdays}
+            upcomingAnniversaries={upcomingAnniversaries}
+            cardBase={cardBase}
+          />
+          <UpcomingHoliday cardBase={cardBase} holidays={holidays} />
         </div>
 
-        <section>
-          <Card className={`${cardBase} lg:col-span-1`}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-slate-900">
-                Quick Attendance Overview
-              </CardTitle>
-              <p className="mt-1 text-xs text-slate-500">
-                Switch months to explore your recent patterns.
-              </p>
-            </CardHeader>
-            <div className="rounded-xl bg-slate-50/80 p-3 md:p-9">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Working Hours Analytics
-              </p>
-              <div className="mt-2">
-                <WorkingHoursChartCard
-                  selectedMonth={selectedMonth}
-                  selectedYear={selectedYear}
-                  standardHoursPerDay={currentUser.standard_hours_per_day}
-                  onMonthChange={handleMonthChange}
-                  availableMonths={months || []}
-                  chartData={chartData}
-                  isLoading={isLoading}
-                />
-              </div>
-            </div>
-          </Card>
-        </section>
         <section
           aria-labelledby="leave-and-actions-heading"
-          className="grid grid-cols-1 gap-6 lg:grid-cols-2"
+          className="grid md:grid-cols-3 gap-4"
         >
-          <h2 id="leave-and-actions-heading" className="sr-only">
-            Leave, salary and extra work
-          </h2>
-          <Card className={cardBase}>
+          <Card className={`${cardBase} mt-3 h-auto`}>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center justify-between text-base font-semibold text-slate-900">
-                <span>Leave Summary</span>
-                <span className="rounded-full bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-500">
-                  Balances
-                </span>
+              <CardTitle className="text-base font-semibold text-slate-900">
+                Company Policy
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-sm text-slate-400">
-                <p>Sick Leaves: {sickLeaves}</p>
-                <p>Casual Leaves: {casualLeaves}</p>
-                <p>total Leaves: {casualLeaves + sickLeaves}</p>
-              </div>
-            </CardContent>
           </Card>
-
           <section
             aria-labelledby="leave-holidays-heading"
             className="space-y-4"
           >
-            <div>
-              <h2
-                id="leave-holidays-heading"
-                className="text-lg font-semibold text-slate-900 sm:text-xl"
-              >
-                Leave &amp; Holidays
-              </h2>
-              <p className="text-sm text-slate-500">
-                Track your leave requests and upcoming company holidays.
-              </p>
-            </div>
             <Card className={cardBase}>
               <CardHeader className="">
                 <CardTitle className="text-base font-semibold text-slate-900">
-                  Leave Requests
+                  Leaves
                 </CardTitle>
+
+                <div className="text-sm text-slate-400">
+                  <p>Sick Leaves: {sickLeaves}</p>
+                  <p>Casual Leaves: {casualLeaves}</p>
+                  <p>total Leaves: {casualLeaves + sickLeaves}</p>
+                </div>
                 <Button
                   onClick={() => setShowLeaveRequest(true)}
                   className="mt-4 rounded-full px-1 text-sm"
@@ -964,6 +902,23 @@ export default function EmployeeDashboardPage() {
               </CardContent>
             </Card>
           </section>
+          <Card className={`${cardBase} mt-3 h-auto`}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold text-slate-900">
+                Salary Section
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent>
+              <Button
+                onClick={() => setShowSalaryView(true)}
+                className="w-full rounded-full text-sm font-medium"
+                variant="outline"
+              >
+                Salary summary
+              </Button>
+            </CardContent>
+          </Card>
         </section>
       </main>
       {showProfile && (

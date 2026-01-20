@@ -15,7 +15,7 @@ const statusLabels: any = {
   late: "Late Arrival",
   early_leave: "Early Leave",
   future: "Future",
-  weekEnd: "WeekEnd",
+  weekend: "Weekend",
 };
 import { cn } from "@/lib/utils";
 interface WorkingHoursChartCardProps {
@@ -33,7 +33,7 @@ const statusColors: any = {
   late: "bg-amber-400/90 hover:bg-amber-500",
   early_leave: "bg-orange-500/90 hover:bg-orange-600",
   future: "bg-slate-200 hover:bg-slate-300",
-  weekEnd: "bg-black hover:bg-gray-500",
+  weekend: "bg-black hover:bg-gray-500",
 };
 
 export function WorkingHoursChartCard({
@@ -80,7 +80,7 @@ export function WorkingHoursChartCard({
   return (
     <div className="space-y-4">
       {availableMonths.length > 0 && (
-        <div className="flex items-center justify-between rounded-2xl bg-slate-50/80 p-3">
+        <div className="flex items-center justify-between rounded-2xl">
           <label className="text-sm font-medium text-slate-700">
             Select Month:
           </label>
@@ -104,7 +104,7 @@ export function WorkingHoursChartCard({
         </div>
       )}
       <div className="space-y-3">
-        <div className="relative flex h-64 items-end justify-between gap-1 rounded-2xl bg-slate-50/60 px-3 pb-3 pt-4">
+        <div className="relative flex items-end justify-between gap-1 rounded-2xl px-3 pb-3 pt-4">
           {chartData.map((item:any, index:any) => {
             const actualHeight = (item.total_hours / item.standard_hours) * 100;
 
@@ -196,7 +196,7 @@ export function WorkingHoursChartCard({
         {Object.entries(statusLabels).map(([status, label]) => (
           <div
             key={status}
-            className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1"
+            className="inline-flex items-center gap-2 rounded-full"
           >
             <span
               className={cn(

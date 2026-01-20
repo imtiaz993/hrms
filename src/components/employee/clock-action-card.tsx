@@ -58,7 +58,7 @@ export function ClockActionCard({
       } = await supabase.auth.getUser();
       if (user) {
         setEmployeeName(
-          user.user_metadata?.full_name || user.email || "Employee"
+          user.user_metadata?.full_name || user.email || "Employee",
         );
       }
     };
@@ -81,10 +81,8 @@ export function ClockActionCard({
 
       if (error) throw error;
 
-      setMessage({ type: "success", text: "Clocked in successfully!" });
       onActionComplete?.();
 
-    
       await fetch("/api/send-notification/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -117,13 +115,8 @@ export function ClockActionCard({
 
       if (error) throw error;
 
-      setMessage({
-        type: "success",
-        text: "Clocked out successfully! Total hours calculated.",
-      });
-
       onActionComplete?.();
-       await fetch("/api/send-notification/", {
+      await fetch("/api/send-notification/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

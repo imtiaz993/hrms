@@ -16,7 +16,7 @@ export default function UserInfoCard({ cardBase,todayAnniversaries,todayBirthday
  
   
   return (
-    <Card className={`${cardBase}  flex-1 `}>
+    <Card className={`${cardBase} flex-1`}>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between text-base font-semibold text-slate-900">
           <span>Today Events</span>
