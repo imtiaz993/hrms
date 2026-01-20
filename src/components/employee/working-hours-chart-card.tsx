@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { format, parseISO, isSunday, isSaturday, isFuture } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -34,29 +34,26 @@ interface WorkingHoursChartCardProps {
 
 const ChartSkeleton = () => (
   <div className="space-y-4">
-    {/* Month select skeleton */}
     <div className="flex items-center justify-between rounded-2xl">
       <div className="h-4 w-28 rounded bg-slate-200 animate-pulse" />
       <div className="h-9 w-44 rounded-md bg-slate-200 animate-pulse" />
     </div>
 
-    {/* Bars skeleton */}
     <div className="relative h-36 flex items-end justify-between gap-1 rounded-2xl">
-      {Array.from({ length: 31 }).map((_, i) => (
+      {Array.from({ length: 33 }).map((_, i) => (
         <div
           key={i}
           className="relative flex flex-1 flex-col justify-end h-full"
         >
           <div
             className="w-full rounded-t-sm bg-slate-200/70 animate-pulse"
-            style={{ height: `${20 + (i % 7) * 10}%` }}
+            style={{ height: `${33 + (i % 7) * 10}%` }}
           />
           <div className="mt-1 h-2 w-3 rounded bg-slate-200 animate-pulse self-center" />
         </div>
       ))}
     </div>
 
-    {/* Totals skeleton */}
     <div className="grid grid-cols-3 gap-4 border-t border-slate-100 pt-4">
       {Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className="space-y-2">
@@ -66,7 +63,6 @@ const ChartSkeleton = () => (
       ))}
     </div>
 
-    {/* Legend skeleton */}
     <div className="mt-3 flex justify-center flex-wrap gap-3">
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="inline-flex items-center gap-2 rounded-full">
@@ -78,6 +74,10 @@ const ChartSkeleton = () => (
   </div>
 );
 
+function boolLabel(v: any) {
+  return v ? "Yes" : "No";
+}
+
 export function WorkingHoursChartCard({
   selectedMonth,
   selectedYear,
@@ -87,11 +87,13 @@ export function WorkingHoursChartCard({
   chartData,
   isLoading,
 }: WorkingHoursChartCardProps) {
+  const [hovered, setHovered] = useState<any | null>(null);
+
   const totals = useMemo(() => {
     const scheduled = chartData.reduce(
       (sum: any, item: any) =>
         isSaturday(item.date) || isSunday(item.date)
-          ? sum + 0
+          ? sum
           : sum + item.standard_hours,
       0,
     );
@@ -99,12 +101,65 @@ export function WorkingHoursChartCard({
       (sum: any, item: any) => sum + item.total_hours,
       0,
     );
-    return {
-      scheduled,
-      worked,
-      difference: worked - scheduled,
-    };
+    return { scheduled, worked, difference: worked - scheduled };
   }, [chartData]);
+
+  const tooltip = useMemo(() => {
+    if (!hovered) return null;
+
+    const weekend = isSaturday(hovered.date) || isSunday(hovered.date);
+    const future = isFuture(hovered.date);
+
+    const dateStr = format(parseISO(hovered.date), "MMM dd, yyyy");
+
+    // off/absent if no clock_in (and not weekend/future)
+    const isAbsent = !weekend && !future && !hovered?.clock_in;
+
+    const lines: Array<{ k: string; v: string }> = [{ k: "Date", v: dateStr }];
+
+    if (weekend) {
+      lines.push({ k: "Status", v: "Weekend" });
+      return lines;
+    }
+
+    if (future) {
+      lines.push({ k: "Status", v: "Future" });
+      return lines;
+    }
+
+    if (isAbsent) {
+      lines.push({ k: "Status", v: "Absent" });
+      return lines;
+    }
+
+    // present (clock_in exists)
+    lines.push({ k: "Status", v: "Present" });
+
+    if (hovered.clock_in)
+      lines.push({
+        k: "Clock In",
+        v: format(new Date(hovered.clock_in), "h:mm a"),
+      });
+    if (hovered.clock_out)
+      lines.push({
+        k: "Clock Out",
+        v: format(new Date(hovered.clock_out), "h:mm a"),
+      });
+
+    // Only show worked hours if clock_out exists
+    if (hovered.clock_in && hovered.clock_out) {
+      const hrs =
+        typeof hovered.total_hours === "number"
+          ? hovered.total_hours
+          : Number(hovered.total_hours ?? 0);
+      lines.push({ k: "Worked Hours", v: `${hrs.toFixed(1)}h` });
+    }
+
+    lines.push({ k: "Late", v: boolLabel(hovered.is_late) });
+    lines.push({ k: "Early Leave", v: boolLabel(hovered.is_early_leave) });
+
+    return lines;
+  }, [hovered]);
 
   if (isLoading) return <ChartSkeleton />;
 
@@ -146,7 +201,32 @@ export function WorkingHoursChartCard({
       <div className="space-y-3">
         <div className="relative h-36 flex items-end justify-between gap-1 rounded-2xl">
           {chartData.map((item: any, index: any) => {
+            const weekend = isSunday(item.date) || isSaturday(item.date);
+            const future = isFuture(item.date);
+
             const actualHeight = (item.total_hours / item.standard_hours) * 100;
+
+            const baseHeight = `${
+              future || weekend
+                ? 33
+                : !item.clock_in || !item.clock_out
+                  ? 33
+                  : (item.standard_hours / standardHoursPerDay) * 100
+            }%`;
+
+            const fillHeight = `${item?.clock_in && item?.clock_out ? actualHeight : 100}%`;
+
+            const fillColor = item.is_late
+              ? "bg-yellow-400"
+              : item.is_early_leave
+                ? "bg-orange-600"
+                : item?.clock_in
+                  ? "bg-emerald-500"
+                  : future
+                    ? ""
+                    : weekend
+                      ? "bg-black"
+                      : "bg-rose-500";
 
             return (
               <div
@@ -154,51 +234,44 @@ export function WorkingHoursChartCard({
                 className="relative flex flex-1 flex-col justify-end items-center h-full"
               >
                 <div
-                  className={`relative bottom-0 w-full rounded-t-sm ${
-                    isSunday(item.date) || isSaturday(item.date)
-                      ? "bg-black"
-                      : "bg-slate-200/80"
+                  className={`relative bottom-0 w-full rounded-t-sm cursor-pointer ${
+                    weekend ? "bg-black" : "bg-slate-200/80"
                   }`}
-                  style={{
-                    height: `${
-                      isFuture(item.date) ||
-                      isSunday(item.date) ||
-                      isSaturday(item.date)
-                        ? "20"
-                        : !item.clock_in || !item.clock_out
-                          ? 20
-                          : (item.standard_hours / standardHoursPerDay) * 100
-                    }%`,
-                  }}
+                  style={{ height: baseHeight }}
                 >
+                  {/* Hover target = the fill bar */}
                   <div
-                    className={`absolute bottom-0 w-full rounded-t-sm border border-white/40 ${
-                      item.is_late
-                        ? "bg-yellow-400"
-                        : item.is_early_leave
-                          ? "bg-orange-600"
-                          : item?.clock_in
-                            ? "bg-emerald-500"
-                            : isFuture(item.date)
-                              ? ""
-                              : isSaturday(item.date) || isSunday(item.date)
-                                ? "bg-black"
-                                : "bg-rose-500"
-                    }`}
-                    style={{
-                      height: `${
-                        item?.clock_in && item?.clock_out ? actualHeight : "100"
-                      }%`,
-                    }}
-                    title={`${format(parseISO(item.date), "MMM dd")}: ${item.total_hours.toFixed(
-                      1,
-                    )}h / ${item.standard_hours}h`}
+                    className={`absolute bottom-0 w-full rounded-t-sm border border-white/40 ${fillColor}`}
+                    style={{ height: fillHeight }}
+                    onMouseEnter={() => setHovered(item)}
+                    onMouseMove={() => setHovered(item)}
+                    onMouseLeave={() => setHovered(null)}
                   />
                 </div>
 
-                <span className="mt-1 text-[10px] text-slate-500 absolute z-10">
+                <span className="mt-1 text-[10px] text-white font-semibold absolute z-10">
                   {item.day}
                 </span>
+
+                {/* Tooltip */}
+                {hovered?.date === item.date && tooltip && (
+                  <div className="pointer-events-none absolute -top-2 left-1/2 z-50 w-56 -translate-x-1/2 -translate-y-full rounded-xl border border-slate-200 bg-white/95 p-3 text-xs text-slate-700 shadow-lg backdrop-blur">
+                    <div className="space-y-1">
+                      {tooltip.map((row, i) => (
+                        <div
+                          key={i}
+                          className="flex items-start justify-between gap-3"
+                        >
+                          <span className="text-slate-500">{row.k}</span>
+                          <span className="font-medium text-slate-900 text-right">
+                            {row.v}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 border-b border-r border-slate-200 bg-white/95" />
+                  </div>
+                )}
               </div>
             );
           })}
