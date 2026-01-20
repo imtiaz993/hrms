@@ -22,7 +22,7 @@ const QuickOverview = ({
           Switch months to explore your recent patterns.
         </p>
       </CardHeader>
-      <div className="rounded-xl p-3 md:px-9">
+      <div className="rounded-xl p-3 md:px-5">
         <div className="mt-2">
           <WorkingHoursChartCard
             selectedMonth={selectedMonth}

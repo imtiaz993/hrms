@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseUser";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar as CalendarIcon } from "lucide-react";
 
@@ -11,7 +9,6 @@ const UpcomingHoliday = ({ cardBase, holidays }: Props) => {
   return (
     <>
       <Card className={`${cardBase} flex-1 md:full  lg:w-full`}>
-        <CardHeader className="pb-3">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
               <span> Upcoming Holidays</span>
@@ -42,7 +39,6 @@ const UpcomingHoliday = ({ cardBase, holidays }: Props) => {
               <p className="text-sm text-slate-500">No upcoming holidays.</p>
             </div>
           )}
-        </CardHeader>
       </Card>
     </>
   );

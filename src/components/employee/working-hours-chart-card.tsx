@@ -104,7 +104,7 @@ export function WorkingHoursChartCard({
         </div>
       )}
       <div className="space-y-3">
-        <div className="relative flex items-end justify-between gap-1 rounded-2xl px-3 pb-3 pt-4">
+        <div className="relative h-36 flex items-end justify-between gap-1 rounded-2xl">
           {chartData.map((item:any, index:any) => {
             const actualHeight = (item.total_hours / item.standard_hours) * 100;
 
@@ -114,7 +114,7 @@ export function WorkingHoursChartCard({
                 className="relative flex flex-1 flex-col justify-end items-center h-full"
               >
                 <div
-                  className={`relative bottom-0 w-full rounded-t-md ${
+                  className={`relative bottom-0 w-full rounded-t-sm ${
                     isSunday(item.date) || isSaturday(item.date)
                       ? "bg-black"
                       : "bg-slate-200/80"
@@ -132,7 +132,7 @@ export function WorkingHoursChartCard({
                   }}
                 >
                   <div
-                    className={`absolute bottom-0 w-full rounded-t-md border border-white/40 ${
+                    className={`absolute bottom-0 w-full rounded-t-sm border border-white/40 ${
                       item.is_late
                         ? "bg-yellow-400"
                         : item.is_early_leave
