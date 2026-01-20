@@ -201,7 +201,8 @@ export function ClockActionCard({
   const todayLabel = format(new Date(), "EEE, dd MMM");
 
   const statusPill = useMemo(() => {
-    const base = "rounded-full border px-3 py-1 text-xs font-semibold";
+    const base =
+      "rounded-full border px-3 py-1 text-xs font-semibold whitespace-nowrap";
     if (status?.status === "clocked_in")
       return `${base} border-gray-200 bg-gray-50 text-gray-700`;
     if (status?.status === "completed")
@@ -221,7 +222,7 @@ export function ClockActionCard({
               Record your work hours for today
             </CardDescription>
 
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <div className="pt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
               {isLoading ? (
                 <>
                   <SkeletonChip />
@@ -234,6 +235,10 @@ export function ClockActionCard({
                     <CalendarDays className="h-3.5 w-3.5" />
                     {todayLabel}
                   </span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
+                    <Timer className="h-3.5 w-3.5" />
+                    Std: {standardHours}h
+                  </span>
 
                   {shiftLabel ? (
                     <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
@@ -241,11 +246,6 @@ export function ClockActionCard({
                       Shift: {shiftLabel}
                     </span>
                   ) : null}
-
-                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
-                    <Timer className="h-3.5 w-3.5" />
-                    Std: {standardHours}h
-                  </span>
                 </>
               )}
             </div>

@@ -23,11 +23,7 @@ const statusColors: any = {
 };
 
 interface WorkingHoursChartCardProps {
-  selectedMonth: number;
-  selectedYear: number;
   standardHoursPerDay: number;
-  onMonthChange: (month: number, year: number) => void;
-  availableMonths: Array<{ month: number; year: number; label: string }>;
   chartData: any;
   isLoading: any;
 }
@@ -79,11 +75,7 @@ function boolLabel(v: any) {
 }
 
 export function WorkingHoursChartCard({
-  selectedMonth,
-  selectedYear,
   standardHoursPerDay,
-  onMonthChange,
-  availableMonths,
   chartData,
   isLoading,
 }: WorkingHoursChartCardProps) {
@@ -173,31 +165,6 @@ export function WorkingHoursChartCard({
 
   return (
     <div className="space-y-4">
-      {availableMonths.length > 0 && (
-        <div className="flex items-center justify-between rounded-2xl">
-          <label className="text-sm font-medium text-slate-700">
-            Select Month:
-          </label>
-          <select
-            value={`${selectedYear}-${selectedMonth}`}
-            onChange={(e) => {
-              const [year, month] = e.target.value.split("-").map(Number);
-              onMonthChange(month, year);
-            }}
-            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/5"
-          >
-            {availableMonths.map((m) => (
-              <option
-                key={`${m.year}-${m.month}`}
-                value={`${m.year}-${m.month}`}
-              >
-                {m.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
       <div className="space-y-3">
         <div className="relative h-36 flex items-end justify-between gap-1 rounded-2xl">
           {chartData.map((item: any, index: any) => {

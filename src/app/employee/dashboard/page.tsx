@@ -6,6 +6,7 @@ import {
   endOfMonth,
   eachDayOfInterval,
   parseISO,
+  isWeekend,
 } from "date-fns";
 import { useState, useMemo, useEffect } from "react";
 import { useAppSelector } from "@/store/hooks";
@@ -522,7 +523,7 @@ export default function EmployeeDashboardPage() {
     let earlyLeaves = 0;
     let totalHoursWorked = 0;
 
-    const dailyAttendance: DailyAttendance[] = eachDayOfInterval({
+    const dailyAttendance: any = eachDayOfInterval({
       start,
       end,
     }).map((day) => {
@@ -538,7 +539,7 @@ export default function EmployeeDashboardPage() {
         };
       }
 
-      if (!entry) {
+      if (!entry && !isWeekend(day)) {
         absentDays++;
         return {
           date: dateStr,
@@ -548,24 +549,26 @@ export default function EmployeeDashboardPage() {
         };
       }
 
-      presentDays++;
-      if (entry.is_late) lateArrivals++;
-      if (entry.is_early_leave) earlyLeaves++;
-      if (entry.total_hours) totalHoursWorked += entry.total_hours;
+      if (entry) {
+        presentDays++;
+        if (entry.is_late) lateArrivals++;
+        if (entry.is_early_leave) earlyLeaves++;
+        if (entry.total_hours) totalHoursWorked += entry.total_hours;
 
-      let status: DailyAttendance["status"] = "present";
-      if (entry.is_late) status = "late";
-      if (entry.is_early_leave) status = "early_leave";
+        let status: DailyAttendance["status"] = "present";
+        if (entry.is_late) status = "late";
+        if (entry.is_early_leave) status = "early_leave";
 
-      return {
-        date: dateStr,
-        status,
-        timeIn: entry.time_in,
-        timeOut: entry.time_out || undefined,
-        totalHours: entry.total_hours || undefined,
-        isLate: entry.is_late,
-        isEarlyLeave: entry.is_early_leave,
-      };
+        return {
+          date: dateStr,
+          status,
+          timeIn: entry.time_in,
+          timeOut: entry.time_out || undefined,
+          totalHours: entry.total_hours || undefined,
+          isLate: entry.is_late,
+          isEarlyLeave: entry.is_early_leave,
+        };
+      }
     });
 
     const averageHoursPerDay =
