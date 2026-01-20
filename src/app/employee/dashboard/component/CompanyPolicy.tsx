@@ -74,14 +74,10 @@ const CompanyPolicy = ({ cardBase }: any) => {
                   {policy.title || "Company Policy"}
                 </p>
                 {policy.summary ? (
-                  <p className="mt-1 text-sm text-slate-600 leading-relaxed">
+                  <p className="mt-1 text-xs text-slate-600 leading-relaxed">
                     {policy.summary}
                   </p>
                 ) : null}
-              </div>
-
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700">
-                <FileText className="h-5 w-5" />
               </div>
             </div>
 
@@ -99,9 +95,6 @@ const CompanyPolicy = ({ cardBase }: any) => {
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-slate-900 truncate">
                       {policy.doc_name || "View Policy Document"}
-                    </p>
-                    <p className="text-xs text-slate-500 truncate">
-                      Opens in a new tab
                     </p>
                   </div>
                 </div>
