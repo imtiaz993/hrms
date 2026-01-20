@@ -6,15 +6,19 @@ import { formatTime } from "@/lib/time-utils";
 import { LogIn, LogOut } from "lucide-react";
 
 interface TodayStatusCardProps {
-  status: TodayStatus;
+  status?: TodayStatus;
+  loading?: boolean;
 }
 
-export function TodayStatusCard({ status }: TodayStatusCardProps) {
+export function TodayStatusCard({
+  status,
+  loading = false,
+}: TodayStatusCardProps) {
   const clockInValue =
-    status.timeIn || status.clockIn || (status as any).clock_in || null;
+    status?.timeIn || status?.clockIn || (status as any)?.clock_in || null;
 
   const clockOutValue =
-    status.timeOut || status.clockOut || (status as any).clock_out || null;
+    status?.timeOut || status?.clockOut || (status as any)?.clock_out || null;
 
   const SummaryChip = ({
     icon,
@@ -47,35 +51,55 @@ export function TodayStatusCard({ status }: TodayStatusCardProps) {
     );
   };
 
+  const SkeletonChip = () => (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 animate-pulse">
+      <div className="flex items-center gap-2">
+        <div className="h-4 w-4 rounded bg-slate-200" />
+        <div className="flex-1 space-y-1">
+          <div className="h-2 w-16 rounded bg-slate-200" />
+          <div className="h-3 w-24 rounded bg-slate-200" />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <Card className="rounded-2xl border border-slate-100 bg-white/90 shadow-sm">
       <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="space-y-0.5">
-            <CardTitle className="text-base font-semibold text-slate-900">
-              Today&apos;s Status
-            </CardTitle>
-          </div>
-        </div>
+        <CardTitle className="text-base font-semibold text-slate-900">
+          Today&apos;s Status
+        </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4 pt-2 text-sm">
-        {/* Top summary chips */}
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <SummaryChip
-            icon={<LogIn className="h-4 w-4" />}
-            label="Clock In"
-            value={clockInValue ? formatTime(clockInValue) : "—"}
-            tone={
-              clockInValue ? (status.isLate ? "amber" : "emerald") : "slate"
-            }
-          />
-          <SummaryChip
-            icon={<LogOut className="h-4 w-4" />}
-            label="Clock Out"
-            value={clockOutValue ? formatTime(clockOutValue) : "—"}
-            tone={clockOutValue ? "emerald" : "slate"}
-          />
+          {loading ? (
+            <>
+              <SkeletonChip />
+              <SkeletonChip />
+            </>
+          ) : (
+            <>
+              <SummaryChip
+                icon={<LogIn className="h-4 w-4" />}
+                label="Clock In"
+                value={clockInValue ? formatTime(clockInValue) : "—"}
+                tone={
+                  clockInValue
+                    ? status?.isLate
+                      ? "amber"
+                      : "emerald"
+                    : "slate"
+                }
+              />
+              <SummaryChip
+                icon={<LogOut className="h-4 w-4" />}
+                label="Clock Out"
+                value={clockOutValue ? formatTime(clockOutValue) : "—"}
+                tone={clockOutValue ? "emerald" : "slate"}
+              />
+            </>
+          )}
         </div>
       </CardContent>
     </Card>

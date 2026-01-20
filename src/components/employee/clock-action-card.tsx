@@ -34,18 +34,10 @@ export function ClockActionCard({
     type: "success" | "error";
     text: string;
   } | null>(null);
-  const [isClockInLoading, setIsClockInLoading] = useState(false);
   const [isClockOutLoading, setIsClockOutLoading] = useState(false);
 
   const [employeeName, setEmployeeName] = useState<string>("");
-  const timeToMinutes = (time: string) => {
-    const [h, m] = time.split(":").map(Number);
-    return h * 60 + m;
-  };
-  const getMinutesFromISO = (iso: string) => {
-    const date = new Date(iso);
-    return date.getHours() * 60 + date.getMinutes();
-  };
+
   const isWeekend = () => {
     const day = new Date().getDay();
     return day === 0 || day === 6;
@@ -135,9 +127,7 @@ export function ClockActionCard({
     }
   };
 
-  const currentStatus = status?.status ?? "not_clocked_in";
   const currentTime = format(new Date(), "h:mm a");
-  const isLoading = isClockInLoading || isClockOutLoading;
   return (
     <Card className="rounded-2xl border border-slate-100 bg-white/90 shadow-sm">
       <CardHeader className="pb-3">
@@ -166,15 +156,14 @@ export function ClockActionCard({
         {status.status === "not_clocked_in" && !isWeekend() && (
           <Button
             onClick={handleClockIn}
-            disabled={isClockInLoading}
             className="w-full rounded-xl"
             size="lg"
           >
             <Clock className="mr-2 h-5 w-5" />
-            {isClockInLoading ? "Clocking In..." : "Clock In"}
+            {"Clock In"}
           </Button>
         )}
-        {status.status === "clocked_in" && (
+        {status.status == "clocked_in" && (
           <Button
             onClick={handleClockOut}
             disabled={isClockOutLoading}
@@ -187,7 +176,7 @@ export function ClockActionCard({
           </Button>
         )}
 
-        {status.status === "completed" && (
+        {status.status == "completed" && (
           <div className="rounded-2xl bg-emerald-50/80 p-4 text-center text-sm font-medium text-emerald-700">
             You&apos;ve completed your shift for today!
           </div>

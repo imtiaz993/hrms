@@ -24,28 +24,19 @@ const AttendanceTodayCard = ({
 }: AttendanceTodayCardProps) => {
   return (
     <Card className={`${cardBase} flex-1 lg:w-full`}>
-      {statusLoading ? (
-        <div className="flex h-32 flex-col items-center justify-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-500" />
-          <p className="text-xs text-slate-500">
-            {" "}
-            Loading today&apos;s status…{" "}
-          </p>{" "}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {" "}
-          {todayStatus && <TodayStatusCard status={todayStatus} />}
-          <ClockActionCard
-            status={todayStatus ?? { status: "not_clocked_in" }}
-            employeeId={currentUser.id}
-            standardHours={currentUser.standard_hours_per_day}
-            standardShiftStart={currentUser.standard_shift_start}
-            standardShiftEnd={currentUser.standard_shift_end}
-            onActionComplete={refetchStatus}
-          />{" "}
-        </div>
-      )}
+      <div className="space-y-4">
+        {todayStatus && (
+          <TodayStatusCard status={todayStatus} loading={statusLoading} />
+        )}
+        <ClockActionCard
+          status={todayStatus ?? { status: "not_clocked_in" }}
+          employeeId={currentUser.id}
+          standardHours={currentUser.standard_hours_per_day}
+          standardShiftStart={currentUser.standard_shift_start}
+          standardShiftEnd={currentUser.standard_shift_end}
+          onActionComplete={refetchStatus}
+        />
+      </div>
     </Card>
   );
 };
