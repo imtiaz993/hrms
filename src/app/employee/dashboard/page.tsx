@@ -8,28 +8,21 @@ import {
   parseISO,
 } from "date-fns";
 import { useState, useMemo, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-
+import { useAppSelector } from "@/store/hooks";
 import UpcomingHoliday from "./component/UpcomingHolidays";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { User, LogOut, Plus, RefreshCw } from "lucide-react";
 import { AttendanceKPICards } from "@/components/attendance/attendance-kpi-cards";
-import { LeaveRequestsList } from "@/components/leave/leave-requests-list";
-import { ProfilePopup } from "@/components/employee/profile-popup";
-import { ChangePasswordPopup } from "@/components/employee/change-password-popup";
-import { LeaveRequestPopup } from "@/components/employee/leave-request-popup";
-import { SalaryViewPopup } from "@/components/employee/salary-view-popup";
-import { WorkingHoursChartCard } from "@/components/employee/working-hours-chart-card";
 import { supabase } from "@/lib/supabaseUser";
 import UserInfoCard from "./component/UserInfo";
 import UpcommingEvents from "./component/UpcommingEvents";
 import AttendanceTodayCard from "./component/Attendance";
 import { AttendanceAnalytics, DailyAttendance } from "@/types";
 import { LeaveRequest } from "@/types";
-import { Bell } from "lucide-react";
 import Header from "./component/header";
+import Refetch from "./component/Refetch";
+import QuickOverview from "./component/QuickOverview";
+import CompanyPolicy from "./component/CompanyPolicy";
+import Leaves from "./component/Leaves";
+import Salary from "./component/Salary";
 
 interface TimeEntry {
   date: string;
@@ -62,8 +55,6 @@ interface Holiday {
 }
 export default function EmployeeDashboardPage() {
   const { currentUser } = useAppSelector((state) => state.auth);
-  const [showLeaveRequest, setShowLeaveRequest] = useState(false);
-  const [showSalaryView, setShowSalaryView] = useState(false);
 
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -601,72 +592,31 @@ export default function EmployeeDashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-white text-slate-900">
       <Header />
-      <main
-        className="mx-auto flex max-w-7xl flex-col gap-5 px-4 pb-10 pt-8 sm:px-6 lg:px-8"
-        aria-label="Employee dashboard content"
-      >
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <p className="text-xs text-slate-400">
-            Showing data for{" "}
-            {format(new Date(selectedYear, selectedMonth - 1, 1), "MMM yyyy")}
-            <button
-              onClick={() => {
-                fetchAllData();
-              }}
-              className="p-2 rounded-full hover:bg-gray-200"
-            >
-              <RefreshCw size={14} />
-            </button>
-          </p>
-        </div>
-
+      <main className="mx-auto flex max-w-7xl flex-col gap-5 px-4 pb-10 pt-8 sm:px-6 lg:px-8">
+        <Refetch
+          fetchAllData={fetchAllData}
+          selectedYear={selectedYear}
+          selectedMonth={selectedMonth}
+        />
         <AttendanceKPICards analytics={data} />
-        <section
-          aria-labelledby="today-overview-heading"
-          className="grid grid-cols-1 gap-6"
-        >
-          <div className="grid md:grid-cols-3 gap-2">
-            {/* LEFT: My Info + Today's Events */}
-            <div>
-              <AttendanceTodayCard
-                statusLoading={statusLoading}
-                todayStatus={todayStatus}
-                currentUser={currentUser}
-                refetchStatus={refetchStatus}
-                cardBase={cardBase}
-              />
-            </div>
-
-            {/* RIGHT: Attendance */}
-            <section className="lg:col-span-2">
-              <Card className={`${cardBase}`}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold text-slate-900">
-                    Quick Attendance Overview
-                  </CardTitle>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Switch months to explore your recent patterns.
-                  </p>
-                </CardHeader>
-                <div className="rounded-xl p-3 md:px-9">
-                  <div className="mt-2">
-                    <WorkingHoursChartCard
-                      selectedMonth={selectedMonth}
-                      selectedYear={selectedYear}
-                      standardHoursPerDay={currentUser.standard_hours_per_day}
-                      onMonthChange={handleMonthChange}
-                      availableMonths={months || []}
-                      chartData={chartData}
-                      isLoading={isLoading}
-                    />
-                  </div>
-                </div>
-              </Card>
-            </section>
-          </div>
-        </section>
-
         <div className="grid md:grid-cols-3 gap-4">
+          <AttendanceTodayCard
+            statusLoading={statusLoading}
+            todayStatus={todayStatus}
+            currentUser={currentUser}
+            refetchStatus={refetchStatus}
+            cardBase={cardBase}
+          />
+          <QuickOverview
+            cardBase={cardBase}
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+            currentUser={currentUser}
+            handleMonthChange={handleMonthChange}
+            months={months}
+            chartData={chartData}
+            isLoading={isLoading}
+          />
           <UserInfoCard
             cardBase={cardBase}
             todayBirthdays={todayBirthdays}
@@ -678,95 +628,18 @@ export default function EmployeeDashboardPage() {
             cardBase={cardBase}
           />
           <UpcomingHoliday cardBase={cardBase} holidays={holidays} />
+          <CompanyPolicy cardBase={cardBase} />
+          <Leaves
+            cardBase={cardBase}
+            sickLeaves={sickLeaves}
+            casualLeaves={casualLeaves}
+            leaveRequests={leaveRequests}
+            currentUser={currentUser}
+            setLeaveRequests={setLeaveRequests}
+          />
+          <Salary cardBase={cardBase} currentUser={currentUser} />
         </div>
-
-        <section
-          aria-labelledby="leave-and-actions-heading"
-          className="grid md:grid-cols-3 gap-4"
-        >
-          <Card className={`${cardBase} mt-3 h-auto`}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-slate-900">
-                Company Policy
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <section
-            aria-labelledby="leave-holidays-heading"
-            className="space-y-4"
-          >
-            <Card className={cardBase}>
-              <CardHeader className="">
-                <CardTitle className="text-base font-semibold text-slate-900">
-                  Leaves
-                </CardTitle>
-
-                <div className="text-sm text-slate-400">
-                  <p>Sick Leaves: {sickLeaves}</p>
-                  <p>Casual Leaves: {casualLeaves}</p>
-                  <p>total Leaves: {casualLeaves + sickLeaves}</p>
-                </div>
-                <Button
-                  onClick={() => setShowLeaveRequest(true)}
-                  className="mt-4 rounded-full px-1 text-sm"
-                  variant="outline"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Request leave
-                </Button>
-              </CardHeader>
-
-              <CardContent>
-                {leaveRequests && leaveRequests.length > 0 ? (
-                  <LeaveRequestsList
-                    requests={leaveRequests}
-                    employeeId={currentUser.id}
-                    setLeaves={setLeaveRequests}
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center rounded-2xl bg-slate-50 py-8 text-center">
-                    <p className="text-sm text-slate-500">
-                      No leave requests yet.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </section>
-          <Card className={`${cardBase} mt-3 h-auto`}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-slate-900">
-                Salary Section
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent>
-              <Button
-                onClick={() => setShowSalaryView(true)}
-                className="w-full rounded-full text-sm font-medium"
-                variant="outline"
-              >
-                Salary summary
-              </Button>
-            </CardContent>
-          </Card>
-        </section>
       </main>
-
-      {showLeaveRequest && (
-        <LeaveRequestPopup
-          employeeId={currentUser.id}
-          onClose={() => setShowLeaveRequest(false)}
-          leaves={leaveRequests}
-          setLeaves={setLeaveRequests}
-        />
-      )}
-      {showSalaryView && (
-        <SalaryViewPopup
-          employeeId={currentUser.id}
-          onClose={() => setShowSalaryView(false)}
-        />
-      )}
     </div>
   );
 }

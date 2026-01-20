@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Employee } from "@/types";
-import { useLocalData } from "@/lib/local-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +19,6 @@ export function ChangePasswordPopup({
   employee,
   onClose,
 }: ChangePasswordPopupProps) {
-  const { updatePassword } = useLocalData();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -28,7 +26,7 @@ export function ChangePasswordPopup({
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
- const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess(false);

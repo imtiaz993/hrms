@@ -1,16 +1,27 @@
 import { supabase } from "@/lib/supabaseUser";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout as logoutAction } from "@/store/authSlice";
-import { Bell, LogOut, User } from "lucide-react";
+import { Bell, LogOut, User, Inbox } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ProfilePopup } from "@/components/employee/profile-popup";
 import { ChangePasswordPopup } from "@/components/employee/change-password-popup";
+
+const NotificationSkeleton = () => {
+  return (
+    <div className="p-3 border-b">
+      <div className="h-4 w-40 bg-slate-200 rounded animate-pulse mb-2" />
+      <div className="h-3 w-72 bg-slate-200 rounded animate-pulse mb-2" />
+      <div className="h-3 w-32 bg-slate-200 rounded animate-pulse" />
+    </div>
+  );
+};
 
 const Header = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { currentUser }: any = useAppSelector((state) => state.auth);
+
   const [showProfile, setShowProfile] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
 
@@ -20,6 +31,9 @@ const Header = () => {
   const [notification, setNotification] = useState<any>([]);
   const [isOpen, setOpen] = useState(false);
 
+  const notifWrapRef = useRef<HTMLDivElement | null>(null);
+  const profileWrapRef = useRef<HTMLDivElement | null>(null);
+
   const profileInitials = useMemo(() => {
     if (!currentUser) return "?";
     const first = currentUser.first_name?.charAt(0) ?? "";
@@ -28,11 +42,38 @@ const Header = () => {
     return combined ? combined.toUpperCase() : "?";
   }, [currentUser]);
 
+  useEffect(() => {
+    const onDocMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+
+      if (
+        isOpen &&
+        notifWrapRef.current &&
+        !notifWrapRef.current.contains(target)
+      ) {
+        setOpen(false);
+      }
+
+      if (
+        profileMenuOpen &&
+        profileWrapRef.current &&
+        !profileWrapRef.current.contains(target)
+      ) {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
+  }, [isOpen, profileMenuOpen]);
+
   const handleIconClick = () => {
-    setOpen(!isOpen);
-    if (!isOpen) {
-      fetchNotification();
-    }
+    setOpen((prev) => {
+      const next = !prev;
+      if (!prev && !next) return next;
+      if (!prev && next) fetchNotification();
+      return next;
+    });
   };
 
   const closeProfileMenu = () => setProfileMenuOpen(false);
@@ -50,14 +91,16 @@ const Header = () => {
 
   const fetchNotification = async () => {
     setLoading(true);
+    setError(undefined);
+
     const { data, error } = await supabase
       .from("notifications")
       .select("*")
       .eq("type", "user")
-      .eq("id", currentUser?.id);
+      .eq("employee_id", currentUser?.id);
+
     if (error) setError(error);
     else setNotification(data || []);
-    console.log("notification", data);
 
     setLoading(false);
   };
@@ -81,6 +124,7 @@ const Header = () => {
           onClose={() => setShowChangePassword(false)}
         />
       )}
+
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="space-y-0.5">
@@ -90,41 +134,67 @@ const Header = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="relative">
-              {/* Notification Icon */}
+            {/* Notifications */}
+            <div className="relative" ref={notifWrapRef}>
               <button
                 onClick={handleIconClick}
-                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 shadow-sm transition hover:bg-slate-100"
+                aria-label="Open notifications"
+                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 shadow-sm transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
               >
                 <Bell className="h-5 w-5" />
               </button>
-              {/* Dropdown */}
+
               {isOpen && (
-                <div className="absolute right-0 mt-2 w-96 bg-white shadow-lg rounded-lg z-50 max-h-80   overflow-y-auto">
+                <div className="absolute right-0 mt-2 w-96 bg-white shadow-lg rounded-2xl z-50 max-h-80 overflow-y-auto border border-slate-100">
+                  {/* Loading skeleton */}
                   {loading ? (
-                    <p className="p-4 text-gray-500">Loading...</p>
+                    <div className="py-1">
+                      {Array.from({ length: 2 }).map((_, idx) => (
+                        <NotificationSkeleton key={idx} />
+                      ))}
+                    </div>
+                  ) : error ? (
+                    <div className="p-4 text-sm text-red-600">
+                      Failed to load notifications.
+                    </div>
                   ) : notification.length === 0 ? (
-                    <p className="p-4 text-gray-500">No notifications</p>
-                  ) : (
-                    notification.map((n: any) => (
-                      <div
-                        key={n.id}
-                        className="p-3 border-b hover:bg-gray-100 cursor-pointer"
-                      >
-                        <p className="font-semibold">{n.title}</p>
-                        <p className="text-sm text-gray-600">
-                          {n.body || n.message}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {new Date(n.created_at).toLocaleString()}
-                        </p>
+                    <div className="p-4 flex flex-col items-center justify-center text-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+                        <Inbox className="h-6 w-6" />
                       </div>
-                    ))
+                      <p className="mt-3 text-sm font-semibold text-slate-900">
+                        No notifications
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        You’re all caught up.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="py-1">
+                      {notification.map((n: any) => (
+                        <div
+                          key={n.id}
+                          className="p-3 border-b last:border-b-0 hover:bg-slate-50 cursor-pointer"
+                        >
+                          <p className="font-semibold text-slate-900">
+                            {n.title}
+                          </p>
+                          <p className="text-sm text-slate-600">
+                            {n.body || n.message}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {new Date(n.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
             </div>
-            <div className="relative">
+
+            {/* Profile */}
+            <div className="relative" ref={profileWrapRef}>
               <button
                 type="button"
                 onClick={() => setProfileMenuOpen((prev) => !prev)}
@@ -183,6 +253,7 @@ const Header = () => {
                     </span>
                     <span className="text-sm">Change password</span>
                   </button>
+
                   <div className="mt-1 border-t border-slate-100 pt-1">
                     <button
                       type="button"

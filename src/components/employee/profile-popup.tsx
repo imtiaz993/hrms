@@ -211,7 +211,7 @@ function InfoRow({ icon: Icon, label, value }: InfoRowProps) {
         <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
           {label}
         </p>
-        <p className="mt-0.5 text-sm font-semibold text-slate-900 break-words [overflow-wrap:anywhere]">
+        <p className="mt-0.5 text-sm font-semibold text-slate-900 break-words">
           {value}
         </p>
       </div>
@@ -225,7 +225,7 @@ function MiniInfo({ label, value }: { label: string; value: string }) {
       <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
         {label}
       </p>
-      <p className="mt-0.5 text-sm font-semibold text-slate-900 break-words [overflow-wrap:anywhere]">
+      <p className="mt-0.5 text-sm font-semibold text-slate-900 break-words">
         {value}
       </p>
     </div>
