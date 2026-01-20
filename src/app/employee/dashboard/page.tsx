@@ -598,7 +598,11 @@ export default function EmployeeDashboardPage() {
           selectedYear={selectedYear}
           selectedMonth={selectedMonth}
         />
-        <AttendanceKPICards analytics={data} />
+        <AttendanceKPICards
+          analytics={data}
+          cardBase={cardBase}
+          isLoading={isLoading}
+        />
         <div className="grid md:grid-cols-3 gap-4">
           <AttendanceTodayCard
             statusLoading={statusLoading}

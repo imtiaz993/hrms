@@ -30,8 +30,32 @@ interface ClockActionCardProps {
   standardShiftEnd: string;
   onActionComplete?: () => void;
   employeeName: any;
-  isLoading:boolean
+  isLoading: boolean;
 }
+
+const SkeletonChip = () => (
+  <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 animate-pulse">
+    <span className="h-3.5 w-3.5 rounded bg-slate-200" />
+    <span className="h-3 w-20 rounded bg-slate-200" />
+  </span>
+);
+
+const SkeletonPanel = () => (
+  <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 animate-pulse">
+    <div className="mx-auto h-3 w-44 rounded bg-slate-200" />
+    <div className="mx-auto mt-3 h-10 w-56 rounded bg-slate-200" />
+    <div className="mt-4 grid grid-cols-2 gap-2">
+      <div className="rounded-xl border border-slate-200 bg-white/70 p-3">
+        <div className="h-2 w-14 rounded bg-slate-200" />
+        <div className="mt-2 h-3 w-24 rounded bg-slate-200" />
+      </div>
+      <div className="rounded-xl border border-slate-200 bg-white/70 p-3">
+        <div className="h-2 w-16 rounded bg-slate-200" />
+        <div className="mt-2 h-3 w-20 rounded bg-slate-200" />
+      </div>
+    </div>
+  </div>
+);
 
 export function ClockActionCard({
   status,
@@ -41,7 +65,7 @@ export function ClockActionCard({
   standardShiftEnd,
   onActionComplete,
   employeeName,
-  isLoading
+  isLoading,
 }: ClockActionCardProps) {
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -67,7 +91,6 @@ export function ClockActionCard({
     return `${standardShiftStart}`;
   }, [standardShiftStart, standardShiftEnd]);
 
-  // Live elapsed only while clocked in
   useEffect(() => {
     if (status?.status !== "clocked_in" || !clockInValue) return;
     setTick(0);
@@ -95,7 +118,6 @@ export function ClockActionCard({
     return formatDuration(diffMs);
   }, [status?.status, clockInValue, tick]);
 
-  // ✅ Total worked time when clocked out / completed
   const workedLabel = useMemo(() => {
     if (!clockInValue || !clockOutValue) return null;
     const start = new Date(clockInValue).getTime();
@@ -180,12 +202,12 @@ export function ClockActionCard({
 
   const statusPill = useMemo(() => {
     const base = "rounded-full border px-3 py-1 text-xs font-semibold";
-    if (status.status === "clocked_in")
+    if (status?.status === "clocked_in")
       return `${base} border-gray-200 bg-gray-50 text-gray-700`;
-    if (status.status === "completed")
+    if (status?.status === "completed")
       return `${base} border-emerald-200 bg-emerald-50 text-emerald-700`;
     return `${base} border-slate-200 bg-slate-50 text-slate-600`;
-  }, [status.status]);
+  }, [status?.status]);
 
   return (
     <Card className="rounded-2xl border border-slate-100 bg-white/90 shadow-sm overflow-hidden">
@@ -200,30 +222,46 @@ export function ClockActionCard({
             </CardDescription>
 
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
-                <CalendarDays className="h-3.5 w-3.5" />
-                {todayLabel}
-              </span>
-              {shiftLabel ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
-                  <Clock className="h-3.5 w-3.5" />
-                  Shift: {shiftLabel}
-                </span>
-              ) : null}
-              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
-                <Timer className="h-3.5 w-3.5" />
-                Std: {standardHours}h
-              </span>
+              {isLoading ? (
+                <>
+                  <SkeletonChip />
+                  <SkeletonChip />
+                  <SkeletonChip />
+                </>
+              ) : (
+                <>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    {todayLabel}
+                  </span>
+
+                  {shiftLabel ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
+                      <Clock className="h-3.5 w-3.5" />
+                      Shift: {shiftLabel}
+                    </span>
+                  ) : null}
+
+                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
+                    <Timer className="h-3.5 w-3.5" />
+                    Std: {standardHours}h
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
-          <div className={statusPill}>
-            {status.status === "clocked_in"
-              ? "Active"
-              : status.status === "completed"
-                ? "Completed"
-                : "Not Started"}
-          </div>
+          {isLoading ? (
+            <div className="h-7 w-24 rounded-full border border-slate-200 bg-slate-50 animate-pulse" />
+          ) : (
+            <div className={statusPill}>
+              {status.status === "clocked_in"
+                ? "Active"
+                : status.status === "completed"
+                  ? "Completed"
+                  : "Not Started"}
+            </div>
+          )}
         </div>
       </CardHeader>
 
@@ -234,95 +272,106 @@ export function ClockActionCard({
           </Alert>
         )}
 
-        {/* Main hero panel */}
-        {status.status === "clocked_in" ? (
-          <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-5 text-center">
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-700/70">
-              Elapsed Since Clock In
-            </p>
-            <p className="mt-2 text-4xl font-semibold tabular-nums text-gray-900">
-              {elapsedLabel}
-            </p>
-
-            <div className="mt-3 grid grid-cols-2 gap-2 text-left">
-              <div className="rounded-xl bg-white/70 border border-gray-100 p-3">
-                <p className="text-[11px] text-gray-700/70">Clock In</p>
-                <p className="mt-1 text-sm font-semibold text-gray-900">
-                  {clockInValue
-                    ? format(new Date(clockInValue), "h:mm a")
-                    : "—"}
+        {isLoading ? (
+          <>
+            <SkeletonPanel />
+            <div className="h-12 w-full rounded-xl bg-slate-200/70 animate-pulse" />
+          </>
+        ) : (
+          <>
+            {/* Main hero panel */}
+            {status.status === "clocked_in" ? (
+              <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-5 text-center">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-700/70">
+                  Elapsed Since Clock In
                 </p>
-              </div>
-              <div className="rounded-xl bg-white/70 border border-gray-100 p-3">
-                <p className="text-[11px] text-gray-700/70">Clock Out</p>
-                <p className="mt-1 text-sm font-semibold text-gray-900">—</p>
-              </div>
-            </div>
-          </div>
-        ) : status.status === "completed" ? (
-          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5 text-center">
-            <p className="text-xs font-medium uppercase tracking-wide text-emerald-700/70">
-              Total Worked Time
-            </p>
-            <p className="mt-2 text-4xl font-semibold tabular-nums text-emerald-900">
-              {workedLabel ?? "00:00:00"}
-            </p>
-
-            <div className="mt-3 grid grid-cols-2 gap-2 text-left">
-              <div className="rounded-xl bg-white/70 border border-emerald-100 p-3">
-                <p className="text-[11px] text-emerald-700/70">Clock In</p>
-                <p className="mt-1 text-sm font-semibold text-emerald-900">
-                  {clockInValue
-                    ? format(new Date(clockInValue), "h:mm a")
-                    : "—"}
+                <p className="mt-2 text-4xl font-semibold tabular-nums text-gray-900">
+                  {elapsedLabel}
                 </p>
+
+                <div className="mt-3 grid grid-cols-2 gap-2 text-left">
+                  <div className="rounded-xl bg-white/70 border border-gray-100 p-3">
+                    <p className="text-[11px] text-gray-700/70">Clock In</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">
+                      {clockInValue
+                        ? format(new Date(clockInValue), "h:mm a")
+                        : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-white/70 border border-gray-100 p-3">
+                    <p className="text-[11px] text-gray-700/70">Clock Out</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">
+                      —
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="rounded-xl bg-white/70 border border-emerald-100 p-3">
-                <p className="text-[11px] text-emerald-700/70">Clock Out</p>
-                <p className="mt-1 text-sm font-semibold text-emerald-900">
-                  {clockOutValue
-                    ? format(new Date(clockOutValue), "h:mm a")
-                    : "—"}
+            ) : status.status === "completed" ? (
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5 text-center">
+                <p className="text-xs font-medium uppercase tracking-wide text-emerald-700/70">
+                  Total Worked Time
                 </p>
+                <p className="mt-2 text-4xl font-semibold tabular-nums text-emerald-900">
+                  {workedLabel ?? "00:00:00"}
+                </p>
+
+                <div className="mt-3 grid grid-cols-2 gap-2 text-left">
+                  <div className="rounded-xl bg-white/70 border border-emerald-100 p-3">
+                    <p className="text-[11px] text-emerald-700/70">Clock In</p>
+                    <p className="mt-1 text-sm font-semibold text-emerald-900">
+                      {clockInValue
+                        ? format(new Date(clockInValue), "h:mm a")
+                        : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-white/70 border border-emerald-100 p-3">
+                    <p className="text-[11px] text-emerald-700/70">Clock Out</p>
+                    <p className="mt-1 text-sm font-semibold text-emerald-900">
+                      {clockOutValue
+                        ? format(new Date(clockOutValue), "h:mm a")
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-white/70 px-3 py-1 text-xs font-semibold text-emerald-800">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Shift completed
+                </div>
               </div>
-            </div>
+            ) : null}
 
-            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-white/70 px-3 py-1 text-xs font-semibold text-emerald-800">
-              <CheckCircle2 className="h-4 w-4" />
-              Shift completed
-            </div>
-          </div>
-        ) : null}
+            {/* Actions */}
+            {status.status === "not_clocked_in" && !isWeekend() && (
+              <Button
+                onClick={handleClockIn}
+                className="w-full rounded-xl"
+                size="lg"
+              >
+                <LogIn className="mr-2 h-5 w-5" />
+                Clock In
+              </Button>
+            )}
 
-        {/* Actions */}
-        {status.status === "not_clocked_in" && !isWeekend() && (
-          <Button
-            onClick={handleClockIn}
-            className="w-full rounded-xl"
-            size="lg"
-          >
-            <LogIn className="mr-2 h-5 w-5" />
-            Clock In
-          </Button>
-        )}
+            {status.status === "clocked_in" && (
+              <Button
+                onClick={handleClockOut}
+                disabled={isClockOutLoading}
+                className="w-full rounded-xl"
+                size="lg"
+                variant="destructive"
+              >
+                <LogOut className="mr-2 h-5 w-5" />
+                {isClockOutLoading ? "Clocking Out..." : "Clock Out"}
+              </Button>
+            )}
 
-        {status.status === "clocked_in" && (
-          <Button
-            onClick={handleClockOut}
-            disabled={isClockOutLoading}
-            className="w-full rounded-xl"
-            size="lg"
-            variant="destructive"
-          >
-            <LogOut className="mr-2 h-5 w-5" />
-            {isClockOutLoading ? "Clocking Out..." : "Clock Out"}
-          </Button>
-        )}
-
-        {status.status === "not_clocked_in" && isWeekend() && (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-600">
-            It’s weekend — clock-in is disabled.
-          </div>
+            {status.status === "not_clocked_in" && isWeekend() && (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-600">
+                It’s weekend — clock-in is disabled.
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

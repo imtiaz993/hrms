@@ -5,12 +5,16 @@ import { AttendanceAnalytics } from "@/types";
 import { CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
 
 interface AttendanceKPICardsProps {
+  cardBase: any;
   analytics: AttendanceAnalytics;
+  isLoading:boolean
 }
 
-export function AttendanceKPICards({ analytics }: AttendanceKPICardsProps) {
-  const cardBase =
-    "relative overflow-hidden rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md";
+export function AttendanceKPICards({
+  cardBase,
+  analytics,
+  isLoading
+}: AttendanceKPICardsProps) {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
       <Card className={cardBase}>
@@ -27,7 +31,7 @@ export function AttendanceKPICards({ analytics }: AttendanceKPICardsProps) {
             {analytics.presentDays}
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            Avg {analytics.averageHoursPerDay.toFixed(1)}h per day         
+            Avg {analytics.averageHoursPerDay.toFixed(1)}h per day
           </p>
         </CardContent>
       </Card>
@@ -49,12 +53,12 @@ export function AttendanceKPICards({ analytics }: AttendanceKPICardsProps) {
         </CardContent>
       </Card>
 
-       <Card className={cardBase}>
+      <Card className={cardBase}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-         On-time days
+            On-time days
           </CardTitle>
-           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
             <CheckCircle2 className="h-4 w-4" />
           </span>
         </CardHeader>
