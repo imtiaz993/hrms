@@ -89,13 +89,13 @@ export default function ResetPasswordPage() {
     }
   };
 
-  if (!sessionChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
-        Checking access...
-      </div>
-    );
-  }
+  // if (!sessionChecked) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
+  //       Checking access...
+  //     </div>
+  //   );
+  // }
 
 
   return (
