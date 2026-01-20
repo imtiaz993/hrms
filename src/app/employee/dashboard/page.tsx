@@ -423,7 +423,7 @@ export default function EmployeeDashboardPage() {
   ]);
 
   const refetchStatus = async () => {
-    await Promise.all([fetchEntries()]);
+    await Promise.all([fetchTodayStatus(), fetchEntries()]);
   };
 
   const handleMonthChange = (month: number, year: number) => {

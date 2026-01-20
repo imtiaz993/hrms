@@ -13,7 +13,7 @@ import { supabase } from "@/lib/supabaseUser";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TodayStatus } from "@/types";
 import { format } from "date-fns";
-import { Clock, CheckCircle2, Timer } from "lucide-react";
+import { Clock, Timer, LogIn, LogOut, CalendarDays } from "lucide-react";
 
 interface ClockActionCardProps {
   status: TodayStatus;
@@ -22,6 +22,7 @@ interface ClockActionCardProps {
   standardShiftStart: string;
   standardShiftEnd: string;
   onActionComplete?: () => void;
+  employeeName: any;
 }
 
 export function ClockActionCard({
@@ -29,16 +30,15 @@ export function ClockActionCard({
   employeeId,
   standardHours,
   standardShiftStart,
+  standardShiftEnd,
   onActionComplete,
+  employeeName,
 }: ClockActionCardProps) {
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
   const [isClockOutLoading, setIsClockOutLoading] = useState(false);
-  const [employeeName, setEmployeeName] = useState<string>("");
-
-  // Live tick for elapsed time (updates every 30s; change to 1s if you want)
   const [tick, setTick] = useState(0);
 
   const isWeekend = () => {
@@ -46,38 +46,28 @@ export function ClockActionCard({
     return day === 0 || day === 6;
   };
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        setEmployeeName(
-          user.user_metadata?.full_name || user.email || "Employee",
-        );
-      }
-    };
-    fetchUser();
-  }, []);
-
-  useEffect(() => {
-    if (status?.status !== "clocked_in") return;
-    const id = window.setInterval(() => setTick((t) => t + 1), 30_000);
-    return () => window.clearInterval(id);
-  }, [status?.status]);
-
   const clockInValue =
     status?.timeIn || status?.clockIn || (status as any)?.clock_in || null;
 
+  const clockOutValue =
+    status?.timeOut || status?.clockOut || (status as any)?.clock_out || null;
+
+  useEffect(() => {
+    if (status?.status !== "clocked_in" || !clockInValue) return;
+    setTick(0);
+    const intervalId = window.setInterval(() => {
+      setTick((prev) => prev + 1);
+    }, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [status?.status, clockInValue]);
+
   const elapsedLabel = useMemo(() => {
-    if (status?.status !== "clocked_in" || !clockInValue) return null;
+    if (status?.status !== "clocked_in" || !clockInValue) return "00:00:00";
 
     const start = new Date(clockInValue).getTime();
-    const now = Date.now();
-    const diffMs = Math.max(0, now - start);
+    const diffMs = Math.max(0, Date.now() - start);
 
     const totalSeconds = Math.floor(diffMs / 1000);
-
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
@@ -87,6 +77,12 @@ export function ClockActionCard({
     const ss = String(seconds).padStart(2, "0");
     return `${hh}:${mm}:${ss}`;
   }, [status?.status, clockInValue, tick]);
+
+  const shiftLabel = useMemo(() => {
+    if (!standardShiftStart) return "";
+    if (standardShiftEnd) return `${standardShiftStart} – ${standardShiftEnd}`;
+    return `${standardShiftStart}`;
+  }, [standardShiftStart, standardShiftEnd]);
 
   const handleClockIn = async () => {
     setMessage(null);
@@ -160,32 +156,55 @@ export function ClockActionCard({
     }
   };
 
-  useEffect(() => {
-    // Only run when actively clocked in and we have a start time
-    if (status?.status !== "clocked_in" || !clockInValue) return;
-
-    // Force immediate render (no 1s delay on first paint)
-    setTick(0);
-
-    const intervalId = window.setInterval(() => {
-      setTick((prev) => prev + 1);
-    }, 1000);
-
-    // Cleanup on unmount / status change
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [status?.status, clockInValue]);
+  const todayLabel = format(new Date(), "EEE, dd MMM");
 
   return (
-    <Card className="rounded-2xl border border-slate-100 bg-white/90 shadow-sm">
+    <Card className="rounded-2xl border border-slate-100 bg-white/90 shadow-sm overflow-hidden">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold text-slate-900">
-          Clock In / Clock Out
-        </CardTitle>
-        <CardDescription className="text-xs text-slate-500">
-          Record your work hours for today
-        </CardDescription>
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-0.5">
+            <CardTitle className="text-base font-semibold text-slate-900">
+              Clock In / Clock Out
+            </CardTitle>
+            <CardDescription className="text-xs text-slate-500">
+              Record your work hours for today
+            </CardDescription>
+
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
+                <CalendarDays className="h-3.5 w-3.5" />
+                {todayLabel}
+              </span>
+              {shiftLabel ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  Shift: {shiftLabel}
+                </span>
+              ) : null}
+              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1">
+                <Timer className="h-3.5 w-3.5" />
+                Std: {standardHours}h
+              </span>
+            </div>
+          </div>
+
+          <div
+            className={[
+              "rounded-full border px-3 py-1 text-xs font-semibold",
+              status.status === "clocked_in"
+                ? "border-gray-200 bg-gray-50 text-gray-700"
+                : status.status === "completed"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-slate-200 bg-slate-50 text-slate-600",
+            ].join(" ")}
+          >
+            {status.status === "clocked_in"
+              ? "Active"
+              : status.status === "completed"
+                ? "Completed"
+                : "Not Started"}
+          </div>
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-4 pt-1">
@@ -195,22 +214,58 @@ export function ClockActionCard({
           </Alert>
         )}
 
-        {/* If clocked in -> show elapsed since clock in (updates live) */}
-        {status?.status === "clocked_in" && (
-          <div className="rounded-2xl bg-indigo-50/70 py-4 text-center">
-            <p className="mt-1 text-3xl font-semibold text-indigo-900">
-              {elapsedLabel ?? "00:00"}
+        {/* Main hero panel */}
+        {status.status === "clocked_in" ? (
+          <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-5 text-center">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-700/70">
+              Elapsed Since Clock In
+            </p>
+            <p className="mt-2 text-4xl font-semibold tabular-nums text-gray-900">
+              {elapsedLabel}
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-left">
+              <div className="rounded-xl bg-white/70 border border-gray-100 p-3">
+                <p className="text-[11px] text-gray-700/70">Clock In</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">
+                  {clockInValue
+                    ? format(new Date(clockInValue), "h:mm a")
+                    : "—"}
+                </p>
+              </div>
+              <div className="rounded-xl bg-white/70 border border-gray-100 p-3">
+                <p className="text-[11px] text-gray-700/70">Clock Out</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">
+                  {clockOutValue
+                    ? format(new Date(clockOutValue), "h:mm a")
+                    : "—"}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 text-center">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Current Time
+            </p>
+            <p className="mt-2 text-4xl font-semibold tabular-nums text-slate-900">
+              {format(new Date(), "h:mm a")}
+            </p>
+            <p className="mt-2 text-xs text-slate-500">
+              {status.status === "completed"
+                ? "Your shift is already completed for today."
+                : "Clock in to start tracking your hours."}
             </p>
           </div>
         )}
 
+        {/* Actions */}
         {status.status === "not_clocked_in" && !isWeekend() && (
           <Button
             onClick={handleClockIn}
             className="w-full rounded-xl"
             size="lg"
           >
-            <Clock className="mr-2 h-5 w-5" />
+            <LogIn className="mr-2 h-5 w-5" />
             Clock In
           </Button>
         )}
@@ -223,15 +278,9 @@ export function ClockActionCard({
             size="lg"
             variant="destructive"
           >
-            <CheckCircle2 className="mr-2 h-5 w-5" />
+            <LogOut className="mr-2 h-5 w-5" />
             {isClockOutLoading ? "Clocking Out..." : "Clock Out"}
           </Button>
-        )}
-
-        {status.status === "completed" && (
-          <div className="rounded-2xl bg-emerald-50/80 p-4 text-center text-sm font-medium text-emerald-700">
-            You&apos;ve completed your shift for today!
-          </div>
         )}
       </CardContent>
     </Card>
