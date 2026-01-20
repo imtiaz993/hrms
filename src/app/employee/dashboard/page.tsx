@@ -12,7 +12,6 @@ import { useAppSelector } from "@/store/hooks";
 import UpcomingHoliday from "./component/UpcomingHolidays";
 import { AttendanceKPICards } from "@/components/attendance/attendance-kpi-cards";
 import { supabase } from "@/lib/supabaseUser";
-import UserInfoCard from "./component/UserInfo";
 import UpcommingEvents from "./component/UpcommingEvents";
 import AttendanceTodayCard from "./component/Attendance";
 import { AttendanceAnalytics, DailyAttendance } from "@/types";
@@ -23,6 +22,7 @@ import QuickOverview from "./component/QuickOverview";
 import CompanyPolicy from "./component/CompanyPolicy";
 import Leaves from "./component/Leaves";
 import Salary from "./component/Salary";
+import TodayEvents from "./component/TodayEvents";
 
 interface TimeEntry {
   date: string;
@@ -617,17 +617,23 @@ export default function EmployeeDashboardPage() {
             chartData={chartData}
             isLoading={isLoading}
           />
-          <UserInfoCard
+          <TodayEvents
             cardBase={cardBase}
             todayBirthdays={todayBirthdays}
             todayAnniversaries={todayAnniversaries}
+            isLoading={isLoading}
           />
           <UpcommingEvents
             upcomingBirthdays={upcomingBirthdays}
             upcomingAnniversaries={upcomingAnniversaries}
             cardBase={cardBase}
+            isLoading={isLoading}
           />
-          <UpcomingHoliday cardBase={cardBase} holidays={holidays} />
+          <UpcomingHoliday
+            cardBase={cardBase}
+            holidays={holidays}
+            isLoading={isLoading}
+          />
           <CompanyPolicy cardBase={cardBase} />
           <Leaves
             cardBase={cardBase}
@@ -636,6 +642,7 @@ export default function EmployeeDashboardPage() {
             leaveRequests={leaveRequests}
             currentUser={currentUser}
             setLeaveRequests={setLeaveRequests}
+            isLoading={isLoading}
           />
           <Salary cardBase={cardBase} currentUser={currentUser} />
         </div>
