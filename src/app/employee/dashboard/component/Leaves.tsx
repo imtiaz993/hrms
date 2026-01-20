@@ -89,7 +89,7 @@ const Leaves = ({
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white border border-slate-200 text-slate-600">
                 <ClipboardList className="h-6 w-6" />
               </div>
-              <p className="mt-3 text-sm font-semibold text-slate-900">
+              <p className="mt-3 text-sm font-medium text-slate-900">
                 No leave requests yet
               </p>
             </div>
