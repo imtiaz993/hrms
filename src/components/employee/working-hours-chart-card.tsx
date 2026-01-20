@@ -1,7 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { format, parseISO, isSunday, isSaturday, isFuture } from "date-fns";
+import {
+  format,
+  parseISO,
+  isSunday,
+  isSaturday,
+  isFuture,
+  startOfDay,
+  isBefore,
+} from "date-fns";
 import { cn } from "@/lib/utils";
 
 const statusLabels: any = {
@@ -82,17 +90,23 @@ export function WorkingHoursChartCard({
   const [hovered, setHovered] = useState<any | null>(null);
 
   const totals = useMemo(() => {
-    const scheduled = chartData.reduce(
-      (sum: any, item: any) =>
-        isSaturday(item.date) || isSunday(item.date)
-          ? sum
-          : sum + item.standard_hours,
-      0,
-    );
+    const today = startOfDay(new Date());
+
+    const scheduled = chartData.reduce((sum: number, item: any) => {
+      const d = startOfDay(new Date(item.date)); // item.date can be "yyyy-MM-dd"
+      const isWeekend = isSaturday(d) || isSunday(d);
+
+      if (isWeekend) return sum;
+      if (!isBefore(d, today)) return sum; // only past days
+
+      return sum + (Number(item.standard_hours) || 0);
+    }, 0);
+
     const worked = chartData.reduce(
-      (sum: any, item: any) => sum + item.total_hours,
+      (sum: number, item: any) => sum + (Number(item.total_hours) || 0),
       0,
     );
+
     return { scheduled, worked, difference: worked - scheduled };
   }, [chartData]);
 
