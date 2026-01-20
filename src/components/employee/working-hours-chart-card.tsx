@@ -237,15 +237,15 @@ export function WorkingHoursChartCard({
                   className={`relative bottom-0 w-full rounded-t-sm cursor-pointer ${
                     weekend ? "bg-black" : "bg-slate-200/80"
                   }`}
+                  onMouseEnter={() => setHovered(item)}
+                  onMouseMove={() => setHovered(item)}
+                  onMouseLeave={() => setHovered(null)}
                   style={{ height: baseHeight }}
                 >
                   {/* Hover target = the fill bar */}
                   <div
                     className={`absolute bottom-0 w-full rounded-t-sm border border-white/40 ${fillColor}`}
                     style={{ height: fillHeight }}
-                    onMouseEnter={() => setHovered(item)}
-                    onMouseMove={() => setHovered(item)}
-                    onMouseLeave={() => setHovered(null)}
                   />
                 </div>
 
