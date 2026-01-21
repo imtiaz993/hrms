@@ -21,8 +21,9 @@ import { ProfilePopup } from "@/components/employee/profile-popup";
 import { ChangePasswordPopup } from "@/components/employee/change-password-popup";
 import { format } from "date-fns";
 import { supabase } from "@/lib/supabaseUser";
-import UpcommingEvents from "@/app/employee/component/UpcommingEvents";
-import UpcomingHoliday from "@/app/employee/component/UpcomingHolidays";
+import UpcomingHoliday from "@/app/employee/dashboard/component/UpcomingHolidays";
+import UpcommingEvents from "@/app/employee/dashboard/component/UpcommingEvents";
+import TodayEvents from "@/app/employee/dashboard/component/TodayEvents";
 
 interface Holiday {
   id: string;
@@ -46,24 +47,24 @@ export default function AdminDashboardPage() {
   const [upcomingBirthdays, setUpcomingBirthdays] = useState<
     { id: string; employeeName: string }[]
   >([]);
-   const [todayBirthdays, setTodayBirthdays] = useState<
-      { employeeName: string }[]
-    >([]);
-     const [todayAnniversaries, setTodayAnniversaries] = useState<
-        { employeeName: string; yearsCompleted: number }[]
-      >([]);
+  const [todayBirthdays, setTodayBirthdays] = useState<
+    { employeeName: string }[]
+  >([]);
+  const [todayAnniversaries, setTodayAnniversaries] = useState<
+    { employeeName: string; yearsCompleted: number }[]
+  >([]);
   const [upcomingAnniversaries, setUpcomingAnniversaries] = useState<
     { id: string; employeeName: string; yearsCompleted: number }[]
   >([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [anniversaries, setAnniversaries] = useState<any[]>([]);
- const [attendance, setAttendance] = useState({
-  present: 0,
-  absent: 0,
-  late: 0,
-  early: 0,
-  ontime:0,
-});
+  const [attendance, setAttendance] = useState({
+    present: 0,
+    absent: 0,
+    late: 0,
+    early: 0,
+    ontime: 0,
+  });
 
   // const todayBirthdays = useMemo(() => {
   //   const today = format(new Date(), "yyyy-MM-dd");
@@ -76,46 +77,42 @@ export default function AdminDashboardPage() {
   // }, [anniversaries]);
 
   const fetchHolidays = async () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
 
-  const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
-  endOfMonth.setHours(23, 59, 59, 999);
+    const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
+    endOfMonth.setHours(23, 59, 59, 999);
 
-  const { data, error } = await supabase
-    .from("holidays")
-    .select("id, name, date, is_recurring");
+    const { data, error } = await supabase
+      .from("holidays")
+      .select("id, name, date, is_recurring");
 
-  if (error || !data) return;
-   console.log("HOLIDAYS DATA:", data);
-  console.log("HOLIDAYS ERROR:", error);
+    if (error || !data) return;
+    console.log("HOLIDAYS DATA:", data);
+    console.log("HOLIDAYS ERROR:", error);
 
-  const upcomingHolidays = data
+    const upcomingHolidays = data
 
-    .map((h: Holiday) => {
-      const eventDate = new Date(h.date);
-      eventDate.setHours(0, 0, 0, 0);
-      return { ...h, eventDate };
-    })
-    .filter((h: any) => {
-      return (
-        h.eventDate.getFullYear() === currentYear &&
-        h.eventDate.getMonth() === currentMonth &&
-        h.eventDate >= today &&
-        h.eventDate <= endOfMonth
-      );
-    })
-    .sort(
-      (a: any, b: any) =>
-        a.eventDate.getTime() - b.eventDate.getTime()
-    );
+      .map((h: Holiday) => {
+        const eventDate = new Date(h.date);
+        eventDate.setHours(0, 0, 0, 0);
+        return { ...h, eventDate };
+      })
+      .filter((h: any) => {
+        return (
+          h.eventDate.getFullYear() === currentYear &&
+          h.eventDate.getMonth() === currentMonth &&
+          h.eventDate >= today &&
+          h.eventDate <= endOfMonth
+        );
+      })
+      .sort((a: any, b: any) => a.eventDate.getTime() - b.eventDate.getTime());
 
-  setHolidays(upcomingHolidays);
-};
-
+    setHolidays(upcomingHolidays);
+  };
 
   const fetchUpcomingEvents = async () => {
     const today = new Date();
@@ -190,57 +187,56 @@ export default function AdminDashboardPage() {
     setUpcomingBirthdays(upcomingBirthdays);
     setUpcomingAnniversaries(upcomingAnniversaries);
   };
-    const fetchTodayEvents = async () => {
-      const today = new Date();
-      const todayMonth = today.getMonth();
-      const todayDate = today.getDate();
-      const currentYear = today.getFullYear();
-  
-      const { data, error } = await supabase.rpc("employees_today");
-  
-      if (error) {
-        console.error("Supabase error:", error);
-        return;
-      }
-  
-      if (!data || data.length === 0) {
-        console.error("No employees found");
-        return;
-      }
-      const birthdays = data
-        .filter((emp: any) => {
-          if (!emp.date_of_birth) return false;
-  
-          const dob = new Date(emp.date_of_birth);
-  
-          return dob.getMonth() === todayMonth && dob.getDate() === todayDate;
-        })
-        .map((emp: any) => ({
-          employeeName: `${emp.first_name} ${emp.last_name}`,
-        }));
-  
-      const anniversaries = data
-        .filter((emp: any) => {
-          if (!emp.join_date) return false;
-  
-          const join = new Date(emp.join_date);
-  
-          return join.getMonth() === todayMonth && join.getDate() === todayDate;
-        })
-        .map((emp: any) => {
-          const join = new Date(emp.join_date!);
-          const yearsCompleted = currentYear - join.getFullYear();
-          return {
-            employeeName: `${emp.first_name} ${emp.last_name}`,
-            yearsCompleted,
-          };
-        })
-        .filter((a: any) => a.yearsCompleted >= 0);
-  
-      setTodayBirthdays(birthdays);
-      setTodayAnniversaries(anniversaries);
-    };
+  const fetchTodayEvents = async () => {
+    const today = new Date();
+    const todayMonth = today.getMonth();
+    const todayDate = today.getDate();
+    const currentYear = today.getFullYear();
 
+    const { data, error } = await supabase.rpc("employees_today");
+
+    if (error) {
+      console.error("Supabase error:", error);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      console.error("No employees found");
+      return;
+    }
+    const birthdays = data
+      .filter((emp: any) => {
+        if (!emp.date_of_birth) return false;
+
+        const dob = new Date(emp.date_of_birth);
+
+        return dob.getMonth() === todayMonth && dob.getDate() === todayDate;
+      })
+      .map((emp: any) => ({
+        employeeName: `${emp.first_name} ${emp.last_name}`,
+      }));
+
+    const anniversaries = data
+      .filter((emp: any) => {
+        if (!emp.join_date) return false;
+
+        const join = new Date(emp.join_date);
+
+        return join.getMonth() === todayMonth && join.getDate() === todayDate;
+      })
+      .map((emp: any) => {
+        const join = new Date(emp.join_date!);
+        const yearsCompleted = currentYear - join.getFullYear();
+        return {
+          employeeName: `${emp.first_name} ${emp.last_name}`,
+          yearsCompleted,
+        };
+      })
+      .filter((a: any) => a.yearsCompleted >= 0);
+
+    setTodayBirthdays(birthdays);
+    setTodayAnniversaries(anniversaries);
+  };
 
   const profileInitials = useMemo(() => {
     if (!currentUser) return "?";
@@ -249,46 +245,45 @@ export default function AdminDashboardPage() {
     const combined = `${first}${last}`.trim();
     return combined ? combined.toUpperCase() : "?";
   }, [currentUser]);
-   const fetchAdminAttendanceToday = async () => {
-  const today = format(new Date(), "yyyy-MM-dd");
+  const fetchAdminAttendanceToday = async () => {
+    const today = format(new Date(), "yyyy-MM-dd");
 
-  const { data: employees } = await supabase
-    .from("employees")
-    .select("id")
-    .eq("is_active", true);
+    const { data: employees } = await supabase
+      .from("employees")
+      .select("id")
+      .eq("is_active", true);
 
-  const totalEmployees = employees?.length || 0;
+    const totalEmployees = employees?.length || 0;
 
-  const { data: entries } = await supabase
-    .from("time_entries")
-    .select("employee_id, is_late, is_early_leave")
-    .eq("date", today);
+    const { data: entries } = await supabase
+      .from("time_entries")
+      .select("employee_id, is_late, is_early_leave")
+      .eq("date", today);
 
-  const present = entries?.length || 0;
-  const late = entries?.filter(e => e.is_late).length || 0;
-  const early = entries?.filter(e => e.is_early_leave).length || 0;
-  const absent = totalEmployees - present;
-  const ontime = entries?.filter(e=>!e.is_late).length||0;
+    const present = entries?.length || 0;
+    const late = entries?.filter((e) => e.is_late).length || 0;
+    const early = entries?.filter((e) => e.is_early_leave).length || 0;
+    const absent = totalEmployees - present;
+    const ontime = entries?.filter((e) => !e.is_late).length || 0;
 
+    setAttendance({
+      present,
+      absent,
+      late,
+      early,
+      ontime,
+    });
+  };
 
-  setAttendance({
-    present,
-    absent,
-    late,
-    early,
-    ontime,
-  });
-};
-
-useEffect(() => {
-  fetchHolidays();
-  fetchUpcomingEvents();
-  fetchTodayEvents
-  fetchAdminAttendanceToday();
-}, []);
+  useEffect(() => {
+    fetchHolidays();
+    fetchUpcomingEvents();
+    fetchTodayEvents;
+    fetchAdminAttendanceToday();
+  }, []);
 
   const cardBase =
-    "relative overflow-hidden rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg";
+    "relative overflow-hidden rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm";
 
   return (
     <div className="space-y-6">
@@ -378,10 +373,10 @@ useEffect(() => {
               <p className="text-xs text-gray-500 mt-1">Left early</p>
             </CardContent>
           </Card>
-           <Card className={cardBase}>
+          <Card className={cardBase}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">
-              on time
+                on time
               </CardTitle>
               <Clock className="h-5 w-5 text-amber-600" />
             </CardHeader>
@@ -395,71 +390,22 @@ useEffect(() => {
         </div>
       </section>
 
-   
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <TodayEvents
+          cardBase={cardBase}
+          todayBirthdays={todayBirthdays}
+          todayAnniversaries={todayAnniversaries}
+        />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className={cardBase}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold text-gray-900">
-              Today&apos;s Events
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {todayBirthdays.length > 0 && (
-                <div className="rounded-xl bg-pink-50 p-3">
-                  <p className="flex items-center gap-1.5 text-xs font-semibold text-pink-600">
-                    <Cake className="h-3.5 w-3.5" />
-                    Birthdays
-                  </p>
-                  <div className="mt-1 space-y-0.5">
-                    {todayBirthdays.map((b) => (
-                      <p key={b.id} className="text-xs text-gray-700">
-                        {b.employeeName}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {todayAnniversaries.length > 0 && (
-                <div className="rounded-xl bg-blue-50 p-3">
-                  <p className="flex items-center gap-1.5 text-xs font-semibold text-blue-600">
-                    <Award className="h-3.5 w-3.5" />
-                    Work Anniversaries
-                  </p>
-                  <div className="mt-1 space-y-0.5">
-                    {todayAnniversaries.map((a) => (
-                      <p key={a.id} className="text-xs text-gray-700">
-                        {a.employeeName} ({a.yearsCompleted} years)
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {todayBirthdays.length === 0 &&
-                todayAnniversaries.length === 0 && (
-                  <p className="text-sm text-gray-400 text-center py-4">
-                    No events today
-                  </p>
-                )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="w-full ">
-          <UpcomingHoliday cardBase={cardBase} holidays={holidays} />
-        
-        </div>
-      </div>
-      <section>
+        <UpcomingHoliday cardBase={cardBase} holidays={holidays} />
         <UpcommingEvents
           upcomingBirthdays={upcomingBirthdays}
           upcomingAnniversaries={upcomingAnniversaries}
           cardBase={cardBase}
         />
-      </section>
+      </div>
+
+      <section></section>
       {showProfile && currentUser && (
         <ProfilePopup
           employee={currentUser}
