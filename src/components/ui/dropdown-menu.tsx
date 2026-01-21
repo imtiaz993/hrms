@@ -1,110 +1,126 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import { createPortal } from "react-dom";
 
 interface DropdownMenuProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
+let currentlyOpenMenuClose: (() => void) | null = null;
 
 const DropdownMenu = ({ children }: DropdownMenuProps) => {
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpen] = React.useState(false);
+  const triggerRef = React.useRef<HTMLButtonElement | null>(null);
+
+  const setOpenSafely = (value: boolean) => {
+    if (value) {
+   
+      currentlyOpenMenuClose?.();
+      currentlyOpenMenuClose = () => setOpen(false);
+    }
+    setOpen(value);
+  };
 
   return (
-    <div className="relative">
+    <>
       {React.Children.map(children, (child) => {
         if (React.isValidElement(child)) {
           return React.cloneElement(child as React.ReactElement<any>, {
             open,
-            onOpenChange: setOpen,
-          })
+            onOpenChange: setOpenSafely, 
+            triggerRef,
+          });
         }
-        return child
+        return child;
       })}
-    </div>
-  )
-}
+    </>
+  );
+};
+
 
 const DropdownMenuTrigger = React.forwardRef<
   HTMLButtonElement,
   React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    open?: boolean
-    onOpenChange?: (open: boolean) => void
-    asChild?: boolean
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    asChild?: boolean;
+    triggerRef?: React.RefObject<HTMLButtonElement>;
   }
->(({ className, children, open, onOpenChange, asChild, ...props }, ref) => {
+>(({ children, open, onOpenChange, asChild, triggerRef }, _) => {
   if (asChild && React.isValidElement(children)) {
     return React.cloneElement(children as React.ReactElement<any>, {
-      ref,
+      ref: triggerRef,
       onClick: (e: React.MouseEvent) => {
-        e.stopPropagation()
-        onOpenChange?.(!open)
+        e.stopPropagation();
+        onOpenChange?.(!open);
       },
-    })
+    });
   }
 
-  return (
-    <button
-      ref={ref}
-      className={cn("inline-flex items-center justify-center", className)}
-      onClick={(e) => {
-        e.stopPropagation()
-        onOpenChange?.(!open)
-      }}
-      {...props}
-    >
-      {children}
-    </button>
-  )
-})
-DropdownMenuTrigger.displayName = "DropdownMenuTrigger"
+  return null;
+});
 
-const DropdownMenuContent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & {
-    open?: boolean
-    onOpenChange?: (open: boolean) => void
-    align?: "start" | "end"
-  }
->(({ className, children, open, onOpenChange, align = "end", ...props }, ref) => {
-  const contentRef = React.useRef<HTMLDivElement>(null)
+DropdownMenuTrigger.displayName = "DropdownMenuTrigger";
+
+const DropdownMenuContent = ({
+  children,
+  open,
+  onOpenChange,
+  align = "end",
+  triggerRef,
+  className,
+}: {
+  children: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  align?: "start" | "end";
+  triggerRef?: React.RefObject<HTMLButtonElement>;
+  className?: string;
+}) => {
+  const [position, setPosition] = React.useState({ top: 0, left: 0 });
 
   React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (contentRef.current && !contentRef.current.contains(event.target as Node)) {
-        onOpenChange?.(false)
-      }
+    if (open && triggerRef?.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 6,
+        left: align === "end" ? rect.right - 160 : rect.left,
+      });
     }
+  }, [open, align, triggerRef]);
 
+  React.useEffect(() => {
+    const close = () => onOpenChange?.(false);
     if (open) {
-      document.addEventListener("mousedown", handleClickOutside)
-      return () => document.removeEventListener("mousedown", handleClickOutside)
+      window.addEventListener("click", close);
+      return () => window.removeEventListener("click", close);
     }
-  }, [open, onOpenChange])
+  }, [open, onOpenChange]);
 
-  if (!open) return null
+  if (!open) return null;
 
-  return (
+  return createPortal(
     <div
-      ref={contentRef}
       className={cn(
-        "absolute z-50 min-w-[8rem] overflow-hidden rounded-md border border-slate-200 bg-white p-1 shadow-md",
-        align === "end" ? "right-0" : "left-0",
-        "top-full mt-1",
+        "fixed z-[9999] min-w-[10rem] rounded-md border bg-white p-1 shadow-md",
         className
       )}
-      {...props}
+      style={{ top: position.top, left: position.left }}
+      onClick={(e) => e.stopPropagation()}
     >
       {children}
-    </div>
-  )
-})
-DropdownMenuContent.displayName = "DropdownMenuContent"
+    </div>,
+    document.body
+  );
+};
+
+DropdownMenuContent.displayName = "DropdownMenuContent";
 
 const DropdownMenuItem = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & {
-    destructive?: boolean
+    destructive?: boolean;
   }
 >(({ className, destructive, ...props }, ref) => (
   <div
@@ -116,8 +132,8 @@ const DropdownMenuItem = React.forwardRef<
     )}
     {...props}
   />
-))
-DropdownMenuItem.displayName = "DropdownMenuItem"
+));
+DropdownMenuItem.displayName = "DropdownMenuItem";
 
 const DropdownMenuSeparator = React.forwardRef<
   HTMLDivElement,
@@ -128,8 +144,8 @@ const DropdownMenuSeparator = React.forwardRef<
     className={cn("-mx-1 my-1 h-px bg-slate-200", className)}
     {...props}
   />
-))
-DropdownMenuSeparator.displayName = "DropdownMenuSeparator"
+));
+DropdownMenuSeparator.displayName = "DropdownMenuSeparator";
 
 export {
   DropdownMenu,
@@ -137,4 +153,4 @@ export {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-}
+};

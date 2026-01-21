@@ -169,6 +169,7 @@ export function EmployeeTable({
               <TableHead>Designation</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Join Date</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead className="w-[70px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -214,6 +215,9 @@ export function EmployeeTable({
                     : "-"}
                 </TableCell>
                 <TableCell>
+                  {employee.is_admin ? "Admin" : "Employee"}
+                </TableCell>
+                <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -228,25 +232,29 @@ export function EmployeeTable({
                         <Eye className="mr-2 h-4 w-4" />
                         View
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleToggleStatus(employee)}
-                      >
-                        <Power className="mr-2 h-4 w-4" />
-                        {employee.is_active ? "Deactivate" : "Activate"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onEdit(employee)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit
-                      </DropdownMenuItem>
-
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        destructive
-                        onClick={() => handleDelete(employee)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
+                      {!employee.is_admin && (
+                        <>
+                          <DropdownMenuItem
+                            onClick={() => handleToggleStatus(employee)}
+                          >
+                            <Power className="mr-2 h-4 w-4" />
+                            {employee.is_active ? "Deactivate" : "Activate"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onEdit(employee)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            destructive
+                            onClick={() => handleDelete(employee)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
