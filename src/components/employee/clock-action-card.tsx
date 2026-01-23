@@ -129,13 +129,8 @@ export function ClockActionCard({
   const handleClockIn = async () => {
     setMessage(null);
     try {
-      const now = new Date();
-      const today = now.toISOString().split("T")[0];
-
       const { error } = await supabase.from("time_entries").insert({
         employee_id: employeeId,
-        date: today,
-        clock_in: now.toISOString(),
         standard_hours: standardHours,
         shift_start: standardShiftStart,
       });
@@ -168,11 +163,8 @@ export function ClockActionCard({
     setMessage(null);
 
     try {
-      const now = new Date();
-
       const { error } = await supabase.rpc("calculate_total_hours", {
         p_time_entry_id: status.timeEntryId,
-        p_clock_out: now.toISOString(),
       });
 
       if (error) throw error;
