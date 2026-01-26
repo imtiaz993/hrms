@@ -96,7 +96,7 @@ const Header = () => {
     const { data, error } = await supabase
       .from("notifications")
       .select("*")
-      .eq("type", "user")
+      .eq("type", "employee")
       .eq("employee_id", currentUser?.id);
 
     if (error) setError(error);
