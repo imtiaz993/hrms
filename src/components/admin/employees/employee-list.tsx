@@ -36,7 +36,7 @@ export function EmployeeList({ employees }: EmployeeListProps) {
     ) {
       setTogglingId(employee.id);
 
-      // ✅ optimistic update (button flips instantly)
+     
       setOptimisticEmployees((prev) =>
         prev.map((e) =>
           e.id === employee.id ? { ...e, is_active: nextActive } : e
@@ -49,7 +49,7 @@ export function EmployeeList({ employees }: EmployeeListProps) {
           isActive: nextActive,
         });
       } catch (error) {
-        // ✅ rollback if API fails
+        
         setOptimisticEmployees((prev) =>
           prev.map((e) =>
             e.id === employee.id ? { ...e, is_active: !nextActive } : e

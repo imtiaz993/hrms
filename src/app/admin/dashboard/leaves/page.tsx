@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useGetAllLeaveRequests, LeaveRequestWithEmployee } from '@/hooks/admin/useLeaveRequests';
+import { useState, useEffect, useMemo } from 'react';
 import { LeaveApprovalModal } from '@/components/admin/leaves/leave-approval-modal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatDate } from '@/lib/time-utils';
 import { Search, AlertCircle, Eye, CheckCircle2, XCircle, Clock, UserCircle } from 'lucide-react';
+import { supabase } from '@/lib/supabaseUser';
 
 const leaveTypeLabels: Record<string, string> = {
   paid: 'Paid Leave',
@@ -18,31 +18,100 @@ const leaveTypeLabels: Record<string, string> = {
 };
 
 const statusConfig = {
-  pending: { label: 'Pending', variant: 'warning' as const, color: 'bg-yellow-50' },
-  approved: { label: 'Approved', variant: 'success' as const, color: 'bg-green-50' },
-  rejected: { label: 'Rejected', variant: 'destructive' as const, color: 'bg-red-50' },
-  cancelled: { label: 'Cancelled', variant: 'secondary' as const, color: 'bg-gray-50' },
+  pending: { label: "Pending", variant: "warning" as const, color: "yellow-100" },
+  approved: { label: "Approved", variant: "success" as const, color: "green-100" },
+  rejected: { label: "Rejected", variant: "destructive" as const, color: "red-100" },
+  cancelled: { label: "Cancelled", variant: "secondary" as const, color: "gray-100" },
 };
+
+
+type Status = keyof typeof statusConfig; 
+
+interface Employee {
+  first_name: string;
+  last_name: string;
+  department: string;
+}
+
+interface LeaveRequest {
+  id: number;
+  status: Status; 
+  employee: Employee;
+  leave_type: string;
+  start_date: string;
+  end_date: string;
+  total_days: number;
+  created_at: string;
+}
+
 
 export default function LeaveRequestsPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedRequest, setSelectedRequest] = useState<LeaveRequestWithEmployee | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
+  const [leaves, setLeaves] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const { data: requests, isLoading, error } = useGetAllLeaveRequests(
-    typeFilter,
-    statusFilter,
-    searchQuery
-  );
+
+  async function allLeaves() {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('leave_requests')
+      .select(`
+        *,
+        employee:employee_id (
+          first_name,
+          last_name,
+          department,
+          designation
+        )
+      `);
+
+    setIsLoading(false);
+
+    if (error) {
+      console.error(error);
+      setError('Failed to fetch leave requests.');
+      return [];
+    }
+
+    return data || [];
+  }
+
+  useEffect(() => {
+    const fetchLeaves = async () => {
+      const data = await allLeaves();
+      setLeaves(data);
+    };
+
+    fetchLeaves();
+  }, []);
+
+  const filteredLeaves = useMemo(() => {
+    return leaves.filter((leave) => {
+  
+      if (typeFilter !== 'all' && leave.leave_type !== typeFilter) return false;
+
+      if (statusFilter !== 'all' && leave.status !== statusFilter) return false;
+    
+      const fullName = `${leave.employee.first_name} ${leave.employee.last_name}`.toLowerCase();
+      if (searchQuery && !fullName.includes(searchQuery.toLowerCase()) && !leave.employee_id.toString().includes(searchQuery)) return false;
+
+      return true;
+    });
+  }, [leaves, typeFilter, statusFilter, searchQuery]);
 
   return (
     <div className="space-y-6">
+  
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Leave Requests</h1>
         <p className="text-gray-600 mt-1">Manage all employee leave requests</p>
       </div>
 
+  
       <Card>
         <CardContent className="py-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -85,18 +154,17 @@ export default function LeaveRequestsPage() {
         </CardContent>
       </Card>
 
+      
       {error ? (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Failed to load leave requests.
-          </AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : isLoading ? (
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
-      ) : requests && requests.length === 0 ? (
+      ) : filteredLeaves.length === 0 ? (
         <Card>
           <CardContent className="py-12">
             <div className="text-center">
@@ -112,31 +180,17 @@ export default function LeaveRequestsPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Employee
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Leave Type
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Dates
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Days
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Submitted
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leave Type</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {requests?.map((request) => {
+                  {filteredLeaves.map((request:LeaveRequest) => {
                     const statusInfo = statusConfig[request.status];
                     const fullName = `${request.employee.first_name} ${request.employee.last_name}`;
 
@@ -149,61 +203,26 @@ export default function LeaveRequestsPage() {
                             </div>
                             <div>
                               <div className="text-sm font-medium text-gray-900">{fullName}</div>
-                              <div className="text-xs text-gray-500">
-                                {request.employee.department}
-                              </div>
+                              <div className="text-xs text-gray-500">{request.employee.department}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {leaveTypeLabels[request.leave_type]}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {formatDate(request.start_date)} → {formatDate(request.end_date)}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {request.total_days}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-600">
-                            {formatDate(request.created_at)}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
-                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{leaveTypeLabels[request.leave_type]}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(request.start_date)} → {formatDate(request.end_date)}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{request.total_days}</td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatDate(request.created_at)}</td>
+                        <td className="px-4 py-4 whitespace-nowrap"><Badge variant={statusInfo.variant}>{statusInfo.label}</Badge></td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           <div className="flex items-center space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setSelectedRequest(request)}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              View
+                            <Button variant="ghost" size="sm" onClick={() => setSelectedRequest(request)}>
+                              <Eye className="h-4 w-4 mr-1" /> View
                             </Button>
                             {request.status === 'pending' && (
                               <div className="flex space-x-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-green-600 hover:text-green-700"
-                                  onClick={() => setSelectedRequest(request)}
-                                >
+                                <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700" onClick={() => setSelectedRequest(request)}>
                                   <CheckCircle2 className="h-4 w-4" />
                                 </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-600 hover:text-red-700"
-                                  onClick={() => setSelectedRequest(request)}
-                                >
+                                <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => setSelectedRequest(request)}>
                                   <XCircle className="h-4 w-4" />
                                 </Button>
                               </div>

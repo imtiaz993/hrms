@@ -39,7 +39,7 @@ import { useToast } from "@/components/ui/toast";
 interface EmployeeTableProps {
   employees: Employee[];
   onEmployeeUpdate: () => void;
-  onEdit: (employee: Employee) => void; // ✅ add
+  onEdit: (employee: Employee) => void; 
 }
 
 export function EmployeeTable({

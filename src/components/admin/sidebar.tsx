@@ -45,6 +45,11 @@ const navItems: NavItem[] = [
     icon: Calendar,
   },
   {
+    label: "Holidays",
+    href: "/admin/dashboard/holidays",
+    icon: Calendar,
+  },
+  {
     label: "Payroll",
     href: "/admin/dashboard/payroll",
     icon: DollarSign,
@@ -52,6 +57,11 @@ const navItems: NavItem[] = [
       { label: "Overview", href: "/admin/dashboard/payroll" },
       { label: "Settings", href: "/admin/dashboard/settings/payroll" },
     ],
+  },
+    {
+    label: "Settings",
+    href: "/admin/dashboard/settings",
+    icon: Calendar,
   },
 ];
 
