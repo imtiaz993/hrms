@@ -9,25 +9,29 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { X, AlertCircle, CheckCircle2 } from "lucide-react";
 import { LeaveType, LeaveRequest } from "@/types";
-import { parseISO, startOfDay, isBefore, differenceInCalendarDays, isAfter } from "date-fns";
-
+import {
+  parseISO,
+  startOfDay,
+  isBefore,
+  differenceInCalendarDays,
+  isAfter,
+} from "date-fns";
 
 interface LeaveRequestPopupProps {
   employeeId: string;
   onClose: () => void;
-   leaves:any;
- setLeaves:any;
-  onLeaveSubmitted?: () => void; 
+  leaves: any;
+  setLeaves: any;
+  onLeaveSubmitted?: () => void;
 }
 
 export function LeaveRequestPopup({
   leaves,
- setLeaves,
+  setLeaves,
   employeeId,
   onClose,
   onLeaveSubmitted,
 }: LeaveRequestPopupProps) {
-  
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [leaveType, setLeaveType] = useState<LeaveType>("paid");
@@ -41,54 +45,51 @@ export function LeaveRequestPopup({
   function calculateLeaveDays(
     startDate: string,
     endDate: string,
-    isHalfDay: boolean
+    isHalfDay: boolean,
   ): number {
     if (isHalfDay) {
       return 0.5;
     }
-  
+
     const start = startOfDay(parseISO(startDate));
     const end = startOfDay(parseISO(endDate));
     const days = differenceInCalendarDays(end, start) + 1;
-  
+
     return days;
   }
 
-
-   function hasOverlappingLeave(
+  function hasOverlappingLeave(
     requests: LeaveRequest[],
     startDate: string,
-    endDate: string
+    endDate: string,
   ): boolean {
     const newStart = parseISO(startDate);
     const newEnd = parseISO(endDate);
-  
+
     return requests.some((req) => {
       if (req.status === "rejected") return false;
-  
+
       const reqStart = parseISO(req.start_date);
       const reqEnd = parseISO(req.end_date);
-  
+
       return (
         ((isAfter(newStart, reqStart) ||
           newStart.getTime() === reqStart.getTime()) &&
           (isBefore(newStart, reqEnd) ||
             newStart.getTime() === reqEnd.getTime())) ||
-        ((isAfter(newEnd, reqStart) || newEnd.getTime() === reqStart.getTime()) &&
-          (isBefore(newEnd, reqEnd) || newEnd.getTime() === reqEnd.getTime())) ||
+        ((isAfter(newEnd, reqStart) ||
+          newEnd.getTime() === reqStart.getTime()) &&
+          (isBefore(newEnd, reqEnd) ||
+            newEnd.getTime() === reqEnd.getTime())) ||
         ((isBefore(newStart, reqStart) ||
           newStart.getTime() === reqStart.getTime()) &&
           (isAfter(newEnd, reqEnd) || newEnd.getTime() === reqEnd.getTime()))
       );
     });
   }
-  
-
- 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
- 
 
     setError("");
     setSuccess(false);
@@ -117,45 +118,67 @@ export function LeaveRequestPopup({
       return;
     }
 
-    if (hasOverlappingLeave(leaves.filter((l:any)=>(l.status!="rejected")), startDate, endDate)) {
-      setError("You already have a pending or approved leave request for these dates.");
+    if (
+      hasOverlappingLeave(
+        leaves.filter((l: any) => l.status !== "rejected"),
+        startDate,
+        endDate,
+      )
+    ) {
+      setError(
+        "You already have a pending or approved leave request for these dates.",
+      );
       return;
     }
 
     const totalDays = calculateLeaveDays(startDate, endDate, isHalfDay);
-  
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.from("leave_requests").insert([
-        {
-          employee_id: employeeId,
-          leave_type: leaveType,
-          start_date: startDate,
-          end_date: endDate,
-          is_half_day: isHalfDay,
-          total_days: totalDays,
-          reason: reason || null,
-          status: "pending",
-        },
-      ]).select().single()
-      
-      
-      setLeaves((prev:any)=>([...prev,data]))
+      const { data, error } = await supabase
+        .from("leave_requests")
+        .insert([
+          {
+            employee_id: employeeId,
+            leave_type: leaveType,
+            start_date: startDate,
+            end_date: endDate,
+            is_half_day: isHalfDay,
+            total_days: totalDays,
+            reason: reason || null,
+            status: "pending",
+          },
+        ])
+        .select()
+        .single();
 
       if (error) throw error;
 
+      setLeaves((prev: any) => [...prev, data]);
       setSuccess(true);
       setTimeout(onClose, 1500);
+
+      const { data: settings, error: settingsError } = await supabase
+        .from("admin_settings")
+        .select("leave_notification")
+
+        .single();
+
+      if (settingsError) {
+        console.error("Settings fetch error:", settingsError);
+      }
+
+      if (settings?.leave_notification) {
         await fetch("/api/send-notification/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employeeId,
-          title: "Leave Request Submitted",
-          body: ` A new leave request has been submitted by ${employeeName} .`,
-        }),
-      });
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            employeeId,
+            title: "Leave Request Submitted",
+            body: `A new leave request has been submitted by ${employeeName}.`,
+          }),
+        });
+      }
     } catch (err: any) {
       console.error("Error submitting leave request:", err);
       setError(err.message || "Failed to submit leave request.");
@@ -190,7 +213,9 @@ export function LeaveRequestPopup({
             {success && (
               <Alert variant="success">
                 <CheckCircle2 className="h-4 w-4" />
-                <AlertDescription>Leave request submitted successfully!</AlertDescription>
+                <AlertDescription>
+                  Leave request submitted successfully!
+                </AlertDescription>
               </Alert>
             )}
 

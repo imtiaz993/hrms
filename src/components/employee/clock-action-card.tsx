@@ -137,19 +137,27 @@ export function ClockActionCard({
 
       if (error) throw error;
 
+      const { data: settings } = await supabase
+        .from("admin_settings")
+        .select("clock_in_notification")
+        .single();
+      if (settings?.clock_in_notification) {
+        await fetch("/api/send-notification/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            employeeId,
+            title: "Clock-in Alert",
+            body: `${employeeName} has clocked in.`,
+          }),
+        });
+      }
       onActionComplete?.();
-
-      await fetch("/api/send-notification/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employeeId,
-          title: "Clock-in Alert",
-          body: `${employeeName} has clocked in.`,
-        }),
-      });
     } catch (err: any) {
-      setMessage({ type: "error", text: err.message || "Failed to clock in" });
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to clock in",
+      });
     }
   };
 
@@ -171,15 +179,27 @@ export function ClockActionCard({
 
       onActionComplete?.();
 
-      await fetch("/api/send-notification/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employeeId,
-          title: "Clock-out Alert",
-          body: `${employeeName} has clocked out.`,
-        }),
-      });
+      const { data: settings, error: settingsError } = await supabase
+        .from("admin_settings")
+        .select("clock_in_notification")
+      
+        .single();
+
+      if (settingsError) {
+        console.error("Settings fetch error:", settingsError);
+      }
+
+      if (settings?.clock_in_notification) {
+        await fetch("/api/send-notification/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            employeeId,
+            title: "Clock-out Alert",
+            body: `${employeeName} has clocked out.`,
+          }),
+        });
+      }
     } catch (error: any) {
       setMessage({
         type: "error",

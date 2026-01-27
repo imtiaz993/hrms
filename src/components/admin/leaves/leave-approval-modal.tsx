@@ -1,62 +1,153 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { LeaveRequestWithEmployee } from '@/hooks/admin/useLeaveRequests';
-import { useApproveLeaveRequest, useRejectLeaveRequest } from '@/hooks/admin/useLeaveRequests';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { formatDate } from '@/lib/time-utils';
-import { X, CheckCircle2, XCircle, User, Calendar, FileText } from 'lucide-react';
+import { useState } from "react";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabaseUser";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { formatDate } from "@/lib/time-utils";
+import {
+  X,
+  CheckCircle2,
+  XCircle,
+  User,
+  Calendar,
+  FileText,
+} from "lucide-react";
 
 interface LeaveApprovalModalProps {
-  request: LeaveRequestWithEmployee;
+  request: LeaveRequest;
   onClose: () => void;
 }
 
 const leaveTypeLabels: Record<string, string> = {
-  paid: 'Paid Leave',
-  sick: 'Sick Leave',
-  unpaid: 'Unpaid Leave',
+  paid: "Paid Leave",
+  sick: "Sick Leave",
+  unpaid: "Unpaid Leave",
 };
 
 const statusConfig = {
-  pending: { label: 'Pending', variant: 'warning' as const },
-  approved: { label: 'Approved', variant: 'success' as const },
-  rejected: { label: 'Rejected', variant: 'destructive' as const },
-  cancelled: { label: 'Cancelled', variant: 'secondary' as const },
+  pending: { label: "Pending", variant: "warning" as const },
+  approved: { label: "Approved", variant: "success" as const },
+  rejected: { label: "Rejected", variant: "destructive" as const },
+  cancelled: { label: "Cancelled", variant: "secondary" as const },
 };
+type Status = keyof typeof statusConfig; 
 
-export function LeaveApprovalModal({ request, onClose }: LeaveApprovalModalProps) {
-  const [adminComment, setAdminComment] = useState('');
-  const approveRequest = useApproveLeaveRequest();
-  const rejectRequest = useRejectLeaveRequest();
+interface Employee {
+  first_name: string;
+  last_name: string;
+  department: string;
+  email: string;
+  employee_id?: string | number;
+}
 
-  const handleApprove = async () => {
+interface LeaveRequest {
+  id: number;
+  status: Status;
+  employee: Employee;
+  leave_type: string;
+  start_date: string;
+  end_date: string;
+  total_days: number;
+  created_at: string;
+  reason?: string;
+  approver_comment?: string;
+}
+
+
+export function LeaveApprovalModal({
+  request,
+  onClose,
+}: LeaveApprovalModalProps) {
+  const [adminComment, setAdminComment] = useState("");
+
+  const handleApprove = async (leaveId: any) => {
+    console.log("handleApprove called");
+    console.log("leaveId:", leaveId);
+
     try {
-      await approveRequest.mutateAsync({ requestId: request.id, adminComment });
+      const { error } = await supabase
+        .from("leave_requests")
+        .update({ status: "approved" })
+        .eq("id", leaveId);
+
+      if (error) throw error;
+
+      const { data: leave, error: leaveError } = await supabase
+        .from("leave_requests")
+        .select("employee_id")
+        .eq("id", leaveId)
+        .single();
+
+      if (leaveError) throw leaveError;
+
+      console.log("employeeId (from leave):", leave.employee_id);
+
+      await fetch("/api/send-notification/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId: leave.employee_id,
+          title: "Leave Approved",
+          body: "Your leave request has been approved by admin.",
+        }),
+      });
+
+      alert("Leave approved successfully");
       onClose();
     } catch (error) {
-      alert('Failed to approve leave request');
+      console.error("Approve error:", error);
+      alert("Failed to approve leave request");
     }
   };
 
-  const handleReject = async () => {
-    if (!adminComment.trim()) {
-      alert('Please provide a reason for rejection');
-      return;
-    }
+  const handleReject = async (leaveId: any) => {
+    console.log("handleReject called");
+    console.log("leaveId:", leaveId);
+
     try {
-      await rejectRequest.mutateAsync({ requestId: request.id, adminComment });
+      const { error } = await supabase
+        .from("leave_requests")
+        .update({
+          status: "rejected",
+        })
+        .eq("id", leaveId);
+
+      if (error) throw error;
+
+      const { data: leave, error: leaveError } = await supabase
+        .from("leave_requests")
+        .select("employee_id")
+        .eq("id", leaveId)
+        .single();
+
+      if (leaveError) throw leaveError;
+
+      console.log("employeeId (from leave):", leave.employee_id);
+
+      await fetch("/api/send-notification/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId: leave.employee_id,
+          title: "Leave Rejected",
+          body: `Your leave request has been rejected.`,
+        }),
+      });
+
+      alert("Leave rejected successfully");
       onClose();
     } catch (error) {
-      alert('Failed to reject leave request');
+      console.error("Reject error:", error);
+      alert("Failed to reject leave request");
     }
   };
 
-  const isPending = request.status === 'pending';
+  const isPending = request.status === "pending";
   const statusInfo = statusConfig[request.status];
 
   return (
@@ -98,7 +189,9 @@ export function LeaveApprovalModal({ request, onClose }: LeaveApprovalModalProps
                 {request.employee.employee_id && (
                   <div>
                     <p className="text-sm text-gray-600">Employee ID</p>
-                    <p className="font-medium">{request.employee.employee_id}</p>
+                    <p className="font-medium">
+                      {request.employee.employee_id}
+                    </p>
                   </div>
                 )}
               </div>
@@ -116,7 +209,9 @@ export function LeaveApprovalModal({ request, onClose }: LeaveApprovalModalProps
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-600">Leave Type</p>
-                  <p className="font-medium">{leaveTypeLabels[request.leave_type]}</p>
+                  <p className="font-medium">
+                    {leaveTypeLabels[request.leave_type]}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Status</p>
@@ -126,7 +221,9 @@ export function LeaveApprovalModal({ request, onClose }: LeaveApprovalModalProps
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-600">Start Date</p>
-                  <p className="font-medium">{formatDate(request.start_date)}</p>
+                  <p className="font-medium">
+                    {formatDate(request.start_date)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">End Date</p>
@@ -140,13 +237,17 @@ export function LeaveApprovalModal({ request, onClose }: LeaveApprovalModalProps
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Submitted On</p>
-                  <p className="font-medium">{formatDate(request.created_at)}</p>
+                  <p className="font-medium">
+                    {formatDate(request.created_at)}
+                  </p>
                 </div>
               </div>
               {request.reason && (
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Reason</p>
-                  <p className="text-sm bg-gray-50 p-3 rounded-md">{request.reason}</p>
+                  <p className="text-sm bg-gray-50 p-3 rounded-md">
+                    {request.reason}
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -161,7 +262,9 @@ export function LeaveApprovalModal({ request, onClose }: LeaveApprovalModalProps
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm bg-gray-50 p-3 rounded-md">{request.approver_comment}</p>
+                <p className="text-sm bg-gray-50 p-3 rounded-md">
+                  {request.approver_comment}
+                </p>
               </CardContent>
             </Card>
           )}
@@ -173,7 +276,9 @@ export function LeaveApprovalModal({ request, onClose }: LeaveApprovalModalProps
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="adminComment">Comment (Optional for approval, Required for rejection)</Label>
+                  <Label htmlFor="adminComment">
+                    Comment (Optional for approval, Required for rejection)
+                  </Label>
                   <textarea
                     id="adminComment"
                     value={adminComment}
@@ -186,21 +291,20 @@ export function LeaveApprovalModal({ request, onClose }: LeaveApprovalModalProps
 
                 <div className="flex gap-3">
                   <Button
-                    onClick={handleApprove}
-                    disabled={approveRequest.isPending}
+                    onClick={() => handleApprove(request.id)}
                     className="flex-1"
                   >
                     <CheckCircle2 className="h-4 w-4 mr-2" />
-                    {approveRequest.isPending ? 'Approving...' : 'Approve'}
+                    Approve
                   </Button>
                   <Button
-                    onClick={handleReject}
+                    onClick={() => handleReject(request.id)}
                     variant="destructive"
-                    disabled={rejectRequest.isPending}
+                    // disabled={rejectRequest.isPending}
                     className="flex-1"
                   >
                     <XCircle className="h-4 w-4 mr-2" />
-                    {rejectRequest.isPending ? 'Rejecting...' : 'Reject'}
+                    Reject
                   </Button>
                 </div>
               </CardContent>
@@ -210,8 +314,8 @@ export function LeaveApprovalModal({ request, onClose }: LeaveApprovalModalProps
           {!isPending && (
             <Alert>
               <AlertDescription>
-                This leave request has already been {request.status}. No further action can be
-                taken.
+                This leave request has already been {request.status}. No further
+                action can be taken.
               </AlertDescription>
             </Alert>
           )}
