@@ -7,8 +7,8 @@ import { Switch } from "@/components/ui/switch";
 
 const SettingsPage = () => {
   const [currentAdminId, setCurrentAdminId] = useState<number | null>(null);
-  const [clockInNotify, setClockInNotify] = useState(false);
-  const [leavesNotify, setleavesNotify] = useState(false);
+  const [clockInNotify, setClockInNotify] = useState<boolean | null>(null);
+  const [leavesNotify, setleavesNotify] = useState<boolean | null>(null);
 
   useEffect(() => {
     setCurrentAdminId(1);
@@ -77,9 +77,10 @@ const SettingsPage = () => {
                 successfully clock in/out.
               </p>
             </div>
-       
+
+            {clockInNotify !== null && (
               <Switch checked={clockInNotify} onCheckedChange={updateSetting} />
-          
+            )}
           </CardContent>
         </Card>
 
@@ -92,7 +93,9 @@ const SettingsPage = () => {
                 rejected.
               </p>
             </div>
-            <Switch checked={leavesNotify} onCheckedChange={updateholidays} />
+            {leavesNotify !== null && (
+              <Switch checked={leavesNotify} onCheckedChange={updateholidays} />
+            )}
           </CardContent>
         </Card>
       </div>
