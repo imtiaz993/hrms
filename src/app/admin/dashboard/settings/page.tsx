@@ -1,80 +1,67 @@
 "use client";
-import { useState,useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/lib/supabaseUser";
 
 import { Switch } from "@/components/ui/switch";
 
 const SettingsPage = () => {
-    const [currentAdminId, setCurrentAdminId] = useState<string | null>(null);
+  const [currentAdminId, setCurrentAdminId] = useState<number | null>(null);
   const [clockInNotify, setClockInNotify] = useState(false);
-  const[leavesNotify, setleavesNotify]=useState(false)
-
+  const [leavesNotify, setleavesNotify] = useState(false);
 
   useEffect(() => {
-  const getAdmin = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user) {
-      setCurrentAdminId(user.id);
-    }
-  };
-
-  getAdmin();
-}, []);
-
+    setCurrentAdminId(1);
+  }, []);
 
   const updateSetting = async (value: boolean) => {
+    console.log("currentAdminId", currentAdminId);
+
+    if (!currentAdminId) return;
+
     setClockInNotify(value);
 
     await supabase
       .from("admin_settings")
       .update({ clock_in_notification: value })
-      .eq("admin_id", currentAdminId)
-
+      .eq("admin_id", 1);
   };
 
   const updateholidays = async (value: boolean) => {
-  console.log("Leave toggle clicked:", value);
+    setleavesNotify(value);
 
-  setleavesNotify(value);
-
-  const { data, error } = await supabase
-    .from("admin_settings")
-    .update({ leave_notification: value })
-   .eq("admin_id", currentAdminId)
-
-    .select();
-
-  console.log("Leave update result:", data);
-  console.log("Leave update error:", error);
-};
-
-useEffect(() => {
-  const fetchSettings = async () => {
     const { data, error } = await supabase
       .from("admin_settings")
-      .select("clock_in_notification, leave_notification")
-      .eq("admin_id", currentAdminId) 
-      .single();
+      .update({ leave_notification: value })
+      .eq("admin_id", 1)
 
-    if (error) {
-      console.error("Fetch settings error:", error);
-      return;
-    }
+      .select();
 
-    if (data) {
-      setClockInNotify(data.clock_in_notification);
-      setleavesNotify(data.leave_notification);
-    }
+    console.log("Leave update result:", data);
+    console.log("Leave update error:", error);
   };
 
-  fetchSettings();
-}, [currentAdminId]);
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const { data, error } = await supabase
+        .from("admin_settings")
+        .select("clock_in_notification, leave_notification")
+        .eq("admin_id", currentAdminId)
+        .single();
 
+      if (error) {
+        console.error("Fetch settings error:", error);
+        return;
+      }
 
+      if (data) {
+        setClockInNotify(data.clock_in_notification);
+        setleavesNotify(data.leave_notification);
+      }
+    };
+
+    fetchSettings();
+  }, [currentAdminId]);
 
   return (
     <div className="min-h-screen text-white  py-8">
@@ -90,7 +77,9 @@ useEffect(() => {
                 successfully clock in/out.
               </p>
             </div>
-            <Switch checked={clockInNotify} onCheckedChange={updateSetting} />
+       
+              <Switch checked={clockInNotify} onCheckedChange={updateSetting} />
+          
           </CardContent>
         </Card>
 
@@ -103,7 +92,7 @@ useEffect(() => {
                 rejected.
               </p>
             </div>
-            <Switch  checked={leavesNotify} onCheckedChange={updateholidays}/>
+            <Switch checked={leavesNotify} onCheckedChange={updateholidays} />
           </CardContent>
         </Card>
       </div>
