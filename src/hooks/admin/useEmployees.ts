@@ -1,7 +1,7 @@
-import { Employee } from '@/types';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useLocalData } from '@/lib/local-data';
-import { supabase } from '@/lib/supabaseUser';
+import { Employee } from "@/types";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocalData } from "@/lib/local-data";
+import { supabase } from "@/lib/supabaseUser";
 
 export function useGetAllEmployees() {
   const [data, setData] = useState<Employee[]>([]);
@@ -17,6 +17,8 @@ export function useGetAllEmployees() {
         .from("employees")
         .select("*")
         .eq("is_deleted", false)
+        .not("is_admin", "eq", true)
+
         .order("created_at", { ascending: false })
         .returns<Employee[]>();
 
@@ -36,8 +38,6 @@ export function useGetAllEmployees() {
 
   return { data, isLoading, error, refetch };
 }
-
-
 
 export function useGetEmployeeById(employeeId: string) {
   const [data, setData] = useState<Employee | null>(null);
@@ -110,11 +110,7 @@ export function useGetDepartments() {
         if (err) throw err;
 
         const unique = Array.from(
-          new Set(
-            (rows ?? [])
-              .map((r: any) => r.department)
-              .filter(Boolean)
-          )
+          new Set((rows ?? []).map((r: any) => r.department).filter(Boolean)),
         ).sort();
 
         if (!cancelled) {
@@ -201,7 +197,6 @@ export interface CreateEmployeeInput {
   is_admin: boolean;
 }
 
-
 export interface UpdateEmployeeInput {
   first_name: string;
   last_name: string;
@@ -221,7 +216,7 @@ export interface UpdateEmployeeInput {
 }
 
 export function useUpdateEmployee() {
-const [isPending, setIsPending] = useState(false);
+  const [isPending, setIsPending] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<unknown>(null);
 

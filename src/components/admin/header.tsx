@@ -21,7 +21,7 @@ export function AdminHeader({
   onShowChangePassword,
 }: AdminHeaderProps) {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-   const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<any>();
   const [notification, setNotification] = useState<any>([]);
   const [isOpen, setOpen] = useState(false);
@@ -35,7 +35,7 @@ export function AdminHeader({
     const combined = `${first}${last}`.trim();
     return combined ? combined.toUpperCase() : "?";
   }, [currentUser]);
- const fetchNotification = async () => {
+  const fetchNotification = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("notifications")
@@ -47,13 +47,16 @@ export function AdminHeader({
 
     setLoading(false);
   };
+   const filternotification=[...notification].sort(
+    (a,b)=> new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+   );
   const handleLogout = async () => {
     await supabase.auth.signOut();
     localStorage.removeItem("hrmsCurrentUser");
     dispatch(logoutAction());
     router.replace("/login");
   };
- const handleIconClick = () => {
+  const handleIconClick = () => {
     setOpen(!isOpen);
     if (!isOpen) {
       fetchNotification();
@@ -65,79 +68,78 @@ export function AdminHeader({
         <div className="flex-1 lg:ml-64"></div>
 
         <div className="flex items-center gap-3">
-          
-       <div className="relative">
-  {/* Notification Icon */}
-  <button
-    onClick={handleIconClick}
-    className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100"
-  >
-    <Bell className="h-5 w-5" />
-
-    {/* Unread indicator (optional) */}
-    {notification?.some((n: any) => !n.read) && (
-      <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
-    )}
-  </button>
-
-  {/* Dropdown */}
-  {isOpen && (
-    <div className="absolute right-0 mt-3 w-80 rounded-xl bg-white shadow-xl ring-1 ring-black/5 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
-      
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b">
-        <h4 className="text-sm font-semibold text-slate-800">
-          Notifications
-        </h4>
-       
-      </div>
-
-      {/* Content */}
-      <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
-        {loading ? (
-          <div className="flex items-center justify-center py-8 text-gray-500 text-sm">
-            Loading notifications…
-          </div>
-        ) : notification.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-gray-500 text-sm">
-            <Bell className="h-6 w-6 mb-2 opacity-50" />
-            No notifications
-          </div>
-        ) : (
-          notification.map((n: any) => (
-            <div
-              key={n.id}
-              className={`px-4 py-3 border-b last:border-b-0 cursor-pointer transition
-                hover:bg-slate-50 ${
-                  !n.read ? "bg-blue-50/50" : ""
-                }`}
+          <div className="relative">
+            {/* Notification Icon */}
+            <button
+              onClick={handleIconClick}
+              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100"
             >
-              <div className="flex items-start gap-2">
-                {/* Unread dot */}
-                {!n.read && (
-                  <span className="mt-2 h-2 w-2 rounded-full bg-blue-500" />
-                )}
+              <Bell className="h-5 w-5" />
 
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-800">
-                    {n.title}
-                  </p>
-                  <p className="text-sm text-slate-600 line-clamp-2">
-                    {n.body || n.message}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    {new Date(n.created_at).toLocaleString()}
-                  </p>
+              {/* Unread indicator (optional) */}
+              {notification?.some((n: any) => !n.read) && (
+                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
+              )}
+            </button>
+
+            {/* Dropdown */}
+            {isOpen && (
+              <div className="absolute right-0 mt-3 w-80 rounded-xl bg-white shadow-xl ring-1 ring-black/5 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b">
+                  <h4 className="text-sm font-semibold text-slate-800">
+                    Notifications
+                  </h4>
+                </div>
+
+                {/* Content */}
+                <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
+                  {loading ? (
+                    <div className="flex items-center justify-center py-8 text-gray-500 text-sm">
+                      Loading notifications…
+                    </div>
+                  ) : notification.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-gray-500 text-sm">
+                      <Bell className="h-6 w-6 mb-2 opacity-50" />
+                      No notifications
+                    </div>
+                  ) : (
+                    filternotification.map((n: any) => (
+                      <div
+                        key={n.id}
+                        className={`px-4 py-3 border-b last:border-b-0 cursor-pointer transition
+                hover:bg-slate-50 ${!n.read ? "bg-blue-50/50" : ""}`}
+                      >
+                        <div className="flex items-start gap-2">
+                          {/* Unread dot */}
+                          {!n.read && (
+                            <span className="mt-2 h-2 w-2 rounded-full bg-blue-500" />
+                          )}
+
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-slate-800">
+                              {n.title}
+                            </p>
+                            <p className="text-sm text-slate-600 line-clamp-2">
+                              {n.body || n.message}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-400">
+                              {new Date(n.created_at).toLocaleString("en-PK", {
+                                timeZone: "Asia/Karachi",
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  )}
-</div>
-<div className="relative">
+            )}
+          </div>
+          <div className="relative">
             <button
               type="button"
               onClick={() => setProfileMenuOpen((prev) => !prev)}
@@ -195,8 +197,6 @@ export function AdminHeader({
               </>
             )}
           </div>
-
-        
         </div>
       </div>
     </header>

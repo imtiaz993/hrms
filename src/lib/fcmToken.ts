@@ -24,11 +24,12 @@ export const requestPermissionAndGetToken = async (data: any) => {
       "/firebase-messaging-sw.js"
     );
     // Get the FCM token
-    const token = await getToken(messaging, {
-      vapidKey: process.env.VPID_KEY,
-      serviceWorkerRegistration: swRegistration,
-    });
+  const token = await getToken(messaging, {
+  vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY!,
+  serviceWorkerRegistration: swRegistration,
+});
 
+console.log("FCM TOKEN:", token);
     await fetch("/api/save-fcm-token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

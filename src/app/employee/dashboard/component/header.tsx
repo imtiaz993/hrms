@@ -105,6 +105,10 @@ const Header = () => {
     setLoading(false);
   };
 
+  const filternotification =[...notification].sort(
+    (a,b)=> new Date(a.created_at).getTime()-new Date(b.created_at).getTime()
+  )
+
   return (
     <>
       {showProfile && (
@@ -171,7 +175,7 @@ const Header = () => {
                     </div>
                   ) : (
                     <div className="py-1">
-                      {notification.map((n: any) => (
+                      {filternotification.map((n: any) => (
                         <div
                           key={n.id}
                           className="p-3 border-b last:border-b-0 hover:bg-slate-50 cursor-pointer"
@@ -183,7 +187,20 @@ const Header = () => {
                             {n.body || n.message}
                           </p>
                           <p className="text-xs text-slate-400">
-                            {new Date(n.created_at).toLocaleString()}
+                            {(() => {
+                              console.log("created_at raw:", n.created_at);
+
+                              if (!n.created_at) return "no time";
+
+                              const d = new Date(n.created_at);
+                              console.log("parsed date:", d.toString());
+
+                              return d.toLocaleTimeString("en-PK", {
+                                hour: "numeric",
+                                minute: "2-digit",
+                                hour12: true,
+                              });
+                            })()}
                           </p>
                         </div>
                       ))}

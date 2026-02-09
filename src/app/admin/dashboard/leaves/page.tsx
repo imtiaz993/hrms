@@ -217,16 +217,7 @@ export default function LeaveRequestsPage() {
                             <Button variant="ghost" size="sm" onClick={() => setSelectedRequest(request)}>
                               <Eye className="h-4 w-4 mr-1" /> View
                             </Button>
-                            {request.status === 'pending' && (
-                              <div className="flex space-x-1">
-                                <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700" onClick={() => setSelectedRequest(request)}>
-                                  <CheckCircle2 className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700" onClick={() => setSelectedRequest(request)}>
-                                  <XCircle className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            )}
+                            
                           </div>
                         </td>
                       </tr>

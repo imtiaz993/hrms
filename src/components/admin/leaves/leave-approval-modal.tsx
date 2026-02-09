@@ -148,6 +148,8 @@ export function LeaveApprovalModal({
   };
 
   const isPending = request.status === "pending";
+  const isRejected=request.status === "rejected";
+ const isApproved = request.status === "approved";
   const statusInfo = statusConfig[request.status];
 
   return (
@@ -269,7 +271,7 @@ export function LeaveApprovalModal({
             </Card>
           )}
 
-          {isPending && (
+          {(isPending || isRejected ||isApproved) && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Admin Action</CardTitle>
@@ -311,14 +313,14 @@ export function LeaveApprovalModal({
             </Card>
           )}
 
-          {!isPending && (
+          {/* {!isPending && (
             <Alert>
               <AlertDescription>
                 This leave request has already been {request.status}. No further
                 action can be taken.
               </AlertDescription>
             </Alert>
-          )}
+          )} */}
         </div>
       </div>
     </div>

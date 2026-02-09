@@ -93,7 +93,7 @@ export function AttendanceKPICards({
           <div className="text-2xl font-semibold text-emerald-600">
             {Math.max(analytics.presentDays - analytics.lateArrivals, 0)}
           </div>
-          <p className="mt-1 text-xs text-slate-500">Days on-time</p>
+          <p className="mt-1 text-xs text-slate-500">Days On-time</p>
         </CardContent>
       </Card>
 

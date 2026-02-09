@@ -63,6 +63,11 @@ const navItems: NavItem[] = [
     href: "/admin/dashboard/settings",
     icon: Calendar,
   },
+  {
+    label: "Company Policy",
+    href: "/admin/dashboard/CompanyPolicy",
+    icon: Calendar,
+  },
 ];
 
 export function AdminSidebar() {

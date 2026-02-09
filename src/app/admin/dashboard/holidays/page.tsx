@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MoreVertical, Edit, Trash2, Plus } from "lucide-react";
+import { Search, MoreVertical, Edit, Trash2, Plus, Clock } from "lucide-react";
 
 interface Holiday {
   id: string;
@@ -42,7 +42,7 @@ const Holidays = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [createDialog, setCreateDialog] = useState(false);
   const [editDialog, setEditDialog] = useState<{
     open: boolean;
@@ -59,10 +59,12 @@ const Holidays = () => {
   const [recurring, setRecurring] = useState(false);
 
   const fetchHolidays = async () => {
+    setIsLoading(true);
     const { data, error } = await supabase
       .from("holidays")
       .select("*")
       .order("date", { ascending: true });
+    setIsLoading(false);
 
     if (!error && data) setHolidays(data);
   };
@@ -70,6 +72,7 @@ const Holidays = () => {
   useEffect(() => {
     fetchHolidays();
   }, []);
+  
 
   const filteredHolidays = useMemo(() => {
     const today = new Date();
@@ -140,110 +143,142 @@ const Holidays = () => {
 
   return (
     <>
-      <Card className="mb-6">
-        <CardContent className="py-4 grid md:grid-cols-4 gap-4">
-          <div className="relative md:col-span-2">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              className="pl-10"
-              placeholder="Search holiday..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+     <div className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">
+          Holiday Directory
+          </h1>
+          <p className="text-gray-600 mt-1">Manage company-wide holidays and recurring events.</p>
+        </div>
 
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="h-10 rounded-md border px-3"
-          >
-            <option value="all">All Types</option>
-            <option value="recurring">Recurring</option>
-            <option value="one-time">One-time</option>
-          </select>
-
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-10 rounded-md border px-3"
-          >
-            <option value="all">All</option>
-            <option value="upcoming">Upcoming</option>
-            <option value="past">Past</option>
-          </select>
-        </CardContent>
-      </Card>
-      <div className="border rounded-lg bg-white">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Holiday</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Year</TableHead>
-              <TableHead className="w-[70px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody>
-            {filteredHolidays.map((h) => {
-              const d = new Date(h.date);
-              return (
-                <TableRow key={h.id}>
-                  <TableCell className="font-medium">{h.name}</TableCell>
-                  <TableCell>{d.toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    {h.is_recurring ? "Recurring" : "One-time"}
-                  </TableCell>
-                  <TableCell>{d.getFullYear()}</TableCell>
-
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setCreateDialog(true)}>
-                          <Plus className="mr-2 h-4 w-4" /> Add
-                        </DropdownMenuItem>
-
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setEditDialog({ open: true, holiday: h });
-                            setName(h.name);
-                            setDate(h.date);
-                            setRecurring(h.is_recurring);
-                          }}
-                        >
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-
-                        <DropdownMenuSeparator />
-
-                        <DropdownMenuItem
-                          destructive
-                          onClick={() =>
-                            setDeleteDialog({
-                              open: true,
-                              holidayId: h.id,
-                            })
-                          }
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+     <Button
+         onClick={() => setCreateDialog(true)} className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Holidays
+        </Button>
+        
       </div>
+      
+      <div className="flex items-center gap-4 mb-6">
+        <Card className="flex-1 ">
+          <CardContent className="py-4 grid md:grid-cols-4 gap-4">
+            <div className="relative md:col-span-2">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                className="pl-10"
+                placeholder="Search holiday..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="h-10 rounded-md border px-3"
+            >
+              <option value="all">All Types</option>
+              <option value="recurring">Recurring</option>
+              <option value="one-time">One-time</option>
+            </select>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-10 rounded-md border px-3"
+            >
+              <option value="all">All</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="past">Past</option>
+            </select>
+          </CardContent>
+        </Card>
+
+      
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : filteredHolidays.length === 0 ? <Card>
+          <CardContent className="py-12">
+            <div className="text-center">
+              <Clock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+              <p className="text-gray-500">No leave requests found.</p>
+            </div>
+          </CardContent>
+        </Card>
+      :(
+        <div className="border rounded-lg bg-white">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Holiday</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Year</TableHead>
+                <TableHead className="w-[70px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+
+            <TableBody>
+              {filteredHolidays.map((h) => {
+                const d = new Date(h.date);
+                return (
+                  <TableRow key={h.id}>
+                    <TableCell className="font-medium">{h.name}</TableCell>
+                    <TableCell>{d.toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      {h.is_recurring ? "Recurring" : "One-time"}
+                    </TableCell>
+                    <TableCell>{d.getFullYear()}</TableCell>
+
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setEditDialog({ open: true, holiday: h });
+                              setName(h.name);
+                              setDate(h.date);
+                              setRecurring(h.is_recurring);
+                            }}
+                          >
+                            <Edit className="mr-2 h-4 w-4" /> Edit
+                          </DropdownMenuItem>
+
+                          <DropdownMenuSeparator />
+
+                          <DropdownMenuItem
+                            destructive
+                            onClick={() =>
+                              setDeleteDialog({
+                                open: true,
+                                holidayId: h.id,
+                              })
+                            }
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
       <Dialog open={createDialog} onOpenChange={setCreateDialog}>
         <DialogContent className="sm:max-w-full w-full p-6 rounded-lg">
           <DialogHeader>

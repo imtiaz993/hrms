@@ -394,6 +394,12 @@ export default function EmployeeDashboardPage() {
         return { ...h, eventDate };
       })
       .filter((h) => {
+        if(h.is_recurring){
+          return(
+            h.eventDate.getMonth()===currentMonth &&
+            h.eventDate.getDate()>=today.getDate()
+          )
+        }
         return (
           h.eventDate.getFullYear() === currentYear &&
           h.eventDate.getMonth() === currentMonth &&
