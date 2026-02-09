@@ -112,8 +112,8 @@ export default function AdminDashboardPage() {
       .sort((a: any, b: any) => a.eventDate.getTime() - b.eventDate.getTime());
 
     setHolidays(upcomingHolidays);
-  };
-
+  }; 
+  
   const fetchUpcomingEvents = async () => {
     const today = new Date();
     const currentYear = today.getFullYear();
@@ -245,13 +245,15 @@ export default function AdminDashboardPage() {
     const combined = `${first}${last}`.trim();
     return combined ? combined.toUpperCase() : "?";
   }, [currentUser]);
+
   const fetchAdminAttendanceToday = async () => {
     const today = format(new Date(), "yyyy-MM-dd");
 
     const { data: employees } = await supabase
       .from("employees")
       .select("id")
-      .eq("is_active", true);
+      .eq("is_active", true)
+        .eq("is_admin", false);
 
     const totalEmployees = employees?.length || 0;
 

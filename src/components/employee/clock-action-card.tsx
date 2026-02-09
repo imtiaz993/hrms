@@ -126,89 +126,143 @@ export function ClockActionCard({
     return formatDuration(Math.max(0, end - start));
   }, [clockInValue, clockOutValue]);
 
-  const handleClockIn = async () => {
-    setMessage(null);
-    try {
-      const { error } = await supabase.from("time_entries").insert({
-        employee_id: employeeId,
-        standard_hours: standardHours,
-        shift_start: standardShiftStart,
-      });
+const handleClockIn = async () => {
+  setMessage(null);
 
-      if (error) throw error;
+  try {
+    const now = Date.now();
 
-      const { data: settings } = await supabase
-        .from("admin_settings")
-        .select("clock_in_notification")
-        .single();
-      if (settings?.clock_in_notification) {
-        await fetch("/api/send-notification/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            employeeId,
-            title: "Clock-in Alert",
-            body: `${employeeName} has clocked in.`,
-          }),
-        });
-      }
-      onActionComplete?.();
-    } catch (err: any) {
-      setMessage({
-        type: "error",
-        text: err.message || "Failed to clock in",
-      });
-    }
-  };
+    const { data } = await supabase
+      .from("employees")
+      .select("standard_shift_start")
+      .eq("id", employeeId)
+      .single();
 
-  const handleClockOut = async () => {
-    if (!status) {
-      setMessage({ type: "error", text: "No active time entry found." });
-      return;
+    if (!data?.standard_shift_start) {
+      throw new Error("Shift start not found");
     }
 
-    setIsClockOutLoading(true);
-    setMessage(null);
+   
+    const [h, m] = data.standard_shift_start.split(":").map(Number);
+    const shiftStart = new Date().setHours(h, m, 0, 0);
 
-    try {
-      const { error } = await supabase.rpc("calculate_total_hours", {
-        p_time_entry_id: status.timeEntryId,
+    const isLate = now > shiftStart + 30 * 60 * 1000;
+
+  
+    await supabase.from("time_entries").insert({
+      employee_id: employeeId,
+      clock_in: new Date(now).toISOString(),
+      is_late: isLate,
+      standard_hours: standardHours,
+    });
+
+    
+    const { data: settings } = await supabase
+      .from("admin_settings")
+      .select("clock_in_notification")
+      .single();
+
+    if (settings?.clock_in_notification) {
+      await fetch("/api/send-notification/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId,
+          title: "Clock-in Alert",
+          body: `${employeeName} has clocked in.`,
+        }),
       });
-
-      if (error) throw error;
-
-      onActionComplete?.();
-
-      const { data: settings, error: settingsError } = await supabase
-        .from("admin_settings")
-        .select("clock_in_notification")
-      
-        .single();
-
-      if (settingsError) {
-        console.error("Settings fetch error:", settingsError);
-      }
-
-      if (settings?.clock_in_notification) {
-        await fetch("/api/send-notification/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            employeeId,
-            title: "Clock-out Alert",
-            body: `${employeeName} has clocked out.`,
-          }),
-        });
-      }
-    } catch (error: any) {
-      setMessage({
-        type: "error",
-        text: error.message || "Failed to clock out",
-      });
-    } finally {
-      setIsClockOutLoading(false);
     }
-  };
+
+    onActionComplete?.();
+  } catch (err: any) {
+    setMessage({
+      type: "error",
+      text: err.message || "Failed to clock in",
+    });
+  }
+};
+
+
+
+ const handleClockOut = async () => {
+  if (!status) {
+    setMessage({ type: "error", text: "No active time entry found." });
+    return;
+  }
+
+  setIsClockOutLoading(true);
+  setMessage(null);
+
+  try {
+    const now = Date.now();
+
+  
+    const { data: employee } = await supabase
+      .from("employees")
+      .select("standard_shift_end")
+      .eq("id", employeeId)
+      .single();
+
+    if (!employee?.standard_shift_end) {
+      throw new Error("Shift end time not found");
+    }
+
+ 
+    const [h, m] = employee.standard_shift_end.split(":").map(Number);
+    const shiftEnd = new Date().setHours(h, m, 0, 0);
+
+    
+    const isEarly = now < shiftEnd - 5 * 60 * 1000;
+
+
+    const { error } = await supabase.rpc("calculate_total_hours", {
+      p_time_entry_id: status.timeEntryId,
+    });
+    if (error) throw error;
+
+
+    await supabase
+      .from("time_entries")
+      .update({
+        clock_out: new Date(now).toISOString(),
+        is_early_leave: isEarly,
+      })
+      .eq("id", status.timeEntryId);
+
+    onActionComplete?.();
+
+
+    const { data: settings, error: settingsError } = await supabase
+      .from("admin_settings")
+      .select("clock_in_notification")
+      .single();
+
+    if (settingsError) {
+      console.error("Settings fetch error:", settingsError);
+    }
+
+    if (settings?.clock_in_notification) {
+      await fetch("/api/send-notification/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId,
+          title: "Clock-out Alert",
+          body: `${employeeName} has clocked out.`,
+        }),
+      });
+    }
+  } catch (error: any) {
+    setMessage({
+      type: "error",
+      text: error.message || "Failed to clock out",
+    });
+  } finally {
+    setIsClockOutLoading(false);
+  }
+};
+
 
   const todayLabel = format(new Date(), "EEE, dd MMM");
 

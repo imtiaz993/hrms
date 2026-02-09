@@ -72,6 +72,7 @@ const Holidays = () => {
   useEffect(() => {
     fetchHolidays();
   }, []);
+  
 
   const filteredHolidays = useMemo(() => {
     const today = new Date();

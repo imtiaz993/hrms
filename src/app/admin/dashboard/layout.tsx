@@ -46,25 +46,36 @@ export default function AdminDashboardLayout({
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       requestPermissionAndGetToken({ type: "admin" });
     }
+    
   }, []);
 
   const { addToast } = useToast();
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      const unsubscribe = onMessage(messaging as Messaging, (payload: any) => {
-        console.log(payload);
-        addToast({
-          title: payload.title,
-          description: payload.body,
-          variant: "success",
-        });
+useEffect(() => {
+  if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+    const unsubscribe = onMessage(messaging as Messaging, (payload: any) => {
+      console.log("🔥 FCM FOREGROUND PAYLOAD:", payload);
+
+      // Safe access
+      const title = payload.notification?.title || "Notification";
+      const body = payload.notification?.body || "";
+
+      // Show toast
+      addToast({
+        title,
+        description: body,
+        variant: "success",
       });
-      return () => {
-        unsubscribe();
-      };
-    }
-  }, []);
+
+      // Optional: alert to confirm
+      alert(`FCM Received!\nTitle: ${title}\nBody: ${body}`);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }
+}, []);
 
   if (isLoading) {
     return (

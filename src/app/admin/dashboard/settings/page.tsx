@@ -66,9 +66,15 @@ const SettingsPage = () => {
   return (
     <div className="min-h-screen text-white  py-8">
       <div className="max-w-full mx-auto">
-        <Card className=" mb-4">
-          <CardContent className="p-6 flex items-center justify-between">
-            <div>
+        <Card className="mb-4">
+          <CardContent
+            className="
+      p-6
+      flex flex-col gap-4
+      sm:flex-row sm:items-center sm:justify-between
+    "
+          >
+            <div className="max-w-full sm:max-w-[80%]">
               <h3 className="text-black font-medium">
                 Clock In / Clock Out Notifications
               </h3>
@@ -79,13 +85,23 @@ const SettingsPage = () => {
             </div>
 
             {clockInNotify !== null && (
-              <Switch checked={clockInNotify} onCheckedChange={updateSetting} />
+              <div className="self-start sm:self-center">
+                <Switch
+                  checked={clockInNotify}
+                  onCheckedChange={updateSetting}
+                />
+              </div>
             )}
           </CardContent>
         </Card>
 
         <Card className=" border ">
-          <CardContent className="p-6 flex items-center justify-between">
+          <CardContent
+            className="
+      p-6
+      flex flex-col gap-4
+      sm:flex-row sm:items-center sm:justify-between"
+          >
             <div>
               <h3 className=" text-black font-medium">Leave Notifications</h3>
               <p className="text-sm text-gray-400">

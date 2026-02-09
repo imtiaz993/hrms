@@ -37,11 +37,34 @@ export default function EmployeeDashboardLayout({
     }
   }, [isAuthenticated, isAdmin, isLoading, router]);
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      requestPermissionAndGetToken({ type: "employee" });
+useEffect(() => {
+  if (typeof window === "undefined") return;
+  if (!("Notification" in window)) return;
+
+  Notification.requestPermission().then((permission) => {
+    console.log("Notification permission:", permission);
+  });
+
+  const unsubscribe = onMessage(messaging as Messaging, (payload: any) => {
+    console.log("FCM Foreground payload:", payload);
+
+    // Toast (UI)
+    addToast({
+      title: payload.notification?.title ?? "New Notification",
+      description: payload.notification?.body ?? "",
+      variant: "success",
+    });
+
+    // Optional: Browser notification too
+    if (Notification.permission === "granted") {
+      new Notification(payload.notification.title, {
+        body: payload.notification.body,
+      });
     }
-  }, []);
+  });
+
+  return () => unsubscribe();
+}, []);
 
   const { addToast } = useToast();
 
