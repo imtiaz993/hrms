@@ -46,12 +46,11 @@ export default function AdminDashboardLayout({
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       requestPermissionAndGetToken({ type: "admin" });
     }
-    
   }, []);
 
   const { addToast } = useToast();
 
-useEffect(() => {
+ useEffect(() => {
   if (typeof window !== "undefined" && "serviceWorker" in navigator) {
     const unsubscribe = onMessage(messaging as Messaging, (payload: any) => {
       console.log("🔥 FCM FOREGROUND PAYLOAD:", payload);

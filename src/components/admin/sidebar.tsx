@@ -50,6 +50,11 @@ const navItems: NavItem[] = [
     icon: Calendar,
   },
   {
+    label: "Annoucement",
+    href: "/admin/dashboard/annoucement",
+    icon: Calendar,
+  },
+  {
     label: "Payroll",
     href: "/admin/dashboard/payroll",
     icon: DollarSign,

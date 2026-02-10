@@ -93,7 +93,7 @@ const UpcommingEvents = ({
         {!isLoading &&
           (!upcomingBirthdays || upcomingBirthdays.length === 0) &&
           (!upcomingAnniversaries || upcomingAnniversaries.length === 0) && (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200  p-8 text-center">
+            <div className="flex flex-col items-center justify-center rounded-2xl    p-8 text-center">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white border border-slate-200 text-slate-600">
                 <CalendarClock className="h-5 w-5" />
               </div>
