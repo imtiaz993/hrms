@@ -62,7 +62,7 @@ const UpcomingHoliday = ({ cardBase, holidays, isLoading = false }: Props) => {
       {/* Empty */}
       {!isLoading && (!holidays || holidays.length === 0) && (
         <div className="flex flex-col items-center justify-center rounded-2xl py-10 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 text-slate-400">
             <CalendarDays className="h-6 w-6" />
           </div>
           <p className="mt-3 text-sm font-medium text-slate-700">

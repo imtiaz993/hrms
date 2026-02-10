@@ -24,6 +24,16 @@ import CompanyPolicy from "./component/CompanyPolicy";
 import Leaves from "./component/Leaves";
 import Salary from "./component/Salary";
 import TodayEvents from "./component/TodayEvents";
+import AnnouceMent from "@/app/admin/dashboard/annoucement/page";
+import { TableCell, TableRow } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { MoreVertical } from "lucide-react";
 
 interface TimeEntry {
   date: string;
@@ -54,6 +64,14 @@ interface Holiday {
   date: string;
   is_recurring: boolean;
 }
+
+interface Announcement {
+  id: string;
+  title: string;
+  description: string;
+  created_at: string;
+}
+
 export default function EmployeeDashboardPage() {
   const { currentUser } = useAppSelector((state) => state.auth);
 
@@ -78,9 +96,24 @@ export default function EmployeeDashboardPage() {
   const [todayAnniversaries, setTodayAnniversaries] = useState<
     { employeeName: string; yearsCompleted: number }[]
   >([]);
-
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+
+  const fetchAnnouncements = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from("announcements")
+      .select("*")
+      .order("created_at", { ascending: false });
+    setIsLoading(false);
+
+    if (!error && data) setAnnouncements(data);
+  };
+
+  useEffect(() => {
+    fetchAnnouncements();
+  }, []);
 
   const fetchUpcomingEvents = async () => {
     const today = new Date();
@@ -394,11 +427,11 @@ export default function EmployeeDashboardPage() {
         return { ...h, eventDate };
       })
       .filter((h) => {
-        if(h.is_recurring){
-          return(
-            h.eventDate.getMonth()===currentMonth &&
-            h.eventDate.getDate()>=today.getDate()
-          )
+        if (h.is_recurring) {
+          return (
+            h.eventDate.getMonth() === currentMonth &&
+            h.eventDate.getDate() >= today.getDate()
+          );
         }
         return (
           h.eventDate.getFullYear() === currentYear &&
@@ -647,6 +680,9 @@ export default function EmployeeDashboardPage() {
             holidays={holidays}
             isLoading={isLoading}
           />
+        </div>
+
+        <div className=" grid grid-cols-2 gap-4">
           <CompanyPolicy cardBase={cardBase} />
           <Leaves
             cardBase={cardBase}
@@ -657,8 +693,61 @@ export default function EmployeeDashboardPage() {
             setLeaveRequests={setLeaveRequests}
             isLoading={isLoading}
           />
-          <Salary cardBase={cardBase} currentUser={currentUser} />
         </div>
+       <div className="grid grid-cols-2 gap-4">
+  <Salary cardBase={cardBase} currentUser={currentUser} />
+
+  <div className={`${cardBase} p-4`}>
+    <h3 className="mb-4 text-lg font-semibold text-slate-800">
+      Announcements
+    </h3>
+
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="border-b bg-slate-50 text-left text-sm text-slate-600">
+            <th className="px-3 py-2">Title</th>
+            <th className="px-3 py-2">Description</th>
+            <th className="px-3 py-2">Date</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {announcements.length === 0 ? (
+            <tr>
+              <td
+                colSpan={3}
+                className="px-3 py-6 text-center text-sm text-slate-400"
+              >
+                No announcements available
+              </td>
+            </tr>
+          ) : (
+            announcements.map((a) => (
+              <tr
+                key={a.id}
+                className="border-b last:border-b-0 hover:bg-slate-50 transition"
+              >
+                <td className="px-3 py-3 font-medium text-slate-800">
+                  {a.title}
+                </td>
+
+                <td className="px-3 py-3 text-sm text-slate-600">
+                  {a.description}
+                </td>
+
+                <td className="px-3 py-3 text-sm text-slate-500 whitespace-nowrap">
+                  {new Date(a.created_at).toLocaleDateString()}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
       </main>
     </div>
   );
