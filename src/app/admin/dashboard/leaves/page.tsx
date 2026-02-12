@@ -88,6 +88,14 @@ export default function LeaveRequestsPage() {
 
     fetchLeaves();
   }, []);
+  const handleStatusChange = (leaveId: number, newStatus: Status) => {
+  setLeaves((prev) =>
+    prev.map((leave) =>
+      leave.id === leaveId ? { ...leave, status: newStatus } : leave
+    )
+  );
+};
+
 
   const filteredLeaves = useMemo(() => {
     return leaves.filter((leave) => {
@@ -234,6 +242,7 @@ export default function LeaveRequestsPage() {
         <LeaveApprovalModal
           request={selectedRequest}
           onClose={() => setSelectedRequest(null)}
+           onStatusChange={handleStatusChange}
         />
       )}
     </div>

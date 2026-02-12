@@ -17,7 +17,7 @@ export function useGetAllEmployees() {
         .from("employees")
         .select("*")
         .eq("is_deleted", false)
-        .not("is_admin", "eq", true)
+        // .not("is_admin", "eq", true)
 
         .order("created_at", { ascending: false })
         .returns<Employee[]>();

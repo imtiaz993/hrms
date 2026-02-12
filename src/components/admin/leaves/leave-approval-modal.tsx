@@ -21,6 +21,8 @@ import {
 interface LeaveApprovalModalProps {
   request: LeaveRequest;
   onClose: () => void;
+   onStatusChange: (leaveId: number, newStatus: Status) => void;
+
 }
 
 const leaveTypeLabels: Record<string, string> = {
@@ -62,6 +64,7 @@ interface LeaveRequest {
 export function LeaveApprovalModal({
   request,
   onClose,
+    onStatusChange,
 }: LeaveApprovalModalProps) {
   const [adminComment, setAdminComment] = useState("");
 
@@ -76,6 +79,7 @@ export function LeaveApprovalModal({
         .eq("id", leaveId);
 
       if (error) throw error;
+       
 
       const { data: leave, error: leaveError } = await supabase
         .from("leave_requests")
@@ -98,6 +102,7 @@ export function LeaveApprovalModal({
       });
 
       alert("Leave approved successfully");
+         onStatusChange(leaveId, "approved");
       onClose();
     } catch (error) {
       console.error("Approve error:", error);
@@ -140,6 +145,7 @@ export function LeaveApprovalModal({
       });
 
       alert("Leave rejected successfully");
+            onStatusChange(leaveId, "rejected");
       onClose();
     } catch (error) {
       console.error("Reject error:", error);
@@ -290,8 +296,10 @@ export function LeaveApprovalModal({
                     placeholder="Add a comment about this decision..."
                   />
                 </div>
-
-                <div className="flex gap-3">
+ 
+                   { !isApproved && !isRejected &&(
+                     <div className="flex gap-3">
+                 
                   <Button
                     onClick={() => handleApprove(request.id)}
                     className="flex-1"
@@ -302,18 +310,21 @@ export function LeaveApprovalModal({
                   <Button
                     onClick={() => handleReject(request.id)}
                     variant="destructive"
-                    // disabled={rejectRequest.isPending}
+                    
                     className="flex-1"
                   >
                     <XCircle className="h-4 w-4 mr-2" />
                     Reject
                   </Button>
                 </div>
+                   )
+                  }
+               
               </CardContent>
             </Card>
           )}
 
-          {/* {!isPending && (
+          {/* {!isApproved && (
             <Alert>
               <AlertDescription>
                 This leave request has already been {request.status}. No further

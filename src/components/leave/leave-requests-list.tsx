@@ -8,8 +8,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LeaveRequest, LeaveStatus, LeaveType } from "@/types";
 import { supabase } from "@/lib/supabaseUser";
 import { formatDate } from "@/lib/time-utils";
-import { Calendar, AlertCircle, X } from "lucide-react";
+import { Calendar, AlertCircle, X, Eye } from "lucide-react";
 import { isAfter, parseISO } from "date-fns";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface LeaveRequestsListProps {
   requests: LeaveRequest[];
@@ -53,6 +60,7 @@ export function LeaveRequestsList({
   const [error, setError] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
   const [employeeName, setEmployeeName] = useState<string>("");
+  const [selectedLeave, setSelectedLeave] = useState<LeaveRequest | null>(null);
 
   const cancelLeaveRequest = async (requestId: string) => {
     setIsCancelling(true);
@@ -92,10 +100,8 @@ export function LeaveRequestsList({
   const handleCancel = async (requestId: string) => {
     setError("");
     setCancellingId(requestId);
-
     try {
       await cancelLeaveRequest(requestId);
-
       setLeaves((prev: LeaveRequest[]) =>
         prev.filter((leave) => leave.id !== requestId),
       );
@@ -125,12 +131,9 @@ export function LeaveRequestsList({
   };
 
   const formatDateRange = (request: LeaveRequest): string => {
-    if (request.start_date === request.end_date) {
+    if (request.start_date === request.end_date)
       return formatDate(request.start_date);
-    }
-    return `${formatDate(request.start_date)} – ${formatDate(
-      request.end_date,
-    )}`;
+    return `${formatDate(request.start_date)} – ${formatDate(request.end_date)}`;
   };
 
   const cardBase =
@@ -160,113 +163,137 @@ export function LeaveRequestsList({
   }
 
   return (
-    <Card className={cardBase}>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold text-slate-900">
-          My Leave Requests
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {error && (
-          <Alert
-            variant="destructive"
-            className="mb-4 border-rose-200 bg-rose-50 text-sm"
-          >
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+    <>
+      <Card className={cardBase}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            My Leave Requests
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <Alert
+              variant="destructive"
+              className="mb-4 border-rose-200 bg-rose-50 text-sm"
+            >
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-        <div className="overflow-x-auto rounded-xl border border-slate-100">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50/80">
-              <tr>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Dates
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Duration
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Type
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Reason
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {requests.map((request) => (
-                <tr
-                  key={request.id}
-                  className="transition-colors hover:bg-slate-50/70"
-                >
-                  <td className="px-4 py-3 align-top text-sm text-slate-900">
-                    {formatDateRange(request)}
-                  </td>
-                  <td className="px-4 py-3 align-top text-sm font-medium text-slate-800">
-                    {formatDuration(request)}
-                  </td>
-                  <td className="px-4 py-3 align-top text-sm text-slate-700">
-                    {leaveTypeLabels[request.leave_type]}
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <Badge
-                      variant={statusConfig[request.status].variant}
-                      className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-                    >
-                      {statusConfig[request.status].label}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 align-top text-sm text-slate-600 max-w-xs truncate">
-                    {request.reason || "—"}
-                  </td>
-                  <td className="px-4 py-3 align-top text-sm">
-                    {canCancelRequest(request) && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          handleCancel(request.id);
-                        }}
-                        disabled={cancellingId === request.id}
-                        className="rounded-full border-slate-200 text-xs"
-                      >
-                        <X className="mr-1.5 h-3 w-3" />
-                        {cancellingId === request.id ? "Cancelling…" : "Cancel"}
-                      </Button>
-                    )}
-                  </td>
+          <div className="overflow-x-auto rounded-xl border border-slate-100">
+            <table className="min-w-full text-sm">
+              <thead className="bg-slate-50/80">
+                <tr>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Dates
+                  </th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
 
-        {requests.some(
-          (r) => r.status === "approved" && r.approver_comment,
-        ) && (
-          <div className="mt-4 rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-700">
-            <p className="mb-1 font-semibold">Approver comments</p>
-            {requests
-              .filter((r) => r.status === "approved" && r.approver_comment)
-              .map((request) => (
-                <div key={request.id} className="mb-1">
-                  <span className="font-medium">
-                    {formatDateRange(request)}:
-                  </span>{" "}
-                  {request.approver_comment}
-                </div>
-              ))}
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {requests.map((request) => (
+                  <tr
+                    key={request.id}
+                    className="transition-colors hover:bg-slate-50/70"
+                  >
+                    <td className="px-4 py-3 align-top text-sm text-slate-900">
+                      {formatDateRange(request)}
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <Badge
+                        variant={statusConfig[request.status].variant}
+                        className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                      >
+                        {statusConfig[request.status].label}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 align-top text-sm space-x-2">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setSelectedLeave(request)}
+                      >
+                        <Eye className="h-4 w-4 text-slate-600" />
+                      </Button>
+                      {/* 
+                       {canCancelRequest(request) && ( */}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleCancel(request.id)}
+                        disabled={cancellingId === request.id}
+                      >
+                        <X className="h-4 w-4 text-rose-500" />
+                      </Button>
+
+                      {/* )} */}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Dialog for View Details */}
+      <Dialog
+        open={!!selectedLeave}
+        onOpenChange={() => setSelectedLeave(null)}
+      >
+        <DialogContent className="sm:max-w-lg relative">
+          <DialogHeader>
+            <DialogTitle>Leave Details</DialogTitle>
+            {/* Close Button */}
+            <Button
+              size="icon"
+              variant="ghost"
+              className="absolute right-2 top-2"
+              onClick={() => setSelectedLeave(null)}
+            >
+              <X className="h-4 w-4 text-slate-500" />
+            </Button>
+          </DialogHeader>
+
+          {selectedLeave && (
+            <div className="space-y-3 text-sm text-slate-700 mt-2">
+              <div>
+                <span className="font-medium">Dates: </span>
+                {formatDateRange(selectedLeave)}
+              </div>
+              <div>
+                <span className="font-medium">Duration: </span>
+                {formatDuration(selectedLeave)}
+              </div>
+              <div>
+                <span className="font-medium">Type: </span>
+                {leaveTypeLabels[selectedLeave.leave_type]}
+              </div>
+              <div>
+                <span className="font-medium">Status: </span>
+                {statusConfig[selectedLeave.status].label}
+              </div>
+              <div>
+                <span className="font-medium">Reason: </span>
+                {selectedLeave.reason || "—"}
+              </div>
+              {selectedLeave.approver_comment && (
+                <div>
+                  <span className="font-medium">Approver Comment: </span>
+                  {selectedLeave.approver_comment}
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

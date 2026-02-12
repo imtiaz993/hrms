@@ -13,13 +13,17 @@ import { Input } from "@/components/ui/input";
 import { FileText } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseUser";
-
+import { useToast } from "@/components/ui/toast";
 const Page = () => {
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [document, setDocument] = useState<File | null>(null);
   const [policies, setPolicies] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{
+    title?: string;
+    summary?: string;
+  }>({});
 
   const [editpolicy, setEditpolicy] = useState<{
     open: boolean;
@@ -40,52 +44,87 @@ const Page = () => {
     setLoading(false);
   };
 
+  const validatePolicy = () => {
+    const newErrors: typeof errors = {};
+
+    if (!title.trim()) {
+      newErrors.title = "Policy title is required";
+    }
+
+    if (!summary.trim()) {
+      newErrors.summary = "Policy summary is required";
+    }
+
+    setErrors(newErrors);
+
+    return Object.keys(newErrors).length === 0;
+  };
+
   useEffect(() => {
     fetchPolicies();
   }, []);
+  
+  const { addToast } = useToast();
+ const handleSavePolicy = async () => {
+ 
+  if (!validatePolicy()) return;
 
-  const handleSavePolicy = async () => {
-    try {
-      let fileUrl = editpolicy.policy?.doc_url || null;
+  try {
+    let fileUrl = editpolicy.policy?.doc_url || null;
 
-      if (document && editpolicy.policy?.doc_url) {
-        const oldFilePath = editpolicy.policy.doc_url.split("/docs/")[1];
-
-        await supabase.storage.from("docs").remove([oldFilePath]);
-      }
-
-      if (document) {
-        const fileName = `${Date.now()}-${document.name}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("docs")
-          .upload(fileName, document);
-
-        if (uploadError) throw uploadError;
-
-        fileUrl = supabase.storage.from("docs").getPublicUrl(fileName)
-          .data.publicUrl;
-      }
-
-      const { error } = await supabase
-        .from("company_policy")
-        .update({
-          title,
-          summary,
-          doc_url: fileUrl,
-        })
-        .eq("id", editpolicy.policy.id);
-
-      if (error) throw error;
-
-      setEditpolicy({ open: false, policy: null });
-      setDocument(null);
-      fetchPolicies();
-    } catch (err) {
-      console.error(err);
-      alert("Failed to update policy");
+    // Remove old file if new uploaded
+    if (document && editpolicy.policy?.doc_url) {
+      const oldFilePath = editpolicy.policy.doc_url.split("/docs/")[1];
+      await supabase.storage.from("docs").remove([oldFilePath]);
     }
-  };
+
+    // Upload new file
+    if (document) {
+      const fileName = `${Date.now()}-${document.name}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("docs")
+        .upload(fileName, document);
+
+      if (uploadError) throw uploadError;
+
+      fileUrl =
+        supabase.storage.from("docs").getPublicUrl(fileName).data.publicUrl;
+    }
+
+    const { error } = await supabase
+      .from("company_policy")
+      .update({
+        title: title.trim(),
+        summary: summary.trim(),
+        doc_url: fileUrl,
+      })
+      .eq("id", editpolicy.policy.id);
+
+    if (error) throw error;
+
+    // ✅ Success Toast
+    addToast({
+      title: "Policy Updated",
+      description: "Company policy updated successfully.",
+      variant: "success",
+    });
+
+    setEditpolicy({ open: false, policy: null });
+    setDocument(null);
+    setErrors({});
+    fetchPolicies();
+  } catch (err) {
+    console.error(err);
+
+    addToast({
+      title: "Update Failed",
+      description: "Failed to update policy. Please try again.",
+      variant: "destructive",
+    });
+  }
+};
+
 
   return (
     <>
@@ -163,19 +202,35 @@ const Page = () => {
           </DialogHeader>
 
           <div className="space-y-4">
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Policy title"
-            />
+            <div>
+              <Input
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setErrors((p) => ({ ...p, title: undefined }));
+                }}
+                placeholder="Policy title"
+              />
+              {errors.title && (
+                <p className="text-sm text-red-500 mt-1">{errors.title}</p>
+              )}
+            </div>
 
-            <textarea
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              rows={3}
-              className="w-full rounded-md border p-2 text-sm"
-              placeholder="Policy summary"
-            />
+            <div>
+              <textarea
+                value={summary}
+                onChange={(e) => {
+                  setSummary(e.target.value);
+                  setErrors((p) => ({ ...p, summary: undefined }));
+                }}
+                rows={3}
+                className="w-full rounded-md border p-2 text-sm"
+                placeholder="Policy summary"
+              />
+              {errors.summary && (
+                <p className="text-sm text-red-500 mt-1">{errors.summary}</p>
+              )}
+            </div>
 
             <Input
               type="file"
