@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,17 +12,11 @@ import { formatDate } from "@/lib/time-utils";
 import { Calendar, AlertCircle, X, Eye } from "lucide-react";
 import { isAfter, parseISO } from "date-fns";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-
 interface LeaveRequestsListProps {
   requests: LeaveRequest[];
   employeeId: string;
   setLeaves: any;
+  employeeName:string;
 }
 
 const statusConfig: Record<
@@ -54,12 +49,14 @@ const leaveTypeLabels: Record<LeaveType, string> = {
 export function LeaveRequestsList({
   requests,
   employeeId,
+  employeeName,
+  
   setLeaves,
 }: LeaveRequestsListProps) {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
-  const [employeeName, setEmployeeName] = useState<string>("");
+
   const [selectedLeave, setSelectedLeave] = useState<LeaveRequest | null>(null);
 
   const cancelLeaveRequest = async (requestId: string) => {
@@ -243,57 +240,64 @@ export function LeaveRequestsList({
         </CardContent>
       </Card>
 
-      {/* Dialog for View Details */}
-      <Dialog
-        open={!!selectedLeave}
-        onOpenChange={() => setSelectedLeave(null)}
-      >
-        <DialogContent className="sm:max-w-lg relative">
-          <DialogHeader>
-            <DialogTitle>Leave Details</DialogTitle>
-            {/* Close Button */}
-            <Button
-              size="icon"
-              variant="ghost"
-              className="absolute right-2 top-2"
-              onClick={() => setSelectedLeave(null)}
+      {/* Standalone popup for Leave Details rendered at document.body level */}
+      {selectedLeave &&
+        typeof window !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+            onClick={() => setSelectedLeave(null)}
+          >
+            <Card
+              className="w-full max-w-lg relative bg-white shadow-xl rounded-2xl"
+              onClick={(e) => e.stopPropagation()}
             >
-              <X className="h-4 w-4 text-slate-500" />
-            </Button>
-          </DialogHeader>
-
-          {selectedLeave && (
-            <div className="space-y-3 text-sm text-slate-700 mt-2">
-              <div>
-                <span className="font-medium">Dates: </span>
-                {formatDateRange(selectedLeave)}
-              </div>
-              <div>
-                <span className="font-medium">Duration: </span>
-                {formatDuration(selectedLeave)}
-              </div>
-              <div>
-                <span className="font-medium">Type: </span>
-                {leaveTypeLabels[selectedLeave.leave_type]}
-              </div>
-              <div>
-                <span className="font-medium">Status: </span>
-                {statusConfig[selectedLeave.status].label}
-              </div>
-              <div>
-                <span className="font-medium">Reason: </span>
-                {selectedLeave.reason || "—"}
-              </div>
-              {selectedLeave.approver_comment && (
-                <div>
-                  <span className="font-medium">Approver Comment: </span>
-                  {selectedLeave.approver_comment}
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-base font-semibold">
+                  Leave Details
+                </CardTitle>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setSelectedLeave(null)}
+                >
+                  <X className="h-4 w-4 text-slate-500" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 text-sm text-slate-700 mt-1">
+                  <div>
+                    <span className="font-medium">Dates: </span>
+                    {formatDateRange(selectedLeave)}
+                  </div>
+                  <div>
+                    <span className="font-medium">Duration: </span>
+                    {formatDuration(selectedLeave)}
+                  </div>
+                  <div>
+                    <span className="font-medium">Type: </span>
+                    {leaveTypeLabels[selectedLeave.leave_type]}
+                  </div>
+                  <div>
+                    <span className="font-medium">Status: </span>
+                    {statusConfig[selectedLeave.status].label}
+                  </div>
+                  <div>
+                    <span className="font-medium">Reason: </span>
+                    {selectedLeave.reason || "—"}
+                  </div>
+                  {selectedLeave.approver_comment && (
+                    <div>
+                      <span className="font-medium">Approver Comment: </span>
+                      {selectedLeave.approver_comment}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+              </CardContent>
+            </Card>
+          </div>,
+          document.body
+        )}
     </>
   );
 }

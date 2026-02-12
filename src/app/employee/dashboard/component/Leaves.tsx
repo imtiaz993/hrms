@@ -36,6 +36,7 @@ const Leaves = ({
       {showLeaveRequest && (
         <LeaveRequestPopup
           employeeId={currentUser.id}
+          employeeName={currentUser.first_name}
           onClose={() => setShowLeaveRequest(false)}
           leaves={leaveRequests}
           setLeaves={setLeaveRequests}
@@ -79,6 +80,7 @@ const Leaves = ({
             <LeaveRequestsList
               requests={leaveRequests}
               employeeId={currentUser.id}
+              employeeName={currentUser.first_name}
               setLeaves={setLeaveRequests}
             />
           ) : null}

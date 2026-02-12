@@ -83,10 +83,14 @@ export default function EmployeeDashboardLayout({
   useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       const unsubscribe = onMessage(messaging as Messaging, (payload: any) => {
-        console.log(payload);
+        console.log(" FCM FOREGROUND PAYLOAD (employee):", payload);
+
+        const title = payload.notification?.title || "Notification";
+        const body = payload.notification?.body || "";
+
         addToast({
-          title: payload.title,
-          description: payload.body,
+          title,
+          description: body,
           variant: "success",
         });
       });
