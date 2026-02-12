@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useUpdateEmployeeStatus } from "@/hooks/admin/useEmployees";
+import { useToast } from "@/components/ui/toast";
 import { Edit, Power, UserCircle, Mail, Briefcase } from "lucide-react";
 
 interface EmployeeListProps {
@@ -15,6 +16,7 @@ interface EmployeeListProps {
 
 export function EmployeeList({ employees }: EmployeeListProps) {
   const router = useRouter();
+  const { addToast } = useToast();
   const updateStatus = useUpdateEmployeeStatus();
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [optimisticEmployees, setOptimisticEmployees] =
@@ -57,7 +59,11 @@ export function EmployeeList({ employees }: EmployeeListProps) {
         );
 
         console.error("Error updating status:", error);
-        alert("Failed to update employee status");
+        addToast({
+          title: "Error",
+          description: "Failed to update employee status",
+          variant: "destructive",
+        });
       } finally {
         setTogglingId(null);
       }

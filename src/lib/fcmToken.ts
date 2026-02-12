@@ -2,7 +2,7 @@ import { getToken } from "firebase/messaging";
 import { getFirebaseMessaging } from "../firebase";
 import { supabase } from "@/lib/supabaseUser";
 
-export const requestPermissionAndGetToken = async (data: any) => {
+export const requestPermissionAndGetToken = async (data: { type: "admin" | "employee" }) => {
   try {
     const {
       data: { user },
@@ -19,17 +19,13 @@ export const requestPermissionAndGetToken = async (data: any) => {
     }
     const messaging = await getFirebaseMessaging();
     if (!messaging) return;
-    //  Register the service worker
     const swRegistration = await navigator.serviceWorker.register(
       "/firebase-messaging-sw.js"
     );
-    // Get the FCM token
-  const token = await getToken(messaging, {
-  vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY!,
-  serviceWorkerRegistration: swRegistration,
-});
-
-console.log("FCM TOKEN:", token);
+    const token = await getToken(messaging, {
+      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY!,
+      serviceWorkerRegistration: swRegistration,
+    });
     await fetch("/api/save-fcm-token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

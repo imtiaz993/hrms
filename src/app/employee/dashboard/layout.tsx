@@ -37,36 +37,48 @@ export default function EmployeeDashboardLayout({
     }
   }, [isAuthenticated, isAdmin, isLoading, router]);
 
-useEffect(() => {
-  if (typeof window === "undefined") return;
-  if (!("Notification" in window)) return;
+// useEffect(() => {
+//   if (typeof window === "undefined") return;
+//   if (!("Notification" in window)) return;
 
-  Notification.requestPermission().then((permission) => {
-    console.log("Notification permission:", permission);
-  });
+//   Notification.requestPermission().then((permission) => {
+//     console.log("Notification permission:", permission);
+//   });
 
-  const unsubscribe = onMessage(messaging as Messaging, (payload: any) => {
-    console.log("FCM Foreground payload:", payload);
+//   const unsubscribe = onMessage(messaging as Messaging, (payload: any) => {
+//     console.log("FCM Foreground payload:", payload);
 
-    // Toast (UI)
-    addToast({
-      title: payload.notification?.title ?? "New Notification",
-      description: payload.notification?.body ?? "",
-      variant: "success",
-    });
+//     // Toast (UI)
+//     addToast({
+//       title: payload.notification?.title ?? "New Notification",
+//       description: payload.notification?.body ?? "",
+//       variant: "success",
+//     });
 
-    // Optional: Browser notification too
-    if (Notification.permission === "granted") {
-      new Notification(payload.notification.title, {
-        body: payload.notification.body,
-      });
-    }
-  });
+//     // Optional: Browser notification too
+//     if (Notification.permission === "granted") {
+//       new Notification(payload.notification.title, {
+//         body: payload.notification.body,
+//       });
+//     }
+//   });
 
-  return () => unsubscribe();
-}, []);
+//   return () => unsubscribe();
+// }, []);
 
   const { addToast } = useToast();
+
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      "serviceWorker" in navigator &&
+      !isLoading &&
+      isAuthenticated &&
+      !isAdmin
+    ) {
+      requestPermissionAndGetToken({ type: "employee" });
+    }
+  }, [isLoading, isAuthenticated, isAdmin]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {

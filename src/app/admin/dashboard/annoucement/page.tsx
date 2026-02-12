@@ -29,6 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, MoreVertical, Edit, Trash2, Plus, Clock } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 
 interface Announcements {
   id: string;
@@ -38,6 +39,7 @@ interface Announcements {
 }
 
 const AnnouceMent = () => {
+  const { addToast } = useToast();
   const [announcements, setAnnouncements] = useState<Announcements[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -106,7 +108,7 @@ const AnnouceMent = () => {
 
     // 4️ Send notification to each employee
     for (const emp of employees) {
-      await fetch("/api/send-notification-admin/", {
+      await fetch("/api/admin/send-notification-admin/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -117,10 +119,18 @@ const AnnouceMent = () => {
       });
     }
 
-    alert("Announcement created and notifications sent!");
+    addToast({
+      title: "Success",
+      description: "Announcement created and notifications sent!",
+      variant: "success",
+    });
   } catch (err) {
     console.error("Announcement creation error:", err);
-    alert("Failed to create announcement or send notifications");
+    addToast({
+      title: "Error",
+      description: "Failed to create announcement or send notifications",
+      variant: "destructive",
+    });
   }
 };
 
@@ -152,7 +162,7 @@ const AnnouceMent = () => {
           className="w-full sm:w-auto"
         >
           <Plus className="h-4 w-4 mr-2" />
-          Add Appointment
+          Add annoucement
         </Button>
       </div>
 

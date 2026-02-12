@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { MoreVertical } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface TimeEntry {
   date: string;
@@ -74,6 +75,8 @@ interface Announcement {
 
 export default function EmployeeDashboardPage() {
   const { currentUser } = useAppSelector((state) => state.auth);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<any | null>(null);
+
 
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -694,60 +697,81 @@ export default function EmployeeDashboardPage() {
             isLoading={isLoading}
           />
         </div>
-       <div className="grid grid-cols-2 gap-4">
-  <Salary cardBase={cardBase} currentUser={currentUser} />
+        <div className="grid grid-cols-2 gap-4">
+          <Salary cardBase={cardBase} currentUser={currentUser} />
 
-  <div className={`${cardBase} p-4`}>
-    <h3 className="mb-4 text-lg font-semibold text-slate-800">
-      Announcements
-    </h3>
+         <div className={`${cardBase} p-4`}>
+  <h3 className="mb-4 text-lg font-semibold text-slate-800">
+    Announcements
+  </h3>
 
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse">
-        <thead>
-          <tr className="border-b bg-slate-50 text-left text-sm text-slate-600">
-            <th className="px-3 py-2">Title</th>
-            <th className="px-3 py-2">Description</th>
-            <th className="px-3 py-2">Date</th>
-          </tr>
-        </thead>
+  <div className="space-y-4">
+    {announcements.length === 0 ? (
+      <p className="text-sm text-slate-400">
+        No announcements available
+      </p>
+    ) : (
+      announcements.map((a) => (
+        <div
+          key={a.id}
+          className="border rounded-lg p-3 hover:bg-slate-50 transition"
+        >
+          {/* Title */}
+          <h4 className="text-sm font-semibold text-slate-800">
+            {a.title}
+          </h4>
 
-        <tbody>
-          {announcements.length === 0 ? (
-            <tr>
-              <td
-                colSpan={3}
-                className="px-3 py-6 text-center text-sm text-slate-400"
-              >
-                No announcements available
-              </td>
-            </tr>
-          ) : (
-            announcements.map((a) => (
-              <tr
-                key={a.id}
-                className="border-b last:border-b-0 hover:bg-slate-50 transition"
-              >
-                <td className="px-3 py-3 font-medium text-slate-800">
-                  {a.title}
-                </td>
+          {/* One-line description */}
+          <p className="text-sm text-slate-600 truncate mt-1">
+            {a.description}
+          </p>
 
-                <td className="px-3 py-3 text-sm text-slate-600">
-                  {a.description}
-                </td>
-
-                <td className="px-3 py-3 text-sm text-slate-500 whitespace-nowrap">
-                  {new Date(a.created_at).toLocaleDateString()}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+          {/* Detail Button */}
+          <div className="mt-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSelectedAnnouncement(a)}
+            >
+              View Details
+            </Button>
+          </div>
+        </div>
+      ))
+    )}
   </div>
 </div>
+<Dialog
+  open={!!selectedAnnouncement}
+  onOpenChange={() => setSelectedAnnouncement(null)}
+>
+  <DialogContent className="sm:max-w-lg">
+    <DialogHeader>
+      <DialogTitle>
+        {selectedAnnouncement?.title}
+      </DialogTitle>
+      <DialogDescription className="text-sm text-slate-500">
+        {selectedAnnouncement &&
+          new Date(selectedAnnouncement.created_at).toLocaleDateString()}
+      </DialogDescription>
+    </DialogHeader>
 
+    <div className="mt-4 text-sm text-slate-700 whitespace-pre-line">
+      {selectedAnnouncement?.description}
+    </div>
+
+    <DialogFooter className="mt-4">
+      <Button
+        variant="outline"
+        onClick={() => setSelectedAnnouncement(null)}
+      >
+        Close
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
+        </div>
       </main>
     </div>
   );

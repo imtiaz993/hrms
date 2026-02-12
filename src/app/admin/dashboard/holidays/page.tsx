@@ -44,6 +44,11 @@ const Holidays = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [createDialog, setCreateDialog] = useState(false);
+  const [errors, setErrors] = useState<{
+    name?: string;
+    date?: string;
+  }>({});
+
   const [editDialog, setEditDialog] = useState<{
     open: boolean;
     holiday: Holiday | null;
@@ -57,6 +62,29 @@ const Holidays = () => {
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [recurring, setRecurring] = useState(false);
+
+  const validateForm = () => {
+    const newErrors: typeof errors = {};
+
+    if (!name.trim()) {
+      newErrors.name = "Holiday name is required";
+    }
+
+    if (!date) {
+      newErrors.date = "Holiday date is required";
+    } else {
+      const selectedDate = new Date(date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (selectedDate < today) {
+        newErrors.date = "Date cannot be in the past";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const fetchHolidays = async () => {
     setIsLoading(true);
@@ -72,7 +100,6 @@ const Holidays = () => {
   useEffect(() => {
     fetchHolidays();
   }, []);
-  
 
   const filteredHolidays = useMemo(() => {
     const today = new Date();
@@ -100,6 +127,8 @@ const Holidays = () => {
   }, [holidays, searchQuery, typeFilter, statusFilter]);
 
   const handleCreate = async () => {
+    if (!validateForm()) return;
+
     const { data, error } = await supabase
       .from("holidays")
       .insert({ name, date, is_recurring: recurring })
@@ -112,10 +141,13 @@ const Holidays = () => {
       setName("");
       setDate("");
       setRecurring(false);
+      setErrors({});
     }
   };
+
   const handleEdit = async () => {
     if (!editDialog.holiday) return;
+    if (!validateForm()) return;
 
     const { error } = await supabase
       .from("holidays")
@@ -131,6 +163,7 @@ const Holidays = () => {
         ),
       );
       setEditDialog({ open: false, holiday: null });
+      setErrors({});
     }
   };
 
@@ -143,22 +176,25 @@ const Holidays = () => {
 
   return (
     <>
-     <div className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-          Holiday Directory
+            Holiday Directory
           </h1>
-          <p className="text-gray-600 mt-1">Manage company-wide holidays and recurring events.</p>
+          <p className="text-gray-600 mt-1">
+            Manage company-wide holidays and recurring events.
+          </p>
         </div>
 
-     <Button
-         onClick={() => setCreateDialog(true)} className="w-full sm:w-auto">
+        <Button
+          onClick={() => setCreateDialog(true)}
+          className="w-full sm:w-auto"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add Holidays
         </Button>
-        
       </div>
-      
+
       <div className="flex items-center gap-4 mb-6">
         <Card className="flex-1 ">
           <CardContent className="py-4 grid md:grid-cols-4 gap-4">
@@ -193,15 +229,14 @@ const Holidays = () => {
             </select>
           </CardContent>
         </Card>
-
-      
       </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
-      ) : filteredHolidays.length === 0 ? <Card>
+      ) : filteredHolidays.length === 0 ? (
+        <Card>
           <CardContent className="py-12">
             <div className="text-center">
               <Clock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
@@ -209,7 +244,7 @@ const Holidays = () => {
             </div>
           </CardContent>
         </Card>
-      :(
+      ) : (
         <div className="border rounded-lg bg-white">
           <Table>
             <TableHeader>
@@ -291,23 +326,40 @@ const Holidays = () => {
           </DialogHeader>
 
           <div className="mt-4 space-y-4">
-            <Input
-              placeholder="Holiday Name"
-              onChange={(e) => setName(e.target.value)}
-              className="w-full"
-            />
-            <Input
-              type="date"
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full"
-            />
+            <div>
+              <Input
+                placeholder="Holiday Name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setErrors((p) => ({ ...p, name: undefined }));
+                }}
+              />
+              {errors.name && (
+                <p className="text-sm text-red-500 mt-1">{errors.name}</p>
+              )}
+            </div>
+
+            <div>
+              <Input
+                type="date"
+                value={date}
+                onChange={(e) => {
+                  setDate(e.target.value);
+                  setErrors((p) => ({ ...p, date: undefined }));
+                }}
+              />
+              {errors.date && (
+                <p className="text-sm text-red-500 mt-1">{errors.date}</p>
+              )}
+            </div>
 
             <label className="flex items-center gap-3 text-sm">
               <input
                 type="checkbox"
                 checked={recurring}
                 onChange={(e) => setRecurring(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="h-4 w-4"
               />
               Recurring yearly
             </label>

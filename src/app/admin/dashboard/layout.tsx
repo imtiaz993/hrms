@@ -55,19 +55,14 @@ export default function AdminDashboardLayout({
     const unsubscribe = onMessage(messaging as Messaging, (payload: any) => {
       console.log("🔥 FCM FOREGROUND PAYLOAD:", payload);
 
-      // Safe access
       const title = payload.notification?.title || "Notification";
       const body = payload.notification?.body || "";
 
-      // Show toast
       addToast({
         title,
         description: body,
         variant: "success",
       });
-
-      // Optional: alert to confirm
-      alert(`FCM Received!\nTitle: ${title}\nBody: ${body}`);
     });
 
     return () => {
@@ -75,6 +70,7 @@ export default function AdminDashboardLayout({
     };
   }
 }, []);
+
 
   if (isLoading) {
     return (

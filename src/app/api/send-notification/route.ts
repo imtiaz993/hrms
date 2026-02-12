@@ -31,6 +31,7 @@ export async function POST(req: Request) {
       );
     }
 
+    // This endpoint is used for EMPLOYEE -> ADMIN notifications
     const { error: dbError } = await supabase.from("notifications").insert([
       {
         employee_id: employeeId,
@@ -61,7 +62,6 @@ export async function POST(req: Request) {
       );
     }
 
-
     if (!adminTokens || adminTokens.length === 0) {
       return NextResponse.json(
         { message: "No admin tokens found" },
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const tokens=adminTokens.map((token) => token.token)
+    const tokens = adminTokens.map((t) => t.token);
 
 
     // 🔹 Send notification via Firebase Admin

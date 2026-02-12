@@ -8,12 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/toast';
 import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function EditEmployeePage() {
   const router = useRouter();
   const params = useParams();
   const employeeId = params.id as string;
+  const { addToast } = useToast();
 
   const { data: employee, isLoading: loadingEmployee } = useGetEmployeeById(employeeId);
   const updateEmployee = useUpdateEmployee();
@@ -92,7 +94,11 @@ export default function EditEmployeePage() {
       await updateEmployee.mutateAsync({ employeeId, input: formData });
       router.push(`/admin/dashboard/employees/${employeeId}`);
     } catch (error) {
-      alert('Failed to update employee. Please try again.');
+      addToast({
+        title: 'Error',
+        description: 'Failed to update employee. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 

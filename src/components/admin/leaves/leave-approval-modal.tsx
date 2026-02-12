@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatDate } from "@/lib/time-utils";
+import { useToast } from "@/components/ui/toast";
 import {
   X,
   CheckCircle2,
@@ -21,6 +22,8 @@ import {
 interface LeaveApprovalModalProps {
   request: LeaveRequest;
   onClose: () => void;
+   onStatusChange: (leaveId: number, newStatus: Status) => void;
+
 }
 
 const leaveTypeLabels: Record<string, string> = {
@@ -62,7 +65,9 @@ interface LeaveRequest {
 export function LeaveApprovalModal({
   request,
   onClose,
+    onStatusChange,
 }: LeaveApprovalModalProps) {
+  const { addToast } = useToast();
   const [adminComment, setAdminComment] = useState("");
 
   const handleApprove = async (leaveId: any) => {
@@ -76,6 +81,7 @@ export function LeaveApprovalModal({
         .eq("id", leaveId);
 
       if (error) throw error;
+       
 
       const { data: leave, error: leaveError } = await supabase
         .from("leave_requests")
@@ -87,7 +93,7 @@ export function LeaveApprovalModal({
 
       console.log("employeeId (from leave):", leave.employee_id);
 
-      await fetch("/api/send-notification/", {
+      await fetch("/api/admin/send-notification-admin/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -97,11 +103,20 @@ export function LeaveApprovalModal({
         }),
       });
 
-      alert("Leave approved successfully");
+      addToast({
+        title: "Success",
+        description: "Leave approved successfully",
+        variant: "success",
+      });
+         onStatusChange(leaveId, "approved");
       onClose();
     } catch (error) {
       console.error("Approve error:", error);
-      alert("Failed to approve leave request");
+      addToast({
+        title: "Error",
+        description: "Failed to approve leave request",
+        variant: "destructive",
+      });
     }
   };
 
@@ -129,7 +144,7 @@ export function LeaveApprovalModal({
 
       console.log("employeeId (from leave):", leave.employee_id);
 
-      await fetch("/api/send-notification/", {
+      await fetch("/api/admin/send-notification-admin/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -139,11 +154,20 @@ export function LeaveApprovalModal({
         }),
       });
 
-      alert("Leave rejected successfully");
+      addToast({
+        title: "Success",
+        description: "Leave rejected successfully",
+        variant: "success",
+      });
+            onStatusChange(leaveId, "rejected");
       onClose();
     } catch (error) {
       console.error("Reject error:", error);
-      alert("Failed to reject leave request");
+      addToast({
+        title: "Error",
+        description: "Failed to reject leave request",
+        variant: "destructive",
+      });
     }
   };
 
@@ -290,8 +314,10 @@ export function LeaveApprovalModal({
                     placeholder="Add a comment about this decision..."
                   />
                 </div>
-
-                <div className="flex gap-3">
+ 
+                   { !isApproved && !isRejected &&(
+                     <div className="flex gap-3">
+                 
                   <Button
                     onClick={() => handleApprove(request.id)}
                     className="flex-1"
@@ -302,18 +328,21 @@ export function LeaveApprovalModal({
                   <Button
                     onClick={() => handleReject(request.id)}
                     variant="destructive"
-                    // disabled={rejectRequest.isPending}
+                    
                     className="flex-1"
                   >
                     <XCircle className="h-4 w-4 mr-2" />
                     Reject
                   </Button>
                 </div>
+                   )
+                  }
+               
               </CardContent>
             </Card>
           )}
 
-          {/* {!isPending && (
+          {/* {!isApproved && (
             <Alert>
               <AlertDescription>
                 This leave request has already been {request.status}. No further
