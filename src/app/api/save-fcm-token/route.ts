@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseUser";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,20 +11,39 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    // Check if token already exists
-    const { data: existing, error: selectError } = await supabase
+    const client = supabaseAdmin ?? supabase;
+    const payload = {
+      token,
+      user_id: userId,
+      platform: platform || "web",
+      type: type || "employee",
+    };
+
+    const { data: existing, error: selectError } = await client
       .from("fcm_tokens")
-      .select("*")
-      .eq("token", token);
+      .select("id, user_id, type")
+      .eq("token", token)
+      .maybeSingle();
+
     if (selectError) {
       console.error("Supabase select error:", selectError.message);
       return NextResponse.json({ error: selectError.message }, { status: 500 });
     }
-    // If token does not exist, insert it
-    if (!existing || existing.length === 0) {
-      const { data, error: insertError } = await supabase
+
+    if (existing) {
+      const { error: updateError } = await client
         .from("fcm_tokens")
-        .insert({ token, user_id: userId, platform: platform || "web", type });
+        .update({ user_id: userId, type: payload.type, platform: payload.platform })
+        .eq("token", token);
+
+      if (updateError) {
+        console.error("Supabase update error:", updateError.message);
+        return NextResponse.json({ error: updateError.message }, { status: 500 });
+      }
+    } else {
+      const { error: insertError } = await client
+        .from("fcm_tokens")
+        .insert(payload);
 
       if (insertError) {
         console.error("Supabase insert error:", insertError.message);

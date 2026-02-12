@@ -93,7 +93,7 @@ export function LeaveApprovalModal({
 
       console.log("employeeId (from leave):", leave.employee_id);
 
-      await fetch("/api/send-notification/", {
+      await fetch("/api/admin/send-notification-admin/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -144,7 +144,7 @@ export function LeaveApprovalModal({
 
       console.log("employeeId (from leave):", leave.employee_id);
 
-      await fetch("/api/send-notification/", {
+      await fetch("/api/admin/send-notification-admin/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

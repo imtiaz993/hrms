@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseUser";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import admin from "firebase-admin";
+
+const db = supabaseAdmin ?? supabase;
 
 if (!admin.apps.length) {
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
@@ -26,8 +29,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // . Save notification for EMPLOYEE
-    const { error: dbError } = await supabase
+    // Save notification for EMPLOYEE
+    const { error: dbError } = await db
       .from("notifications")
       .insert([
         {
@@ -46,10 +49,10 @@ export async function POST(req: Request) {
     }
 
    
-    const { data: employeeTokens, error } = await supabase
+    const { data: employeeTokens, error } = await db
       .from("fcm_tokens")
       .select("token")
-      .eq("type", "employee") 
+      .eq("type", "employee")
       .eq("user_id", employeeId); 
 
     if (error || !employeeTokens?.length) {

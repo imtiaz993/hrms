@@ -108,7 +108,7 @@ const AnnouceMent = () => {
 
     // 4️ Send notification to each employee
     for (const emp of employees) {
-      await fetch("/api/send-notification-admin/", {
+      await fetch("/api/admin/send-notification-admin/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -69,6 +69,18 @@ export default function EmployeeDashboardLayout({
   const { addToast } = useToast();
 
   useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      "serviceWorker" in navigator &&
+      !isLoading &&
+      isAuthenticated &&
+      !isAdmin
+    ) {
+      requestPermissionAndGetToken({ type: "employee" });
+    }
+  }, [isLoading, isAuthenticated, isAdmin]);
+
+  useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       const unsubscribe = onMessage(messaging as Messaging, (payload: any) => {
         console.log(payload);
