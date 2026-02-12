@@ -720,15 +720,27 @@ export default function EmployeeDashboardPage() {
         className="border rounded-lg p-3 hover:bg-slate-50 transition flex justify-between items-start"
       >
         {/* Left Content */}
-        <div className="flex-1 pr-3">
+        <div className="flex-1 pr-3 min-w-0">
           {/* Title */}
-          <h4 className="text-sm font-semibold text-slate-800">
+          <h4 className="text-sm font-semibold text-slate-800 truncate">
             {a.title}
           </h4>
 
-          {/* One-line description */}
-          <p className="text-sm text-slate-600 truncate mt-1">
+         
+          <p
+            className="text-sm text-slate-600 mt-1 overflow-hidden text-ellipsis"
+            style={{
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+            }}
+          >
             {a.description}
+          </p>
+
+          {/* Date */}
+          <p className="mt-1 text-xs text-slate-400">
+            {new Date(a.created_at).toLocaleDateString()}
           </p>
         </div>
 

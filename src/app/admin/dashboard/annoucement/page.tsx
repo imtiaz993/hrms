@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MoreVertical, Edit, Trash2, Plus, Clock } from "lucide-react";
+import { Search, MoreVertical, Edit, Trash2, Plus, Clock, Eye } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 
 interface Announcements {
@@ -51,6 +51,9 @@ const AnnouceMent = () => {
     open: boolean;
     annoucementId: string | null;
   }>({ open: false, annoucementId: null });
+
+  const [viewAnnouncement, setViewAnnouncement] =
+    useState<Announcements | null>(null);
 
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
@@ -212,8 +215,8 @@ const AnnouceMent = () => {
                 <TableRow key={a.id}>
                   <TableCell className="font-medium">{a.title}</TableCell>
 
-                  <TableCell className="text-gray-600">
-                    {a.description}
+                  <TableCell className="text-gray-600 max-w-xl">
+                    <p className="truncate">{a.description}</p>
                   </TableCell>
 
                   <TableCell>
@@ -229,6 +232,13 @@ const AnnouceMent = () => {
                       </DropdownMenuTrigger>
 
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => setViewAnnouncement(a)}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          View
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                           destructive
                           onClick={() =>
@@ -274,8 +284,9 @@ const AnnouceMent = () => {
               placeholder="Announcement Description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full min-h-[120px] rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full min-h-[120px] truncate rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            
           </div>
 
           <DialogFooter className="mt-6 flex justify-end gap-3">
@@ -325,6 +336,34 @@ const AnnouceMent = () => {
               className="px-4 py-2"
             >
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View full announcement dialog */}
+      <Dialog
+        open={!!viewAnnouncement}
+        onOpenChange={() => setViewAnnouncement(null)}
+      >
+        <DialogContent className="sm:max-w-lg w-full p-6 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">
+              {viewAnnouncement?.title || "Announcement"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-gray-500">
+              {viewAnnouncement?.created_at &&
+                new Date(viewAnnouncement.created_at).toLocaleString()}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 max-h-72 overflow-y-auto rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-700 whitespace-pre-wrap">
+            {viewAnnouncement?.description || "No description provided."}
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setViewAnnouncement(null)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
