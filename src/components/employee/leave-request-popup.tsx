@@ -22,6 +22,7 @@ interface LeaveRequestPopupProps {
   onClose: () => void;
   leaves: any;
   setLeaves: any;
+  employeeName:string;
   onLeaveSubmitted?: () => void;
 }
 
@@ -29,6 +30,7 @@ export function LeaveRequestPopup({
   leaves,
   setLeaves,
   employeeId,
+  employeeName,
   onClose,
   onLeaveSubmitted,
 }: LeaveRequestPopupProps) {
@@ -37,7 +39,7 @@ export function LeaveRequestPopup({
   const [leaveType, setLeaveType] = useState<LeaveType>("paid");
   const [isHalfDay, setIsHalfDay] = useState(false);
   const [reason, setReason] = useState("");
-  const [employeeName, setEmployeeName] = useState<string>("");
+  
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

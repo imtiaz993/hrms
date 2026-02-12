@@ -8,6 +8,7 @@ import {
   parseISO,
   isWeekend,
 } from "date-fns";
+ import { Eye } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useAppSelector } from "@/store/hooks";
 import UpcomingHoliday from "./component/UpcomingHolidays";
@@ -705,17 +706,21 @@ export default function EmployeeDashboardPage() {
     Announcements
   </h3>
 
-  <div className="space-y-4">
-    {announcements.length === 0 ? (
-      <p className="text-sm text-slate-400">
-        No announcements available
-      </p>
-    ) : (
-      announcements.map((a) => (
-        <div
-          key={a.id}
-          className="border rounded-lg p-3 hover:bg-slate-50 transition"
-        >
+
+
+<div className="space-y-4">
+  {announcements.length === 0 ? (
+    <p className="text-sm text-slate-400">
+      No announcements available
+    </p>
+  ) : (
+    announcements.map((a) => (
+      <div
+        key={a.id}
+        className="border rounded-lg p-3 hover:bg-slate-50 transition flex justify-between items-start"
+      >
+        {/* Left Content */}
+        <div className="flex-1 pr-3">
           {/* Title */}
           <h4 className="text-sm font-semibold text-slate-800">
             {a.title}
@@ -725,21 +730,22 @@ export default function EmployeeDashboardPage() {
           <p className="text-sm text-slate-600 truncate mt-1">
             {a.description}
           </p>
-
-          {/* Detail Button */}
-          <div className="mt-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setSelectedAnnouncement(a)}
-            >
-              View Details
-            </Button>
-          </div>
         </div>
-      ))
-    )}
-  </div>
+
+        {/* Eye Button Right Side */}
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={() => setSelectedAnnouncement(a)}
+          className="shrink-0"
+        >
+          <Eye className="w-4 h-4" />
+        </Button>
+      </div>
+    ))
+  )}
+</div>
+
 </div>
 <Dialog
   open={!!selectedAnnouncement}

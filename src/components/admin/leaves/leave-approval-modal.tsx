@@ -22,8 +22,7 @@ import {
 interface LeaveApprovalModalProps {
   request: LeaveRequest;
   onClose: () => void;
-   onStatusChange: (leaveId: number, newStatus: Status) => void;
-
+  onStatusChange: (leaveId: number, newStatus: Status) => void;
 }
 
 const leaveTypeLabels: Record<string, string> = {
@@ -38,7 +37,7 @@ const statusConfig = {
   rejected: { label: "Rejected", variant: "destructive" as const },
   cancelled: { label: "Cancelled", variant: "secondary" as const },
 };
-type Status = keyof typeof statusConfig; 
+type Status = keyof typeof statusConfig;
 
 interface Employee {
   first_name: string;
@@ -61,11 +60,10 @@ interface LeaveRequest {
   approver_comment?: string;
 }
 
-
 export function LeaveApprovalModal({
   request,
   onClose,
-    onStatusChange,
+  onStatusChange,
 }: LeaveApprovalModalProps) {
   const { addToast } = useToast();
   const [adminComment, setAdminComment] = useState("");
@@ -81,7 +79,6 @@ export function LeaveApprovalModal({
         .eq("id", leaveId);
 
       if (error) throw error;
-       
 
       const { data: leave, error: leaveError } = await supabase
         .from("leave_requests")
@@ -108,7 +105,7 @@ export function LeaveApprovalModal({
         description: "Leave approved successfully",
         variant: "success",
       });
-         onStatusChange(leaveId, "approved");
+      onStatusChange(leaveId, "approved");
       onClose();
     } catch (error) {
       console.error("Approve error:", error);
@@ -159,7 +156,7 @@ export function LeaveApprovalModal({
         description: "Leave rejected successfully",
         variant: "success",
       });
-            onStatusChange(leaveId, "rejected");
+      onStatusChange(leaveId, "rejected");
       onClose();
     } catch (error) {
       console.error("Reject error:", error);
@@ -172,8 +169,8 @@ export function LeaveApprovalModal({
   };
 
   const isPending = request.status === "pending";
-  const isRejected=request.status === "rejected";
- const isApproved = request.status === "approved";
+  const isRejected = request.status === "rejected";
+  const isApproved = request.status === "approved";
   const statusInfo = statusConfig[request.status];
 
   return (
@@ -295,7 +292,7 @@ export function LeaveApprovalModal({
             </Card>
           )}
 
-          {(isPending || isRejected ||isApproved) && (
+          {(isPending || isRejected || isApproved) && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Admin Action</CardTitle>
@@ -314,10 +311,8 @@ export function LeaveApprovalModal({
                     placeholder="Add a comment about this decision..."
                   />
                 </div>
- 
-                   { !isApproved && !isRejected &&(
-                     <div className="flex gap-3">
-                 
+                <div className="flex gap-3">
+                {!isApproved && (
                   <Button
                     onClick={() => handleApprove(request.id)}
                     className="flex-1"
@@ -325,22 +320,22 @@ export function LeaveApprovalModal({
                     <CheckCircle2 className="h-4 w-4 mr-2" />
                     Approve
                   </Button>
+                )}
+                {!isRejected && (
                   <Button
                     onClick={() => handleReject(request.id)}
                     variant="destructive"
-                    
                     className="flex-1"
                   >
                     <XCircle className="h-4 w-4 mr-2" />
                     Reject
                   </Button>
+                )}
                 </div>
-                   )
-                  }
-               
               </CardContent>
             </Card>
           )}
+          </div>
 
           {/* {!isApproved && (
             <Alert>
@@ -352,6 +347,6 @@ export function LeaveApprovalModal({
           )} */}
         </div>
       </div>
-    </div>
+    
   );
 }

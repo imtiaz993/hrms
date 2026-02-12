@@ -72,6 +72,7 @@ export function ClockActionCard({
     text: string;
   } | null>(null);
   const [isClockOutLoading, setIsClockOutLoading] = useState(false);
+  const [clocking, setClocking]=useState(false)
   const [tick, setTick] = useState(0);
 
   const isWeekend = () => {
@@ -127,6 +128,7 @@ export function ClockActionCard({
   }, [clockInValue, clockOutValue]);
 
 const handleClockIn = async () => {
+  setClocking(true);
   setMessage(null);
 
   try {
@@ -134,14 +136,14 @@ const handleClockIn = async () => {
 
     const { data } = await supabase
       .from("employees")
-      .select("standard_shift_start")
+      .select("standard_shift_start,first_name")
       .eq("id", employeeId)
       .single();
 
     if (!data?.standard_shift_start) {
       throw new Error("Shift start not found");
     }
-
+ const  employeeName=data.first_name
    
     const [h, m] = data.standard_shift_start.split(":").map(Number);
     const shiftStart = new Date().setHours(h, m, 0, 0);
@@ -411,6 +413,7 @@ const handleClockIn = async () => {
             {status.status === "not_clocked_in" && !isWeekend() && (
               <Button
                 onClick={handleClockIn}
+                disabled={clocking}
                 className="w-full rounded-xl"
                 size="lg"
               >

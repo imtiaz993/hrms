@@ -105,9 +105,9 @@ const Header = () => {
     setLoading(false);
   };
 
-  const filternotification =[...notification].sort(
-    (a,b)=> new Date(a.created_at).getTime()-new Date(b.created_at).getTime()
-  )
+    const filternotification=[...notification].sort(
+    (a,b)=> new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+   );
 
   return (
     <>
@@ -138,74 +138,80 @@ const Header = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Notifications */}
+            {/* Notifications (match admin header style) */}
             <div className="relative" ref={notifWrapRef}>
               <button
                 onClick={handleIconClick}
                 aria-label="Open notifications"
-                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 shadow-sm transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
+                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
               >
                 <Bell className="h-5 w-5" />
+                {notification?.some((n: any) => !n.read) && (
+                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
+                )}
               </button>
 
               {isOpen && (
-                <div className="absolute right-0 mt-2 w-96 bg-white shadow-lg rounded-2xl z-50 max-h-80 overflow-y-auto border border-slate-100">
-                  {/* Loading skeleton */}
-                  {loading ? (
-                    <div className="py-1">
-                      {Array.from({ length: 2 }).map((_, idx) => (
-                        <NotificationSkeleton key={idx} />
-                      ))}
-                    </div>
-                  ) : error ? (
-                    <div className="p-4 text-sm text-red-600">
-                      Failed to load notifications.
-                    </div>
-                  ) : notification.length === 0 ? (
-                    <div className="p-4 flex flex-col items-center justify-center text-center">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-600">
-                        <Inbox className="h-6 w-6" />
+                <div className="absolute right-0 mt-3 w-80 rounded-xl bg-white shadow-xl ring-1 ring-black/5 z-50 overflow-hidden">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b">
+                    <h4 className="text-sm font-semibold text-slate-800">
+                      Notifications
+                    </h4>
+                  </div>
+
+                  {/* Content */}
+                  <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
+                    {loading ? (
+                      <div className="py-2">
+                        {Array.from({ length: 2 }).map((_, idx) => (
+                          <NotificationSkeleton key={idx} />
+                        ))}
                       </div>
-                      <p className="mt-3 text-sm font-semibold text-slate-900">
+                    ) : error ? (
+                      <div className="p-4 text-sm text-red-600">
+                        Failed to load notifications.
+                      </div>
+                    ) : notification.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-10 text-gray-500 text-sm">
+                        <Bell className="h-6 w-6 mb-2 opacity-50" />
                         No notifications
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        You’re all caught up.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="py-1">
-                      {filternotification.map((n: any) => (
+                      </div>
+                    ) : (
+                      filternotification.map((n: any) => (
                         <div
                           key={n.id}
-                          className="p-3 border-b last:border-b-0 hover:bg-slate-50 cursor-pointer"
+                          className={`px-4 py-3 border-b last:border-b-0 cursor-pointer transition hover:bg-slate-50 ${
+                            !n.read ? "bg-blue-50/50" : ""
+                          }`}
                         >
-                          <p className="font-semibold text-slate-900">
-                            {n.title}
-                          </p>
-                          <p className="text-sm text-slate-600">
-                            {n.body || n.message}
-                          </p>
-                          <p className="text-xs text-slate-400">
-                            {(() => {
-                              console.log("created_at raw:", n.created_at);
-
-                              if (!n.created_at) return "no time";
-
-                              const d = new Date(n.created_at);
-                              console.log("parsed date:", d.toString());
-
-                              return d.toLocaleTimeString("en-PK", {
-                                hour: "numeric",
-                                minute: "2-digit",
-                                hour12: true,
-                              });
-                            })()}
-                          </p>
+                          <div className="flex items-start gap-2">
+                            {!n.read && (
+                              <span className="mt-2 h-2 w-2 rounded-full bg-blue-500" />
+                            )}
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-slate-800">
+                                {n.title}
+                              </p>
+                              <p className="text-sm text-slate-600 line-clamp-2">
+                                {n.body || n.message}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-400">
+                                {new Date(n.created_at).toLocaleString(
+                                  "en-PK",
+                                  {
+                                    timeZone: "Asia/Karachi",
+                                    dateStyle: "medium",
+                                    timeStyle: "short",
+                                  }
+                                )}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      ))
+                    )}
+                  </div>
                 </div>
               )}
             </div>
