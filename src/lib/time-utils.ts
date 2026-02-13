@@ -205,7 +205,7 @@ export function mapTimeEntryToAttendanceRow(entry: TimeEntry): AttendanceRow {
   let status: AttendanceRow["status"] = "on_time";
   let statusLabel = "On Time";
 
-  if (!entry.time_out) {
+  if (!entry.clock_out) {
     status = "incomplete";
     statusLabel = "Incomplete";
   } else if (entry.is_late) {
@@ -219,8 +219,8 @@ export function mapTimeEntryToAttendanceRow(entry: TimeEntry): AttendanceRow {
   return {
     id: entry.id,
     date: formatDate(entry.date),
-    timeIn: formatTime(entry.time_in),
-    timeOut: entry.time_out ? formatTime(entry.time_out) : null,
+    timeIn: formatTime(entry.clock_in),
+    timeOut: entry.clock_out ? formatTime(entry.clock_out) : null,
     totalHours: entry.total_hours ? formatHours(entry.total_hours) : "—",
     status,
     statusLabel,

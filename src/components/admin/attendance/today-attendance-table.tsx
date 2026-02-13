@@ -97,10 +97,10 @@ export function TodayAttendanceTable({ records }: TodayAttendanceTableProps) {
                   {record.employee.department}
                 </TableCell>
                 <TableCell>
-                  {record.timeEntry?.time_in ? (
+                  {record.timeEntry?.clock_in ? (
                     <div>
                       <div className="text-sm text-gray-900">
-                        {formatTime(record.timeEntry.time_in)}
+                        {formatTime(record.timeEntry.clock_in)}
                       </div>
                       {record.minutesLate && record.minutesLate > 0 && (
                         <div className="text-xs text-yellow-600">
@@ -113,9 +113,9 @@ export function TodayAttendanceTable({ records }: TodayAttendanceTableProps) {
                   )}
                 </TableCell>
                 <TableCell>
-                  {record.timeEntry?.time_out ? (
+                  {record.timeEntry?.clock_out ? (
                     <div className="text-sm text-gray-900">
-                      {formatTime(record.timeEntry.time_out)}
+                      {formatTime(record.timeEntry.clock_out)}
                     </div>
                   ) : record.status === 'incomplete' ? (
                     <span className="text-sm text-purple-600 font-medium">Missing</span>
@@ -124,9 +124,9 @@ export function TodayAttendanceTable({ records }: TodayAttendanceTableProps) {
                   )}
                 </TableCell>
                 <TableCell>
-                  {record.hoursWorked !== null ? (
+                  {record.total_hours !== null ? (
                     <div className="text-sm font-medium text-gray-900">
-                      {formatHours(record.hoursWorked)}
+                      {formatHours(record.total_hours)}
                     </div>
                   ) : (
                     <span className="text-sm text-gray-400">—</span>

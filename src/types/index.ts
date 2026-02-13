@@ -62,8 +62,8 @@ export interface TimeEntry {
   id: string;
   employee_id: string;
   date: string;
-  time_in: string;
-  time_out: string | null;
+  clock_in: string;
+  clock_out: string | null;
   total_hours: number | null;
   overtime_hours: number;
   is_late: boolean;

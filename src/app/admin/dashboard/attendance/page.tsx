@@ -11,18 +11,29 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Search, RefreshCw, AlertCircle, Calendar, Users } from 'lucide-react';
+import { Search, RefreshCw, AlertCircle, Calendar, Users, Clock } from 'lucide-react';
 import { format } from 'date-fns';
+import { supabase } from '@/lib/supabaseUser';
 
 export default function AttendanceOverviewPage() {
+ 
   const [searchQuery, setSearchQuery] = useState('');
   const [department, setDepartment] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  
+   
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+   const [attendance, setAttendance] = useState({
+    present: 0,
+    absent: 0,
+    late: 0,
+    early: 0,
+    ontime: 0,
+  });
 
   const {
     data,
@@ -32,6 +43,7 @@ export default function AttendanceOverviewPage() {
 
   const { data: departments } = useGetDepartments();
   const { data: employees = [] } = useGetAllEmployees();
+   const totalEmployees = employees?.length || 0;
 
 
 
@@ -47,6 +59,40 @@ export default function AttendanceOverviewPage() {
       { month: now.getMonth() + 1, year: now.getFullYear(), label: format(now, 'MMMM yyyy') },
     ];
   }, []);
+
+   const fetchAdminAttendanceToday = async () => {
+      const today = format(new Date(), "yyyy-MM-dd");
+  
+      const { data: employees } = await supabase
+        .from("employees")
+        .select("id")
+        .eq("is_active", true)
+          .eq("is_admin", false);
+  
+      const totalEmployees = employees?.length || 0;
+  
+      const { data: entries } = await supabase
+        .from("time_entries")
+        .select("employee_id, is_late, is_early_leave")
+        .eq("date", today);
+  
+      const present = entries?.length || 0;
+      const late = entries?.filter((e) => e.is_late).length || 0;
+      const early = entries?.filter((e) => e.is_early_leave).length || 0;
+      const absent = totalEmployees - present;
+      const ontime = entries?.filter((e) => !e.is_late).length || 0;
+  
+      setAttendance({
+        present,
+        absent,
+        late,
+        early,
+        ontime,
+      });
+    };
+useEffect(() => {
+  fetchAdminAttendanceToday();
+}, []);
 
   useEffect(() => {
     if (employees.length > 0 && !selectedEmployeeId) {
@@ -76,6 +122,8 @@ export default function AttendanceOverviewPage() {
     setSelectedMonth(month);
     setSelectedYear(year);
   };
+    const cardBase =
+    "relative overflow-hidden rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm";
 
   return (
     <div className="space-y-6">
@@ -112,7 +160,104 @@ export default function AttendanceOverviewPage() {
         </div>
       ) : data ? (
         <>
-          <AttendanceKPICards stats={data.stats} />
+          {/* <AttendanceKPICards stats={data.stats} /> */}
+
+      <section>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Attendance Overview
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Card className={cardBase}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Total Employees
+              </CardTitle>
+              <Users className="h-5 w-5 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {totalEmployees}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Active employees</p>
+            </CardContent>
+          </Card>
+
+          <Card className={cardBase}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Present Today
+              </CardTitle>
+              <Clock className="h-5 w-5 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-600">
+                {attendance.present}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Clocked in</p>
+            </CardContent>
+          </Card>
+
+          <Card className={cardBase}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Absent
+              </CardTitle>
+              <Users className="h-5 w-5 text-red-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-red-600">
+                {attendance.absent}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Not clocked in</p>
+            </CardContent>
+          </Card>
+
+          <Card className={cardBase}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Late Arrivals
+              </CardTitle>
+              <Clock className="h-5 w-5 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-orange-600">
+                {attendance.late}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">After start time</p>
+            </CardContent>
+          </Card>
+
+          <Card className={cardBase}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Early Leaves
+              </CardTitle>
+              <Clock className="h-5 w-5 text-amber-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-amber-600">
+                {attendance.early}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Left early</p>
+            </CardContent>
+          </Card>
+          <Card className={cardBase}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                on time
+              </CardTitle>
+              <Clock className="h-5 w-5 text-amber-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-amber-600">
+                {attendance.ontime}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">on time</p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
 
           <Card>
             <CardContent className="py-4">
@@ -174,62 +319,7 @@ export default function AttendanceOverviewPage() {
             <TodayAttendanceTable records={data.records} />
           )}
 
-          <div className="border-t pt-8 mt-8">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Employee Attendance Analytics</h2>
-              <p className="text-gray-600">Detailed attendance insights and trends</p>
-            </div>
-
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="text-lg">Select Employee</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4">
-                  <Users className="h-5 w-5 text-gray-400" />
-                  <select
-                    value={selectedEmployeeId}
-                    onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                    className="flex-1 h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-                  >
-                    {employees.map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.first_name} {emp.last_name} - {emp.department}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {selectedEmployee && (
-                  <p className="mt-3 text-sm text-gray-600">
-                    Showing analytics for:{' '}
-                    <span className="font-semibold text-gray-900">
-                      {selectedEmployee.first_name} {selectedEmployee.last_name}
-                    </span>
-                    {' '}({selectedEmployee.department} - {selectedEmployee.designation})
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              {/* <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Attendance Overview</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <AttendanceChartCard
-                    employeeId={selectedEmployeeId}
-                    selectedMonth={selectedMonth}
-                    selectedYear={selectedYear}
-                    onMonthChange={handleMonthChange}
-                    availableMonths={availableMonths}
-                  />
-                </CardContent>
-              </Card> */}
-
-            
-            </div>
-          </div>
+          
         </>
       ) : null}
     </div>
