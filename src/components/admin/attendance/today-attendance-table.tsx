@@ -109,7 +109,7 @@ export function TodayAttendanceTable({ records }: TodayAttendanceTableProps) {
                       )}
                     </div>
                   ) : (
-                    <span className="text-sm text-gray-400">—</span>
+                    <span className="text-sm text-gray-400">Missing</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -118,7 +118,7 @@ export function TodayAttendanceTable({ records }: TodayAttendanceTableProps) {
                       {formatTime(record.timeEntry.clock_out)}
                     </div>
                   ) : record.status === 'incomplete' ? (
-                    <span className="text-sm text-purple-600 font-medium">Missing</span>
+                    <span className="text-sm text-gray-400">—</span>
                   ) : (
                     <span className="text-sm text-gray-400">—</span>
                   )}
