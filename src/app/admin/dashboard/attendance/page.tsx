@@ -24,16 +24,8 @@ export default function AttendanceOverviewPage() {
   
    
 
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-   const [attendance, setAttendance] = useState({
-    present: 0,
-    absent: 0,
-    late: 0,
-    early: 0,
-    ontime: 0,
-  });
 
   const {
     data,
@@ -43,62 +35,6 @@ export default function AttendanceOverviewPage() {
 
   const { data: departments } = useGetDepartments();
   const { data: employees = [] } = useGetAllEmployees();
-   const totalEmployees = employees?.length || 0;
-
-
-
-  const [selectedDay, setSelectedDay] = useState<any>(null);
-
-  const selectedEmployee = useMemo(() => {
-    return employees.find((emp) => emp.id === selectedEmployeeId);
-  }, [employees, selectedEmployeeId]);
-
-  const availableMonths = useMemo(() => {
-    const now = new Date();
-    return [
-      { month: now.getMonth() + 1, year: now.getFullYear(), label: format(now, 'MMMM yyyy') },
-    ];
-  }, []);
-
-   const fetchAdminAttendanceToday = async () => {
-      const today = format(new Date(), "yyyy-MM-dd");
-  
-      const { data: employees } = await supabase
-        .from("employees")
-        .select("id")
-        .eq("is_active", true)
-          .eq("is_admin", false);
-  
-      const totalEmployees = employees?.length || 0;
-  
-      const { data: entries } = await supabase
-        .from("time_entries")
-        .select("employee_id, is_late, is_early_leave")
-        .eq("date", today);
-  
-      const present = entries?.length || 0;
-      const late = entries?.filter((e) => e.is_late).length || 0;
-      const early = entries?.filter((e) => e.is_early_leave).length || 0;
-      const absent = totalEmployees - present;
-      const ontime = entries?.filter((e) => !e.is_late).length || 0;
-  
-      setAttendance({
-        present,
-        absent,
-        late,
-        early,
-        ontime,
-      });
-    };
-useEffect(() => {
-  fetchAdminAttendanceToday();
-}, []);
-
-  useEffect(() => {
-    if (employees.length > 0 && !selectedEmployeeId) {
-      setSelectedEmployeeId(employees[0].id);
-    }
-  }, [employees, selectedEmployeeId]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -160,104 +96,6 @@ useEffect(() => {
         </div>
       ) : data ? (
         <>
-          {/* <AttendanceKPICards stats={data.stats} /> */}
-
-      <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Attendance Overview
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card className={cardBase}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Total Employees
-              </CardTitle>
-              <Users className="h-5 w-5 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
-                {totalEmployees}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Active employees</p>
-            </CardContent>
-          </Card>
-
-          <Card className={cardBase}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Present Today
-              </CardTitle>
-              <Clock className="h-5 w-5 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-600">
-                {attendance.present}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Clocked in</p>
-            </CardContent>
-          </Card>
-
-          <Card className={cardBase}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Absent
-              </CardTitle>
-              <Users className="h-5 w-5 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-red-600">
-                {attendance.absent}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Not clocked in</p>
-            </CardContent>
-          </Card>
-
-          <Card className={cardBase}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Late Arrivals
-              </CardTitle>
-              <Clock className="h-5 w-5 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-orange-600">
-                {attendance.late}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">After start time</p>
-            </CardContent>
-          </Card>
-
-          <Card className={cardBase}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Early Leaves
-              </CardTitle>
-              <Clock className="h-5 w-5 text-amber-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-amber-600">
-                {attendance.early}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Left early</p>
-            </CardContent>
-          </Card>
-          <Card className={cardBase}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                on time
-              </CardTitle>
-              <Clock className="h-5 w-5 text-amber-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-amber-600">
-                {attendance.ontime}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">on time</p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
 
           <Card>
             <CardContent className="py-4">
@@ -316,7 +154,13 @@ useEffect(() => {
               </CardContent>
             </Card>
           ) : (
-            <TodayAttendanceTable records={data.records} />
+            <TodayAttendanceTable
+              records={data.records}
+              allEmployees={employees}
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
+              onMonthChange={handleMonthChange}
+            />
           )}
 
           
