@@ -97,7 +97,7 @@ export function WorkingHoursChartCard({
       const isWeekend = isSaturday(d) || isSunday(d);
 
       if (isWeekend) return sum;
-      if (!isBefore(d, today)) return sum; // only past days
+      if (!item.total_hours && !isBefore(d, today)) return sum; // only past days
 
       return sum + (Number(item.standard_hours) || 0);
     }, 0);
