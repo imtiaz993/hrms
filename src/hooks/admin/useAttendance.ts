@@ -10,7 +10,7 @@ export interface TodayAttendanceRecord {
   isLate: boolean;
   isEarlyLeave: boolean;
   total_hours: number | null;
-  minutesLate: number | null;
+
 }
 
 export interface AttendanceOverviewStats {
@@ -35,7 +35,7 @@ export function useGetTodayAttendanceOverview(
 useEffect(() => {
   const interval = setInterval(() => {
     setNow(new Date());
-  }, 60000); // every 1 minute
+  }, 60000); 
 
   return () => clearInterval(interval);
 }, []);
@@ -67,6 +67,7 @@ useEffect(() => {
           .from('time_entries')
           .select('*')
           .eq('date', today);
+          
 
         if (entryError) throw entryError;
 
@@ -121,7 +122,7 @@ const data = useMemo(() => {
     let status: any = 'absent';
     let isLate = false;
     let isEarlyLeave = false;
-    let minutesLate: number | null = null;
+  
     let totalHours: number | null = null;
 
     if (entry) {
@@ -162,7 +163,7 @@ const data = useMemo(() => {
         const minutesDiff = Math.floor(
           (timeIn.getTime() - standardStart.getTime()) / 60000
         );
-        minutesLate = minutesDiff > 0 ? minutesDiff : null;
+      
       }
 
     } else {
@@ -178,7 +179,7 @@ const data = useMemo(() => {
       isLate,
       isEarlyLeave,
       total_hours: totalHours,
-      minutesLate,
+  
     };
   });
 
@@ -187,8 +188,51 @@ const data = useMemo(() => {
     filteredRecords = records.filter((r) => r.status === statusFilter);
   }
 
+  const allRecords = employees
+    .filter((emp) => !emp.is_admin)
+    .map((employee) => {
+      const entry = entriesMap.get(employee.id) || null;
+      let status: any = 'absent';
+      let isLate = false;
+      let isEarlyLeave = false;
+      let totalHours: number | null = null;
+
+      if (entry) {
+        if (entry.is_late && entry.is_early_leave) {
+          status = 'late';
+          isLate = true;
+          isEarlyLeave = true;
+        } else if (entry.is_late) {
+          status = 'late';
+          isLate = true;
+        } else if (entry.is_early_leave) {
+          status = 'early_leave';
+          isEarlyLeave = true;
+        } else {
+          status = 'present';
+        }
+        if (entry.clock_out) {
+          totalHours = entry.total_hours ?? null;
+        } else if (entry.clock_in) {
+          const clockInTime = parseISO(entry.clock_in);
+          const diffMs = now.getTime() - clockInTime.getTime();
+          totalHours = diffMs > 0 ? diffMs / (1000 * 60 * 60) : null;
+        }
+      }
+
+      return {
+        employee,
+        timeEntry: entry,
+        status,
+        isLate,
+        isEarlyLeave,
+        total_hours: totalHours,
+      };
+    });
+
   return {
     records: filteredRecords,
+    allRecords,
     stats: {
       totalEmployees,
       presentToday,

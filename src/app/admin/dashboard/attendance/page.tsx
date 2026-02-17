@@ -47,12 +47,7 @@ export default function AttendanceOverviewPage() {
     setLastUpdated(new Date());
   };
 
-  const getTimeSinceUpdate = () => {
-    const seconds = Math.floor((new Date().getTime() - lastUpdated.getTime()) / 1000);
-    if (seconds < 60) return `${seconds} seconds ago`;
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
-  };
+
 
   const handleMonthChange = (month: number, year: number) => {
     setSelectedMonth(month);
@@ -140,28 +135,17 @@ export default function AttendanceOverviewPage() {
                   </select>
                 </div>
               </div>
-              <div className="mt-4 text-xs text-gray-500">
-                Last updated: {getTimeSinceUpdate()}
-              </div>
+             
             </CardContent>
           </Card>
-          {data.records.length === 0 ? (
-            <Card>
-              <CardContent className="py-12">
-                <div className="text-center text-gray-500">
-                  No attendance records found for today.
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <TodayAttendanceTable
-              records={data.records}
-              allEmployees={employees}
-              selectedMonth={selectedMonth}
-              selectedYear={selectedYear}
-              onMonthChange={handleMonthChange}
-            />
-          )}
+          <TodayAttendanceTable
+            tableRecords={data.records}
+            allRecords={data.allRecords}
+            allEmployees={employees}
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+            onMonthChange={handleMonthChange}
+          />
 
           
         </>
