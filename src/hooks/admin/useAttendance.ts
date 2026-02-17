@@ -1,11 +1,12 @@
-import { Employee, TimeEntry } from '@/types';
-import { format, parseISO } from 'date-fns';
+import { AttendanceAnalytics, Employee, TimeEntry } from '@/types';
+import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
+import { isWeekend } from 'date-fns';
 import { useMemo, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseUser';
 export interface TodayAttendanceRecord {
   employee: Employee;
   timeEntry: TimeEntry | null;
-  status: 'present' | 'absent' | 'late' | 'early_leave' | 'incomplete';
+  status: 'present' | 'absent' | 'late' | 'early_leave';
   isLate: boolean;
   isEarlyLeave: boolean;
   total_hours: number | null;
@@ -124,11 +125,7 @@ const data = useMemo(() => {
     let totalHours: number | null = null;
 
     if (entry) {
-      if (!entry.clock_out) {
-        status = 'incomplete';
-        incompletePunches++;
-        presentToday++;
-      } else if (entry.is_late && entry.is_early_leave) {
+      if (entry.is_late && entry.is_early_leave) {
         status = 'late';
         isLate = true;
         isEarlyLeave = true;
@@ -204,9 +201,102 @@ const data = useMemo(() => {
 
 }, [employees, department, timeEntries, searchQuery, statusFilter, now]);
 
-  console.log("EMPLOYEES:", employees);
-console.log("TIME ENTRIES:", timeEntries);
-
-
   return { data, isLoading, error };
+}
+
+/** Fetches employee's monthly attendance from DB for card analytics (Present Days, Absent Days, Late, Early Leave, etc.) */
+export function useGetEmployeeMonthlyAttendance(
+  employeeId: string | null,
+  month: number,
+  year: number
+) {
+  const [entries, setEntries] = useState<TimeEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    if (!employeeId) {
+      setEntries([]);
+      return;
+    }
+
+    const fetchEntries = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const start = format(startOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd');
+        const end = format(endOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd');
+
+        const { data, error: fetchError } = await supabase
+          .from('time_entries')
+          .select('*')
+          .eq('employee_id', employeeId)
+          .gte('date', start)
+          .lte('date', end);
+
+        if (fetchError) throw fetchError;
+        setEntries(data || []);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch attendance'));
+        setEntries([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEntries();
+  }, [employeeId, month, year]);
+
+  const analytics = useMemo<AttendanceAnalytics | null>(() => {
+    if (!employeeId) return null;
+
+    const monthDate = new Date(year, month - 1, 1);
+    const start = startOfMonth(monthDate);
+    const end = endOfMonth(monthDate);
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+    const entriesMap = new Map<string, TimeEntry>();
+    entries.forEach((entry) => {
+      entriesMap.set(entry.date, entry);
+    });
+
+    let presentDays = 0;
+    let absentDays = 0;
+    let lateArrivals = 0;
+    let earlyLeaves = 0;
+    let totalHoursWorked = 0;
+
+    eachDayOfInterval({ start, end }).forEach((day) => {
+      const dateStr = format(day, 'yyyy-MM-dd');
+      if (dateStr > todayStr) return; // future days
+
+      const entry = entriesMap.get(dateStr);
+
+      if (!entry && !isWeekend(day)) {
+        absentDays++;
+        return;
+      }
+
+      if (entry) {
+        presentDays++;
+        if (entry.is_late) lateArrivals++;
+        if (entry.is_early_leave) earlyLeaves++;
+        if (entry.total_hours) totalHoursWorked += entry.total_hours;
+      }
+    });
+
+    const averageHoursPerDay = presentDays > 0 ? totalHoursWorked / presentDays : 0;
+
+    return {
+      presentDays,
+      absentDays,
+      lateArrivals,
+      earlyLeaves,
+      totalHoursWorked,
+      averageHoursPerDay,
+      dailyAttendance: [],
+    };
+  }, [employeeId, month, year, entries]);
+
+  return { analytics, entries, isLoading, error };
 }
