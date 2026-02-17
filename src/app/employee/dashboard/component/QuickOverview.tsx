@@ -13,7 +13,7 @@ const QuickOverview = ({
   isLoading,
 }: any) => {
   return (
-    <Card className={`${cardBase} lg:col-span-2`}>
+    <Card className={`${cardBase} pt-20 lg:col-span-2`}>
       <CardHeader className="pb-3 flex flex-row justify-between items-start">
         <div>
           <CardTitle className="text-base font-semibold text-slate-900">

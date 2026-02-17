@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Table,
@@ -11,16 +11,20 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { TodayAttendanceRecord, useGetEmployeeMonthlyAttendance } from '@/hooks/admin/useAttendance';
 import { formatTime, formatHours } from '@/lib/time-utils';
-import { Eye } from 'lucide-react';
+import { Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AttendanceKPICards } from '@/components/attendance/attendance-kpi-cards';
 import { Employee } from '@/types';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import QuickOverview from '@/app/employee/dashboard/component/QuickOverview';
 
 interface TodayAttendanceTableProps {
-  records: TodayAttendanceRecord[];
+  /** Filter 1: for table only (Search, Department, Status) */
+  tableRecords: TodayAttendanceRecord[];
+  /** Unfiltered records for "All Employees" cards (independent of Filter 1) */
+  allRecords: TodayAttendanceRecord[];
   allEmployees?: Employee[];
   selectedMonth?: number;
   selectedYear?: number;
@@ -36,7 +40,8 @@ const statusConfig = {
 };
 
 export function TodayAttendanceTable({
-  records,
+  tableRecords,
+  allRecords,
   allEmployees = [],
   selectedMonth = new Date().getMonth() + 1,
   selectedYear = new Date().getFullYear(),
@@ -44,13 +49,15 @@ export function TodayAttendanceTable({
 }: TodayAttendanceTableProps) {
   const router = useRouter();
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(10);
 
-  // Use all employees for dropdown (so we can select anyone, including absent today)
+  // Use all employees for dropdown (exclude admins - only show employees)
   const employees = useMemo(() => {
-    const fromRecords = Array.from(new Map(records.map(r => [r.employee.id, r.employee])).values());
-    if (allEmployees.length > 0) return allEmployees;
-    return fromRecords;
-  }, [records, allEmployees]);
+    const fromRecords = Array.from(new Map(allRecords.map(r => [r.employee.id, r.employee])).values());
+    const list = allEmployees.length > 0 ? allEmployees : fromRecords;
+    return list.filter(e => !e.is_admin);
+  }, [allRecords, allEmployees]);
 
   // Fetch employee's monthly attendance from DB when selected
   const { analytics: fetchedAnalytics, entries: monthlyEntries, isLoading: analyticsLoading } = useGetEmployeeMonthlyAttendance(
@@ -91,110 +98,47 @@ export function TodayAttendanceTable({
     });
   }, [selectedEmployeeId, selectedMonth, selectedYear, monthlyEntries, selectedEmployee?.standard_hours_per_day]);
 
-  // Fallback: when "All Employees" selected, use today's aggregate from records
-  const todayAnalytics = useMemo(() => {
-    const presentDays = records.filter(r => r.status === 'present').length;
-    const absentDays = records.filter(r => r.status === 'absent').length;
-    const lateArrivals = records.filter(r => r.status === 'late').length;
-    const earlyLeaves = records.filter(r => r.status === 'early_leave').length;
-    const totalHoursWorked = records.reduce((acc, r) => acc + (r.total_hours || 0), 0);
-    const averageHoursPerDay = presentDays ? totalHoursWorked / presentDays : 0;
-    return {
-      presentDays,
-      absentDays,
-      lateArrivals,
-      earlyLeaves,
-      totalHoursWorked,
-      averageHoursPerDay,
-      dailyAttendance: [],
-    };
-  }, [records]);
+  // Cards: zero when no employee selected; employee data when selected
+  const emptyAnalytics = useMemo(() => ({
+    presentDays: 0,
+    absentDays: 0,
+    lateArrivals: 0,
+    earlyLeaves: 0,
+    totalHoursWorked: 0,
+    averageHoursPerDay: 0,
+    dailyAttendance: [],
+  }), []);
 
-  // Use DB-fetched analytics when employee selected, else today's aggregate
-  const analytics = selectedEmployeeId && fetchedAnalytics ? fetchedAnalytics : todayAnalytics;
-  const isLoading = records.length === 0 || (!!selectedEmployeeId && analyticsLoading);
+  const analytics = selectedEmployeeId
+    ? (fetchedAnalytics ?? emptyAnalytics)
+    : emptyAnalytics;
+
+  // Cards loading: only when fetching employee data (not when allRecords empty)
+  const cardsLoading = !!selectedEmployeeId && analyticsLoading;
 
   const cardBase = 'relative overflow-hidden rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm';
+
+  useEffect(() => {
+    setPage(1);
+  }, [tableRecords.length, pageSize]);
+
+  const total = tableRecords.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const paginatedRecords = tableRecords.slice(startIndex, startIndex + pageSize);
+  const showingFrom = total === 0 ? 0 : startIndex + 1;
+  const showingTo = Math.min(startIndex + pageSize, total);
 
   const getInitials = (firstName: string, lastName: string) =>
     `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 
   return (
     <div className="space-y-6">
-      {/* Employee + Month selector - card data only */}
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
-          <label className="font-medium">Select Employee:</label>
-          <select
-            className="border rounded px-3 py-1 min-w-[180px]"
-            value={selectedEmployeeId || ''}
-            onChange={(e) => setSelectedEmployeeId(e.target.value || null)}
-          >
-            <option value="">All Employees</option>
-            {employees.map(emp => (
-              <option key={emp.id} value={emp.id}>
-                {emp.first_name} {emp.last_name}
-              </option>
-            ))}
-          </select>
-        </div>
-        {onMonthChange && (
-          <div className="flex items-center gap-3">
-            <label className="font-medium">Period:</label>
-            <select
-              className="border rounded px-3 py-1"
-              value={selectedMonth}
-              onChange={(e) => onMonthChange(Number(e.target.value), selectedYear)}
-            >
-              {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                <option key={m} value={m}>
-                  {format(new Date(selectedYear, m - 1), 'MMMM')}
-                </option>
-              ))}
-            </select>
-            <select
-              className="border rounded px-3 py-1"
-              value={selectedYear}
-              onChange={(e) => onMonthChange(selectedMonth, Number(e.target.value))}
-            >
-              {[selectedYear, selectedYear - 1, selectedYear - 2].map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
-        )}
-      </div>
-
-      {/* KPIs update based on selected employee */}
-      <AttendanceKPICards
-        analytics={analytics}
-        cardBase={cardBase}
-        isLoading={isLoading}
-      />
-
-      {/* Quick Attendance Overview - shows chart for selected employee */}
-      {selectedEmployeeId ? (
-        <QuickOverview
-          cardBase={cardBase}
-          selectedMonth={selectedMonth}
-          selectedYear={selectedYear}
-          currentUser={selectedEmployee}
-          handleMonthChange={onMonthChange}
-          months={[]}
-          chartData={chartData}
-          isLoading={analyticsLoading}
-        />
-      ) : (
-        <div className={`${cardBase} rounded-2xl p-8 lg:col-span-2`}>
-          <h3 className="text-base font-semibold text-slate-900">Quick Attendance Overview</h3>
-          <p className="mt-2 text-sm text-slate-500">Select an employee to view their attendance chart.</p>
-        </div>
-      )}
-
-      {/* Attendance Table - always shows ALL employees (filter only applies to cards above) */}
-      {records.length === 0 ? (
+      {/* Filter 1 applies ONLY to table */}
+      {tableRecords.length === 0 ? (
         <div className="text-center py-12 border rounded-lg bg-white">
-          <p className="text-gray-500">No matching records found.</p>
+          <p className="text-gray-500">No matching records for the selected filters.</p>
         </div>
       ) : (
         <div className="rounded-lg border bg-white">
@@ -211,7 +155,7 @@ export function TodayAttendanceTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {records.map((record) => {
+              {paginatedRecords.map((record) => {
                 const config = statusConfig[record.status];
                 const fullName = `${record.employee.first_name} ${record.employee.last_name}`;
 
@@ -237,9 +181,7 @@ export function TodayAttendanceTable({
                       {record.timeEntry?.clock_in ? (
                         <div>
                           <div className="text-sm text-gray-900">{formatTime(record.timeEntry.clock_in)}</div>
-                          {record.minutesLate && record.minutesLate > 0 && (
-                            <div className="text-xs text-yellow-600">{record.minutesLate} min late</div>
-                          )}
+                         
                         </div>
                       ) : (
                         <span className="text-sm text-gray-400">Missing</span>
@@ -272,6 +214,133 @@ export function TodayAttendanceTable({
           </Table>
         </div>
       )}
+
+      {tableRecords.length > 0 && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm text-gray-600">
+            Showing <span className="font-medium text-gray-900">{showingFrom}</span>–
+            <span className="font-medium text-gray-900">{showingTo}</span> of{" "}
+            <span className="font-medium text-gray-900">{total}</span>
+          </div>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex items-center justify-between gap-2 sm:justify-start">
+              <span className="text-sm text-gray-600">Rows</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="flex h-9 w-[96px] rounded-md border border-gray-300 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+              >
+                {[5, 10, 20, 50, 100].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                className="flex-1 sm:flex-none"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span className="ml-1 hidden sm:inline">Prev</span>
+              </Button>
+              <div className="text-sm text-gray-700 text-center px-2 whitespace-nowrap">
+                Page <span className="font-medium">{safePage}</span> /{" "}
+                <span className="font-medium">{totalPages}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                className="flex-1 sm:flex-none"
+              >
+                <span className="mr-1 hidden sm:inline">Next</span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2">
+          <label className="font-medium">Select Employee:</label>
+          <select
+            className="border rounded px-3 py-1 min-w-[180px]"
+            value={selectedEmployeeId || ''}
+            onChange={(e) => setSelectedEmployeeId(e.target.value || null)}
+          >
+            <option value="">Attendance By Employee</option>
+            {employees.map(emp => (
+              <option key={emp.id} value={emp.id}>
+                {emp.first_name} {emp.last_name}
+              </option>
+            ))}
+          </select>
+        </div>
+        {onMonthChange && (
+          <div className="flex items-center gap-3">
+            <label className="font-medium">Period:</label>
+            <select
+              className="border rounded px-3 py-1"
+              value={selectedMonth}
+              onChange={(e) => onMonthChange(Number(e.target.value), selectedYear)}
+            >
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                <option key={m} value={m}>
+                  {format(new Date(selectedYear, m - 1), 'MMMM')}
+                </option>
+              ))}
+            </select>
+            <select
+              className="border rounded px-3 py-1"
+              value={selectedYear}
+              onChange={(e) => onMonthChange(selectedMonth, Number(e.target.value))}
+            >
+              {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+        {/* Quick Attendance Overview - shows chart for selected employee */}
+      {selectedEmployeeId ? (
+        <QuickOverview
+          cardBase={cardBase}
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
+          currentUser={selectedEmployee}
+          handleMonthChange={onMonthChange}
+          months={[]}
+          chartData={chartData}
+          isLoading={analyticsLoading}
+        />
+      ) : (
+        <div className={`${cardBase} rounded-2xl p-8 lg:col-span-2`}>
+          <h3 className="text-base font-semibold text-slate-900">Quick Attendance Overview</h3>
+          <p className="mt-2 text-sm text-slate-500">Select an employee to view their attendance chart.</p>
+        </div>
+      )}
+
+      {/* KPIs - zero when no employee; employee data when selected */}
+      <AttendanceKPICards
+        analytics={analytics}
+        cardBase={cardBase}
+        isLoading={cardsLoading}
+      />
+
+    
+
+   
+   
     </div>
   );
 }
