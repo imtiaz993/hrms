@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MoreVertical, Edit, Trash2, Plus, Clock } from "lucide-react";
+import { Search, MoreVertical, Edit, Trash2, Plus, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Holiday {
   id: string;
@@ -62,6 +62,8 @@ const Holidays = () => {
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [recurring, setRecurring] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(10);
 
   const validateForm = () => {
     const newErrors: typeof errors = {};
@@ -125,6 +127,18 @@ const Holidays = () => {
       return matchesSearch && matchesType && matchesStatus;
     });
   }, [holidays, searchQuery, typeFilter, statusFilter]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, typeFilter, statusFilter, pageSize]);
+
+  const total = filteredHolidays.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const paginatedHolidays = filteredHolidays.slice(startIndex, startIndex + pageSize);
+  const showingFrom = total === 0 ? 0 : startIndex + 1;
+  const showingTo = Math.min(startIndex + pageSize, total);
 
   const handleCreate = async () => {
     if (!validateForm()) return;
@@ -245,6 +259,7 @@ const Holidays = () => {
           </CardContent>
         </Card>
       ) : (
+        <>
         <div className="border rounded-lg bg-white">
           <Table>
             <TableHeader>
@@ -258,7 +273,7 @@ const Holidays = () => {
             </TableHeader>
 
             <TableBody>
-              {filteredHolidays.map((h) => {
+              {paginatedHolidays.map((h) => {
                 const d = new Date(h.date);
                 return (
                   <TableRow key={h.id}>
@@ -312,6 +327,55 @@ const Holidays = () => {
             </TableBody>
           </Table>
         </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4">
+          <div className="text-sm text-gray-600">
+            Showing <span className="font-medium text-gray-900">{showingFrom}</span>–
+            <span className="font-medium text-gray-900">{showingTo}</span> of{" "}
+            <span className="font-medium text-gray-900">{total}</span>
+          </div>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex items-center justify-between gap-2 sm:justify-start">
+              <span className="text-sm text-gray-600">Rows</span>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="flex h-9 w-[96px] rounded-md border border-gray-300 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+              >
+                {[5, 10, 20, 50, 100].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                className="flex-1 sm:flex-none"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span className="ml-1 hidden sm:inline">Prev</span>
+              </Button>
+              <div className="text-sm text-gray-700 text-center px-2 whitespace-nowrap">
+                Page <span className="font-medium">{safePage}</span> /{" "}
+                <span className="font-medium">{totalPages}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                className="flex-1 sm:flex-none"
+              >
+                <span className="mr-1 hidden sm:inline">Next</span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+        </>
       )}
 
       <Dialog open={createDialog} onOpenChange={setCreateDialog}>

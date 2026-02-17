@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatDate } from '@/lib/time-utils';
-import { Search, AlertCircle, Eye, CheckCircle2, XCircle, Clock, UserCircle } from 'lucide-react';
+import { Search, AlertCircle, Eye, CheckCircle2, XCircle, Clock, UserCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabaseUser';
 
 const leaveTypeLabels: Record<string, string> = {
@@ -53,6 +53,8 @@ export default function LeaveRequestsPage() {
   const [leaves, setLeaves] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(10);
 
 
   async function allLeaves() {
@@ -110,6 +112,18 @@ export default function LeaveRequestsPage() {
       return true;
     });
   }, [leaves, typeFilter, statusFilter, searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [typeFilter, statusFilter, searchQuery, pageSize]);
+
+  const total = filteredLeaves.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const paginatedLeaves = filteredLeaves.slice(startIndex, startIndex + pageSize);
+  const showingFrom = total === 0 ? 0 : startIndex + 1;
+  const showingTo = Math.min(startIndex + pageSize, total);
 
   return (
     <div className="space-y-6">
@@ -182,6 +196,7 @@ export default function LeaveRequestsPage() {
           </CardContent>
         </Card>
       ) : (
+        <>
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -198,7 +213,7 @@ export default function LeaveRequestsPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredLeaves.map((request:LeaveRequest) => {
+                  {paginatedLeaves.map((request:LeaveRequest) => {
                     const statusInfo = statusConfig[request.status];
                     const fullName = `${request.employee.first_name} ${request.employee.last_name}`;
 
@@ -236,6 +251,56 @@ export default function LeaveRequestsPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm text-gray-600">
+            Showing <span className="font-medium text-gray-900">{showingFrom}</span>–
+            <span className="font-medium text-gray-900">{showingTo}</span> of{" "}
+            <span className="font-medium text-gray-900">{total}</span>
+          </div>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex items-center justify-between gap-2 sm:justify-start">
+              <span className="text-sm text-gray-600">Rows</span>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="flex h-9 w-[96px] rounded-md border border-gray-300 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+              >
+                {[5, 10, 20, 50, 100].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                className="flex-1 sm:flex-none"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span className="ml-1 hidden sm:inline">Prev</span>
+              </Button>
+              <div className="text-sm text-gray-700 text-center px-2 whitespace-nowrap">
+                Page <span className="font-medium">{safePage}</span> /{" "}
+                <span className="font-medium">{totalPages}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                className="flex-1 sm:flex-none"
+              >
+                <span className="mr-1 hidden sm:inline">Next</span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+        </>
       )}
 
       {selectedRequest && (
