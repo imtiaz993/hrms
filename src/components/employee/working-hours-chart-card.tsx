@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   format,
   parseISO,
@@ -82,12 +83,68 @@ function boolLabel(v: any) {
   return v ? "Yes" : "No";
 }
 
+type TooltipLine = { k: string; v: string };
+
+function TooltipPortal({
+  open,
+  anchorRect,
+  children,
+}: {
+  open: boolean;
+  anchorRect: DOMRect | null;
+  children: React.ReactNode;
+}) {
+  if (!open || !anchorRect) return null;
+  if (typeof document === "undefined") return null;
+
+  // Position tooltip above the hovered bar, centered horizontally.
+  const width = 224; // w-56 = 14rem = 224px
+  const gap = 10;
+
+  let left = anchorRect.left + anchorRect.width / 2 - width / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - width - 8));
+
+  let top = anchorRect.top - gap; // we'll translateY in element (like your original)
+  // If too close to top, flip to below.
+  const estimatedHeight = 140;
+  let placeBelow = false;
+  if (top - estimatedHeight < 8) {
+    placeBelow = true;
+    top = anchorRect.bottom + gap;
+  }
+
+  return createPortal(
+    <div
+      className="pointer-events-none fixed z-[9999]"
+      style={{ left, top, width }}
+    >
+      <div
+        className={[
+          "relative rounded-xl border border-slate-200 bg-white/95 p-3 text-xs text-slate-700 shadow-lg backdrop-blur",
+          placeBelow ? "" : "-translate-y-full",
+        ].join(" ")}
+      >
+        {children}
+
+        {/* Arrow */}
+        {placeBelow ? (
+          <div className="absolute left-1/2 bottom-full h-2 w-2 -translate-x-1/2 translate-y-1 rotate-45 border-t border-l border-slate-200 bg-white/95" />
+        ) : (
+          <div className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 border-b border-r border-slate-200 bg-white/95" />
+        )}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export function WorkingHoursChartCard({
   standardHoursPerDay,
   chartData,
   isLoading,
 }: WorkingHoursChartCardProps) {
   const [hovered, setHovered] = useState<any | null>(null);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
 
   const totals = useMemo(() => {
     const today = startOfDay(new Date());
@@ -110,7 +167,7 @@ export function WorkingHoursChartCard({
     return { scheduled, worked, difference: worked - scheduled };
   }, [chartData]);
 
-  const tooltip = useMemo(() => {
+  const tooltip = useMemo((): TooltipLine[] | null => {
     if (!hovered) return null;
 
     const weekend = isSaturday(hovered.date) || isSunday(hovered.date);
@@ -195,7 +252,9 @@ export function WorkingHoursChartCard({
                   : (item.standard_hours / standardHoursPerDay) * 100
             }%`;
 
-            const fillHeight = `${item?.clock_in && item?.clock_out ? actualHeight : 100}%`;
+            const fillHeight = `${
+              item?.clock_in && item?.clock_out ? actualHeight : 100
+            }%`;
 
             const fillColor = item.is_late
               ? "bg-yellow-400"
@@ -218,9 +277,22 @@ export function WorkingHoursChartCard({
                   className={`relative bottom-0 w-full rounded-t-sm cursor-pointer ${
                     weekend ? "bg-black" : "bg-slate-200/80"
                   }`}
-                  onMouseEnter={() => setHovered(item)}
-                  onMouseMove={() => setHovered(item)}
-                  onMouseLeave={() => setHovered(null)}
+                  onMouseEnter={(e) => {
+                    setHovered(item);
+                    setAnchorRect(
+                      (e.currentTarget as HTMLElement).getBoundingClientRect(),
+                    );
+                  }}
+                  onMouseMove={(e) => {
+                    setHovered(item);
+                    setAnchorRect(
+                      (e.currentTarget as HTMLElement).getBoundingClientRect(),
+                    );
+                  }}
+                  onMouseLeave={() => {
+                    setHovered(null);
+                    setAnchorRect(null);
+                  }}
                   style={{ height: baseHeight }}
                 >
                   {/* Hover target = the fill bar */}
@@ -233,31 +305,24 @@ export function WorkingHoursChartCard({
                 <span className="mt-1 text-[10px] text-white font-semibold absolute z-10">
                   {item.day}
                 </span>
-
-                {/* Tooltip */}
-                {hovered?.date === item.date && tooltip && (
-                  <div className="pointer-events-none absolute -top-2 left-1/2 z-50 w-56 -translate-x-1/2 -translate-y-full rounded-xl border border-slate-200 bg-white/95 p-3 text-xs text-slate-700 shadow-lg backdrop-blur">
-                    <div className="space-y-1">
-                      {tooltip.map((row, i) => (
-                        <div
-                          key={i}
-                          className="flex items-start justify-between gap-3"
-                        >
-                          <span className="text-slate-500">{row.k}</span>
-                          <span className="font-medium text-slate-900 text-right">
-                            {row.v}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="absolute left-1/2 top-full h-2 w-2 -translate-x-1/2 -translate-y-1 rotate-45 border-b border-r border-slate-200 bg-white/95" />
-                  </div>
-                )}
               </div>
             );
           })}
         </div>
       </div>
+
+      <TooltipPortal open={!!hovered && !!tooltip} anchorRect={anchorRect}>
+        <div className="space-y-1">
+          {tooltip?.map((row, i) => (
+            <div key={i} className="flex items-start justify-between gap-3">
+              <span className="text-slate-500">{row.k}</span>
+              <span className="font-medium text-slate-900 text-right">
+                {row.v}
+              </span>
+            </div>
+          ))}
+        </div>
+      </TooltipPortal>
 
       <div className="grid grid-cols-3 gap-4 border-t border-slate-100 pt-4 text-sm">
         <div>

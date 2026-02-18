@@ -270,7 +270,7 @@ export function TodayAttendanceTable({
 
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
-          <label className="font-medium">Select Employee:</label>
+                    <label className="font-medium">Select Employee:</label>
           <select
             className="border rounded px-3 py-1 min-w-[180px]"
             value={selectedEmployeeId || ''}
@@ -311,6 +311,17 @@ export function TodayAttendanceTable({
         )}
       </div>
 
+           {/* KPIs - zero when no employee; employee data when selected */}
+      {
+        (selectedEmployeeId)&&(
+            <AttendanceKPICards
+        analytics={analytics}
+        cardBase={cardBase}
+        isLoading={cardsLoading}
+      />
+        )
+      }
+
         {/* Quick Attendance Overview - shows chart for selected employee */}
       {selectedEmployeeId ? (
         <QuickOverview
@@ -330,12 +341,8 @@ export function TodayAttendanceTable({
         </div>
       )}
 
-      {/* KPIs - zero when no employee; employee data when selected */}
-      <AttendanceKPICards
-        analytics={analytics}
-        cardBase={cardBase}
-        isLoading={cardsLoading}
-      />
+ 
+    
 
     
 
