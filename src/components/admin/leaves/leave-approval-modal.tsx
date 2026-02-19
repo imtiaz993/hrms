@@ -69,10 +69,38 @@ export function LeaveApprovalModal({
   const [adminComment, setAdminComment] = useState("");
 
   const handleApprove = async (leaveId: any) => {
-    console.log("handleApprove called");
-    console.log("leaveId:", leaveId);
-
     try {
+      // 1. Get request details
+      const { data: request, error: fetchError } = await supabase
+        .from("leave_requests")
+        .select("leave_type, total_days, employee_id, status")
+        .eq("id", leaveId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // 2. If it was REJECTED before, we need to subtract leaves again 
+      // (because rejection added them back)
+      if (request.status === "rejected" && (request.leave_type === "sick" || request.leave_type === "paid")) {
+        const column = request.leave_type === "sick" ? "remaining_sick_leaves" : "remaining_casual_leaves";
+
+        // Fetch current remaining balance
+        const { data: emp, error: empError } = await supabase
+          .from("employees")
+          .select(column)
+          .eq("id", request.employee_id)
+          .single();
+
+        if (!empError && emp) {
+          const newBalance = Math.max(0, Number((emp as any)[column]) - Number(request.total_days));
+          await supabase
+            .from("employees")
+            .update({ [column]: newBalance })
+            .eq("id", request.employee_id);
+        }
+      }
+
+      // 3. Set status to approved
       const { error } = await supabase
         .from("leave_requests")
         .update({ status: "approved" })
@@ -80,21 +108,11 @@ export function LeaveApprovalModal({
 
       if (error) throw error;
 
-      const { data: leave, error: leaveError } = await supabase
-        .from("leave_requests")
-        .select("employee_id")
-        .eq("id", leaveId)
-        .single();
-
-      if (leaveError) throw leaveError;
-
-      console.log("employeeId (from leave):", leave.employee_id);
-
       await fetch("/api/admin/send-notification-admin/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          employeeId: leave.employee_id,
+          employeeId: request.employee_id,
           title: "Leave Approved",
           body: "Your leave request has been approved by admin.",
         }),
@@ -122,6 +140,42 @@ export function LeaveApprovalModal({
     console.log("leaveId:", leaveId);
 
     try {
+      // 1. Get request details to know how many days and what type to revert
+      const { data: request, error: fetchError } = await supabase
+        .from("leave_requests")
+        .select("leave_type, total_days, employee_id, status")
+        .eq("id", leaveId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // 2. Only revert if it WASN'T already rejected or cancelled
+      // and if it's a type that normally subtracts balance
+      if (request.status !== "rejected" && (request.leave_type === "sick" || request.leave_type === "paid")) {
+        const column = request.leave_type === "sick" ? "remaining_sick_leaves" : "remaining_casual_leaves";
+        const totalColumn = request.leave_type === "sick" ? "total_sick_leaves" : "total_casual_leaves";
+
+        // Fetch current balance and total allowance
+        const { data: emp, error: empError } = await supabase
+          .from("employees")
+          .select(`${column}, ${totalColumn}`)
+          .eq("id", request.employee_id)
+          .single();
+
+        if (!empError && emp) {
+          const newBalance = Math.min(
+            Number((emp as any)[totalColumn]), // Cap at total allowance
+            Number((emp as any)[column]) + Number(request.total_days)
+          );
+
+          await supabase
+            .from("employees")
+            .update({ [column]: newBalance })
+            .eq("id", request.employee_id);
+        }
+      }
+
+      // 3. Update status to rejected
       const { error } = await supabase
         .from("leave_requests")
         .update({
@@ -131,21 +185,11 @@ export function LeaveApprovalModal({
 
       if (error) throw error;
 
-      const { data: leave, error: leaveError } = await supabase
-        .from("leave_requests")
-        .select("employee_id")
-        .eq("id", leaveId)
-        .single();
-
-      if (leaveError) throw leaveError;
-
-      console.log("employeeId (from leave):", leave.employee_id);
-
       await fetch("/api/admin/send-notification-admin/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          employeeId: leave.employee_id,
+          employeeId: request.employee_id,
           title: "Leave Rejected",
           body: `Your leave request has been rejected.`,
         }),
@@ -312,32 +356,32 @@ export function LeaveApprovalModal({
                   />
                 </div>
                 <div className="flex gap-3">
-                {!isApproved && (
-                  <Button
-                    onClick={() => handleApprove(request.id)}
-                    className="flex-1"
-                  >
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Approve
-                  </Button>
-                )}
-                {!isRejected && (
-                  <Button
-                    onClick={() => handleReject(request.id)}
-                    variant="destructive"
-                    className="flex-1"
-                  >
-                    <XCircle className="h-4 w-4 mr-2" />
-                    Reject
-                  </Button>
-                )}
+                  {!isApproved && (
+                    <Button
+                      onClick={() => handleApprove(request.id)}
+                      className="flex-1"
+                    >
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Approve
+                    </Button>
+                  )}
+                  {!isRejected && (
+                    <Button
+                      onClick={() => handleReject(request.id)}
+                      variant="destructive"
+                      className="flex-1"
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Reject
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
           )}
-          </div>
+        </div>
 
-          {/* {!isApproved && (
+        {/* {!isApproved && (
             <Alert>
               <AlertDescription>
                 This leave request has already been {request.status}. No further
@@ -345,8 +389,8 @@ export function LeaveApprovalModal({
               </AlertDescription>
             </Alert>
           )} */}
-        </div>
       </div>
-    
+    </div>
+
   );
 }
