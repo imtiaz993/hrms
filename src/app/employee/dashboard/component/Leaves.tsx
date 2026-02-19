@@ -1,9 +1,10 @@
+"use client";
 import { LeaveRequestPopup } from "@/components/employee/leave-request-popup";
 import { LeaveRequestsList } from "@/components/leave/leave-requests-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, ClipboardList } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const LeavesSkeleton = () => {
   return (
@@ -31,15 +32,39 @@ const Leaves = ({
 }: any) => {
   const [showLeaveRequest, setShowLeaveRequest] = useState(false);
 
+  // ✅ local state so UI updates instantly after submit
+  const [localSickLeaves, setLocalSickLeaves] = useState<number>(sickLeaves);
+  const [localCasualLeaves, setLocalCasualLeaves] = useState<number>(casualLeaves);
+
+  // keep in sync if parent props change later
+  useEffect(() => {
+    setLocalSickLeaves(sickLeaves);
+  }, [sickLeaves]);
+
+  useEffect(() => {
+    setLocalCasualLeaves(casualLeaves);
+  }, [casualLeaves]);
+
   return (
     <>
       {showLeaveRequest && (
         <LeaveRequestPopup
           employeeId={currentUser.id}
           employeeName={currentUser.first_name}
+          currentSickLeaves={localSickLeaves}
+          currentCasualLeaves={localCasualLeaves}
           onClose={() => setShowLeaveRequest(false)}
           leaves={leaveRequests}
           setLeaves={setLeaveRequests}
+          onLeaveSubmitted={({ leaveType, totalDays }) => {
+            // ✅ subtract only for sick/paid (unpaid does not reduce balance)
+            if (leaveType === "sick") {
+              setLocalSickLeaves((prev) => Math.max(0, Number(prev) - Number(totalDays)));
+            } else if (leaveType === "paid") {
+              // treating "paid" as "casual" based on your UI label
+              setLocalCasualLeaves((prev) => Math.max(0, Number(prev) - Number(totalDays)));
+            }
+          }}
         />
       )}
 
@@ -53,11 +78,15 @@ const Leaves = ({
           <div className="text-sm text-slate-400 grid grid-cols-2 gap-y-1">
             <p>
               Sick Leaves:{" "}
-              <span className="text-slate-700 font-medium">{sickLeaves}</span>
+              <span className="text-slate-700 font-medium">
+                {localSickLeaves}
+              </span>
             </p>
             <p>
               Casual Leaves:{" "}
-              <span className="text-slate-700 font-medium">{casualLeaves}</span>
+              <span className="text-slate-700 font-medium">
+                {localCasualLeaves}
+              </span>
             </p>
           </div>
 

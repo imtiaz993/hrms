@@ -16,7 +16,7 @@ interface LeaveRequestsListProps {
   requests: LeaveRequest[];
   employeeId: string;
   setLeaves: any;
-  employeeName:string;
+  employeeName: string;
 }
 
 const statusConfig: Record<
@@ -50,7 +50,7 @@ export function LeaveRequestsList({
   requests,
   employeeId,
   employeeName,
-  
+
   setLeaves,
 }: LeaveRequestsListProps) {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -63,6 +63,41 @@ export function LeaveRequestsList({
     setIsCancelling(true);
 
     try {
+      // 1. Get request details before deleting
+      const { data: request, error: fetchError } = await supabase
+        .from("leave_requests")
+        .select("leave_type, total_days, employee_id")
+        .eq("id", requestId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // 2. Revert the balance in employees table
+      if (request.leave_type === "sick" || request.leave_type === "paid") {
+        const column = request.leave_type === "sick" ? "remaining_sick_leaves" : "remaining_casual_leaves";
+        const totalColumn = request.leave_type === "sick" ? "total_sick_leaves" : "total_casual_leaves";
+
+        // Fetch current balance and total allowance
+        const { data: emp, error: empError } = await supabase
+          .from("employees")
+          .select(`${column}, ${totalColumn}`)
+          .eq("id", request.employee_id)
+          .single();
+
+        if (!empError && emp) {
+          const newBalance = Math.min(
+            Number((emp as any)[totalColumn]), // Cap at total allowance
+            Number((emp as any)[column]) + Number(request.total_days)
+          );
+
+          await supabase
+            .from("employees")
+            .update({ [column]: newBalance })
+            .eq("id", request.employee_id);
+        }
+      }
+
+      // 3. Delete the request
       const { error } = await supabase
         .from("leave_requests")
         .delete()
