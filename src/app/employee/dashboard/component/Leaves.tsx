@@ -25,6 +25,8 @@ const Leaves = ({
   cardBase,
   sickLeaves,
   casualLeaves,
+  totalSickLeaves,
+  totalCasualLeaves,
   leaveRequests,
   currentUser,
   setLeaveRequests,
@@ -32,7 +34,7 @@ const Leaves = ({
 }: any) => {
   const [showLeaveRequest, setShowLeaveRequest] = useState(false);
 
-  // ✅ local state so UI updates instantly after submit
+  // ✅ local state so UI updates instantly after submit/cancel
   const [localSickLeaves, setLocalSickLeaves] = useState<number>(sickLeaves);
   const [localCasualLeaves, setLocalCasualLeaves] = useState<number>(casualLeaves);
 
@@ -79,13 +81,13 @@ const Leaves = ({
             <p>
               Sick Leaves:{" "}
               <span className="text-slate-700 font-medium">
-                {localSickLeaves}
+                {localSickLeaves}/{totalSickLeaves}
               </span>
             </p>
             <p>
               Casual Leaves:{" "}
               <span className="text-slate-700 font-medium">
-                {localCasualLeaves}
+                {localCasualLeaves}/{totalCasualLeaves}
               </span>
             </p>
           </div>
@@ -111,6 +113,14 @@ const Leaves = ({
               employeeId={currentUser.id}
               employeeName={currentUser.first_name}
               setLeaves={setLeaveRequests}
+              onLeaveCancelled={({ leaveType, totalDays }: { leaveType: any; totalDays: any }) => {
+                // ✅ Add back the days instantly when cancelled
+                if (leaveType === "sick") {
+                  setLocalSickLeaves((prev) => Math.min(Number(totalSickLeaves), Number(prev) + Number(totalDays)));
+                } else if (leaveType === "paid") {
+                  setLocalCasualLeaves((prev) => Math.min(Number(totalCasualLeaves), Number(prev) + Number(totalDays)));
+                }
+              }}
             />
           ) : null}
 
