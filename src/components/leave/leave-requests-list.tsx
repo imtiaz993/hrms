@@ -17,6 +17,7 @@ interface LeaveRequestsListProps {
   employeeId: string;
   setLeaves: any;
   employeeName: string;
+  onLeaveCancelled?: (payload: { leaveType: any; totalDays: any }) => void;
 }
 
 const statusConfig: Record<
@@ -50,8 +51,8 @@ export function LeaveRequestsList({
   requests,
   employeeId,
   employeeName,
-
   setLeaves,
+  onLeaveCancelled,
 }: LeaveRequestsListProps) {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -131,12 +132,25 @@ export function LeaveRequestsList({
 
   const handleCancel = async (requestId: string) => {
     setError("");
+    // Find the request details before deleting for the callback
+    const requestToCancel = requests.find(r => r.id === requestId);
+
     setCancellingId(requestId);
     try {
       await cancelLeaveRequest(requestId);
+
+      // Update local requests list
       setLeaves((prev: LeaveRequest[]) =>
         prev.filter((leave) => leave.id !== requestId),
       );
+
+      // Callback to update balance in parent UI
+      if (requestToCancel) {
+        onLeaveCancelled?.({
+          leaveType: requestToCancel.leave_type,
+          totalDays: requestToCancel.total_days
+        });
+      }
     } catch (err: any) {
       setError(err.message || "Failed to cancel leave request.");
     } finally {
