@@ -90,7 +90,7 @@ export function TodayAttendanceTable({
         day: day.getDate(),
         clock_in: entry?.clock_in ?? null,
         clock_out: entry?.clock_out ?? null,
-        standard_hours: standardHours,
+        standard_hours: entry?.standard_hours ?? standardHours,
         total_hours: entry?.total_hours ?? 0,
         is_late: entry?.is_late ?? false,
         is_early_leave: entry?.is_early_leave ?? false,

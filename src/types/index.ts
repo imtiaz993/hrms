@@ -70,6 +70,7 @@ export interface TimeEntry {
   is_early_leave: boolean;
   notes?: string;
   created_at: string;
+  standard_hours: number
   updated_at: string;
 }
 
@@ -83,9 +84,9 @@ export interface TodayStatus {
   overtimeHours: number;
   isLate: boolean;
   lateByMinutes: number | null;
-  timeEntryId:number
-  clockIn:string|null;
-clockOut:string;
+  timeEntryId: number
+  clockIn: string | null;
+  clockOut: string;
 
 }
 
