@@ -21,17 +21,16 @@ export default function AttendanceOverviewPage() {
   const [department, setDepartment] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [lastUpdated, setLastUpdated] = useState(new Date());
-  
-   
-
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  
 
   const {
     data,
     isLoading,
     error,
-  } = useGetTodayAttendanceOverview(searchQuery, department, statusFilter);
+    refetchData,
+  } = useGetTodayAttendanceOverview(searchQuery, department, statusFilter,);
 
   const { data: departments } = useGetDepartments();
   const { data: employees = [] } = useGetAllEmployees();
@@ -44,6 +43,7 @@ export default function AttendanceOverviewPage() {
   }, []);
 
   const handleRefresh = () => {
+    refetchData();
     setLastUpdated(new Date());
   };
 
@@ -64,10 +64,7 @@ export default function AttendanceOverviewPage() {
           <p className="text-gray-600 mt-1">Real-time attendance monitoring for today</p>
         </div>
         <div className="flex items-center space-x-3">
-          <div className="text-sm text-gray-600">
-            <Calendar className="inline h-4 w-4 mr-1" />
-            {format(new Date(), 'EEEE, MMMM d, yyyy')}
-          </div>
+        
           <Button variant="outline" size="sm" onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh

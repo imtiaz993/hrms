@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/lib/supabaseUser";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,8 +23,10 @@ interface LeaveRequestPopupProps {
   onClose: () => void;
   leaves: any;
   setLeaves: any;
-  employeeName:string;
-  onLeaveSubmitted?: () => void;
+  employeeName: string;
+  currentSickLeaves: number;
+  currentCasualLeaves: number;
+  onLeaveSubmitted?: (payload: { leaveType: LeaveType; totalDays: number }) => void;
 }
 
 export function LeaveRequestPopup({
@@ -31,6 +34,8 @@ export function LeaveRequestPopup({
   setLeaves,
   employeeId,
   employeeName,
+  currentSickLeaves,
+  currentCasualLeaves,
   onClose,
   onLeaveSubmitted,
 }: LeaveRequestPopupProps) {
@@ -39,7 +44,7 @@ export function LeaveRequestPopup({
   const [leaveType, setLeaveType] = useState<LeaveType>("paid");
   const [isHalfDay, setIsHalfDay] = useState(false);
   const [reason, setReason] = useState("");
-  
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,9 +54,7 @@ export function LeaveRequestPopup({
     endDate: string,
     isHalfDay: boolean,
   ): number {
-    if (isHalfDay) {
-      return 0.5;
-    }
+    if (isHalfDay) return 0.5;
 
     const start = startOfDay(parseISO(startDate));
     const end = startOfDay(parseISO(endDate));
@@ -79,10 +82,8 @@ export function LeaveRequestPopup({
           newStart.getTime() === reqStart.getTime()) &&
           (isBefore(newStart, reqEnd) ||
             newStart.getTime() === reqEnd.getTime())) ||
-        ((isAfter(newEnd, reqStart) ||
-          newEnd.getTime() === reqStart.getTime()) &&
-          (isBefore(newEnd, reqEnd) ||
-            newEnd.getTime() === reqEnd.getTime())) ||
+        ((isAfter(newEnd, reqStart) || newEnd.getTime() === reqStart.getTime()) &&
+          (isBefore(newEnd, reqEnd) || newEnd.getTime() === reqEnd.getTime())) ||
         ((isBefore(newStart, reqStart) ||
           newStart.getTime() === reqStart.getTime()) &&
           (isAfter(newEnd, reqEnd) || newEnd.getTime() === reqEnd.getTime()))
@@ -127,13 +128,26 @@ export function LeaveRequestPopup({
         endDate,
       )
     ) {
-      setError(
-        "You already have a pending or approved leave request for these dates.",
-      );
+      setError("You already have a pending or approved leave request for these dates.");
+      return;
+    }
+    
+
+    const totalDays = calculateLeaveDays(startDate, endDate, isHalfDay);
+
+    // ✅ Validation: Ensure user has enough leave balance
+    if (leaveType === "sick" && totalDays > currentSickLeaves) {
+      setError(`Insufficient sick leave balance. You only have ${currentSickLeaves} days left.`);
+      setIsLoading(false);
       return;
     }
 
-    const totalDays = calculateLeaveDays(startDate, endDate, isHalfDay);
+    if (leaveType === "paid" && totalDays > currentCasualLeaves) {
+      setError(`Insufficient casual leave balance. You only have ${currentCasualLeaves} days left.`);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -158,12 +172,40 @@ export function LeaveRequestPopup({
 
       setLeaves((prev: any) => [...prev, data]);
       setSuccess(true);
+
+      // Determine new balance to update in DB
+      let updatePayload = {};
+
+      // "paid" here maps to "casual" leaves based on typical HRMS structure 
+      // where paid leave allowance is separate from sick leave
+      if (leaveType === "paid") {
+        const newBalance = Math.max(0, currentCasualLeaves - totalDays);
+        updatePayload = { remaining_casual_leaves: newBalance };
+      } else if (leaveType === "sick") {
+        const newBalance = Math.max(0, currentSickLeaves - totalDays);
+        updatePayload = { remaining_sick_leaves: newBalance };
+      }
+
+      // If there's a balance to update, do it
+      if (Object.keys(updatePayload).length > 0) {
+        const { error: updateError } = await supabase
+          .from("employees")
+          .update(updatePayload)
+          .eq("id", employeeId);
+
+        if (updateError) {
+          console.error("Failed to update leave balance:", updateError);
+          // Optional: You might want to show a warning, though the request itself succeeded
+        }
+      }
+
+      // ✅ subtract leave balance immediately in parent
+      onLeaveSubmitted?.({ leaveType, totalDays });
       setTimeout(onClose, 1500);
 
       const { data: settings, error: settingsError } = await supabase
         .from("admin_settings")
         .select("leave_notification")
-
         .single();
 
       if (settingsError) {
@@ -215,13 +257,11 @@ export function LeaveRequestPopup({
             {success && (
               <Alert variant="success">
                 <CheckCircle2 className="h-4 w-4" />
-                <AlertDescription>
-                  Leave request submitted successfully!
-                </AlertDescription>
+                <AlertDescription>Leave request submitted successfully!</AlertDescription>
               </Alert>
             )}
 
-            <div className="grid lg:grid-cols-2  sm:grid-cols-1 gap-4">
+            <div className="grid lg:grid-cols-2 sm:grid-cols-1 gap-4">
               <div>
                 <Label>Start Date</Label>
                 <Input
