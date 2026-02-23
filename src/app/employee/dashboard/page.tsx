@@ -85,6 +85,8 @@ export default function EmployeeDashboardPage() {
   const [statusLoading, setStatusLoading] = useState(true);
   const [sickLeaves, setSickLeaves] = useState(0);
   const [casualLeaves, setCasualLeaves] = useState(0);
+  const [totalSickLeaves, setTotalSickLeaves] = useState(0);
+  const [totalCasualLeaves, setTotalCasualLeaves] = useState(0);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
 
   const [upcomingBirthdays, setUpcomingBirthdays] = useState<
@@ -369,6 +371,8 @@ export default function EmployeeDashboardPage() {
 
     setSickLeaves(Number(employee.remaining_sick_leaves));
     setCasualLeaves(Number(employee.remaining_casual_leaves));
+    setTotalSickLeaves(Number(employee.total_sick_leaves));
+    setTotalCasualLeaves(Number(employee.total_casual_leaves));
 
     return employee;
   };
@@ -692,6 +696,8 @@ export default function EmployeeDashboardPage() {
             cardBase={cardBase}
             sickLeaves={sickLeaves}
             casualLeaves={casualLeaves}
+            totalSickLeaves={totalSickLeaves}
+            totalCasualLeaves={totalCasualLeaves}
             leaveRequests={leaveRequests}
             currentUser={currentUser}
             setLeaveRequests={setLeaveRequests}
