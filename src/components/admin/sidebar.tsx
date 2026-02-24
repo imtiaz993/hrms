@@ -38,6 +38,10 @@ const navItems: NavItem[] = [
     label: "Attendance",
     href: "/admin/dashboard/attendance",
     icon: CalendarCheck,
+    subItems: [
+      { label: "Overview", href: "/admin/dashboard/attendance" },
+      { label: "Exemption Requests", href: "/admin/dashboard/attendance/exemption-requests" },
+    ],
   },
   {
     label: "Leave Requests",
@@ -63,7 +67,7 @@ const navItems: NavItem[] = [
       { label: "Settings", href: "/admin/dashboard/settings/payroll" },
     ],
   },
-    {
+  {
     label: "Settings",
     href: "/admin/dashboard/settings",
     icon: Calendar,

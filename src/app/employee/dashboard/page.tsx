@@ -25,6 +25,7 @@ import CompanyPolicy from "./component/CompanyPolicy";
 import Leaves from "./component/Leaves";
 import Salary from "./component/Salary";
 import TodayEvents from "./component/TodayEvents";
+import ExemptionRequests from "./component/ExemptionRequests";
 import AnnouceMent from "@/app/admin/dashboard/annoucement/page";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
@@ -706,96 +707,96 @@ export default function EmployeeDashboardPage() {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <Salary cardBase={cardBase} currentUser={currentUser} />
+          <ExemptionRequests currentUser={currentUser} cardBase={cardBase} />
+        </div>
 
-          <div className={`${cardBase} p-4`}>
-            <h3 className="mb-4 text-lg font-semibold text-slate-800">
-              Announcements
-            </h3>
-
-
-
-            <div className="space-y-4">
-              {announcements.length === 0 ? (
-                <p className="text-sm text-slate-400">
-                  No announcements available
-                </p>
-              ) : (
-                announcements.map((a) => (
-                  <div
-                    key={a.id}
-                    className="border rounded-lg p-3 hover:bg-slate-50 transition flex justify-between items-start"
-                  >
-                    {/* Left Content */}
-                    <div className="flex-1 pr-3 min-w-0">
-                      {/* Title */}
-                      <h4 className="text-sm font-semibold text-slate-800 truncate">
-                        {a.title}
-                      </h4>
+        <div className={`${cardBase} p-4`}>
+          <h3 className="mb-4 text-lg font-semibold text-slate-800">
+            Announcements
+          </h3>
 
 
-                      <p
-                        className="text-sm text-slate-600 mt-1 overflow-hidden text-ellipsis"
-                        style={{
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                        }}
-                      >
-                        {a.description}
-                      </p>
 
-                      {/* Date */}
-                      <p className="mt-1 text-xs text-slate-400">
-                        {new Date(a.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-
-                    {/* Eye Button Right Side */}
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => setSelectedAnnouncement(a)}
-                      className="shrink-0"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
-
-          </div>
-          <Dialog
-            open={!!selectedAnnouncement}
-            onOpenChange={() => setSelectedAnnouncement(null)}
-          >
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>
-                  {selectedAnnouncement?.title}
-                </DialogTitle>
-                <DialogDescription className="text-sm text-slate-500">
-                  {selectedAnnouncement &&
-                    new Date(selectedAnnouncement.created_at).toLocaleDateString()}
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="mt-4 text-sm text-slate-700 whitespace-pre-line">
-                {selectedAnnouncement?.description}
-              </div>
-
-              <DialogFooter className="mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setSelectedAnnouncement(null)}
+          <div className="space-y-4">
+            {announcements.length === 0 ? (
+              <p className="text-sm text-slate-400">
+                No announcements available
+              </p>
+            ) : (
+              announcements.map((a) => (
+                <div
+                  key={a.id}
+                  className="border rounded-lg p-3 hover:bg-slate-50 transition flex justify-between items-start"
                 >
-                  Close
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                  {/* Left Content */}
+                  <div className="flex-1 pr-3 min-w-0">
+                    {/* Title */}
+                    <h4 className="text-sm font-semibold text-slate-800 truncate">
+                      {a.title}
+                    </h4>
+
+
+                    <p
+                      className="text-sm text-slate-600 mt-1 overflow-hidden text-ellipsis"
+                      style={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                      }}
+                    >
+                      {a.description}
+                    </p>
+
+                    {/* Date */}
+                    <p className="mt-1 text-xs text-slate-400">
+                      {new Date(a.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+
+                  {/* Eye Button Right Side */}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setSelectedAnnouncement(a)}
+                    className="shrink-0"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
 
         </div>
+        <Dialog
+          open={!!selectedAnnouncement}
+          onOpenChange={() => setSelectedAnnouncement(null)}
+        >
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedAnnouncement?.title}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-slate-500">
+                {selectedAnnouncement &&
+                  new Date(selectedAnnouncement.created_at).toLocaleDateString()}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="mt-4 text-sm text-slate-700 whitespace-pre-line">
+              {selectedAnnouncement?.description}
+            </div>
+
+            <DialogFooter className="mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setSelectedAnnouncement(null)}
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
