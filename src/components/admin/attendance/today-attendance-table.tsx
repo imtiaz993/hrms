@@ -14,11 +14,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TodayAttendanceRecord, useGetEmployeeMonthlyAttendance } from '@/hooks/admin/useAttendance';
 import { formatTime, formatHours } from '@/lib/time-utils';
-import { Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Eye, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { AttendanceKPICards } from '@/components/attendance/attendance-kpi-cards';
 import { Employee } from '@/types';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import QuickOverview from '@/app/employee/dashboard/component/QuickOverview';
+import { AdjustEntryPopup } from './adjust-entry-popup';
 
 interface TodayAttendanceTableProps {
   /** Filter 1: for table only (Search, Department, Status) */
@@ -51,6 +52,7 @@ export function TodayAttendanceTable({
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
+  const [showAdjustPopup, setShowAdjustPopup] = useState(false);
 
   // Use all employees for dropdown (exclude admins - only show employees)
   const employees = useMemo(() => {
@@ -181,7 +183,7 @@ export function TodayAttendanceTable({
                       {record.timeEntry?.clock_in ? (
                         <div>
                           <div className="text-sm text-gray-900">{formatTime(record.timeEntry.clock_in)}</div>
-                         
+
                         </div>
                       ) : (
                         <span className="text-sm text-gray-400">Missing</span>
@@ -206,7 +208,7 @@ export function TodayAttendanceTable({
                     <TableCell>
                       <Badge variant={config.variant}>{config.label}</Badge>
                     </TableCell>
-                   
+
                   </TableRow>
                 );
               })}
@@ -270,7 +272,7 @@ export function TodayAttendanceTable({
 
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
-                    <label className="font-medium">Select Employee:</label>
+          <label className="font-medium">Select Employee:</label>
           <select
             className="border rounded px-3 py-1 min-w-[180px]"
             value={selectedEmployeeId || ''}
@@ -311,18 +313,38 @@ export function TodayAttendanceTable({
         )}
       </div>
 
-           {/* KPIs - zero when no employee; employee data when selected */}
+      {/* KPIs - zero when no employee; employee data when selected */}
       {
-        (selectedEmployeeId)&&(
-            <AttendanceKPICards
-        analytics={analytics}
-        cardBase={cardBase}
-        isLoading={cardsLoading}
-      />
+        (selectedEmployeeId) && (
+          <AttendanceKPICards
+            analytics={analytics}
+            cardBase={cardBase}
+            isLoading={cardsLoading}
+          />
         )
       }
 
-        {/* Quick Attendance Overview - shows chart for selected employee */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-semibold text-slate-900">Attendance Details & Chart</h3>
+        <Button
+          variant="outline"
+          size="sm"
+          className="bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100"
+          onClick={() => setShowAdjustPopup(true)}
+        >
+          <Clock className="mr-2 h-4 w-4" />
+          Adjust Entry
+        </Button>
+      </div>
+
+      {showAdjustPopup && (
+        <AdjustEntryPopup
+          onClose={() => setShowAdjustPopup(false)}
+          employees={employees}
+        />
+      )}
+
+      {/* Quick Attendance Overview - shows chart for selected employee */}
       {selectedEmployeeId ? (
         <QuickOverview
           cardBase={cardBase}
@@ -341,13 +363,13 @@ export function TodayAttendanceTable({
         </div>
       )}
 
- 
-    
 
-    
 
-   
-   
+
+
+
+
+
     </div>
   );
 }
