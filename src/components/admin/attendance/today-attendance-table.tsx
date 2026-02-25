@@ -19,7 +19,11 @@ import { AttendanceKPICards } from '@/components/attendance/attendance-kpi-cards
 import { Employee } from '@/types';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import QuickOverview from '@/app/employee/dashboard/component/QuickOverview';
+
 import { getCurrentTime, parsePKT } from '@/lib/time-utils';
+
+
+import { AdjustEntryPopup } from './adjust-entry-popup';
 
 
 interface TodayAttendanceTableProps {
@@ -53,6 +57,7 @@ export function TodayAttendanceTable({
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
+  const [showAdjustPopup, setShowAdjustPopup] = useState(false);
 
 
   // Use all employees for dropdown (exclude admins - only show employees)
@@ -326,7 +331,25 @@ export function TodayAttendanceTable({
       }
 
 
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-semibold text-slate-900">Attendance Details & Chart</h3>
+        <Button
+          variant="outline"
+          size="sm"
+          className="bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100"
+          onClick={() => setShowAdjustPopup(true)}
+        >
+          <Clock className="mr-2 h-4 w-4" />
+          Adjust Entry
+        </Button>
+      </div>
 
+      {showAdjustPopup && (
+        <AdjustEntryPopup
+          onClose={() => setShowAdjustPopup(false)}
+          employees={employees}
+        />
+      )}
 
 
       {/* Quick Attendance Overview - shows chart for selected employee */}
