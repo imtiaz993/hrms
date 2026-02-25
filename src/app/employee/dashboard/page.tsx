@@ -710,7 +710,7 @@ export default function EmployeeDashboardPage() {
         <div className="grid grid-cols-2 gap-4">
           <CompanyPolicy cardBase={cardBase} />
           <Salary cardBase={cardBase} currentUser={currentUser} />
-          <ExemptionRequests currentUser={currentUser} cardBase={cardBase} />
+          
         </div>
 
           <div className={`${cardBase} p-4`}>
