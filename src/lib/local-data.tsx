@@ -31,6 +31,8 @@ import {
   calculateTotalHours,
   isEarlyLeave,
   isEmployeeLate,
+  getCurrentTime,
+  toPKTISO,
 } from './time-utils';
 
 type LocalDataContextValue = {
@@ -73,7 +75,7 @@ type LocalDataContextValue = {
 const LocalDataContext = createContext<LocalDataContextValue | null>(null);
 
 function createTimestamp() {
-  return new Date().toISOString();
+  return toPKTISO(getCurrentTime());
 }
 
 function generateId(prefix: string) {
@@ -156,8 +158,8 @@ export function LocalDataProvider({ children }: { children: React.ReactNode }) {
       standardHours: number;
       standardShiftStart: string;
     }) => {
-      const date = new Date();
-      const dateStr = date.toISOString().split('T')[0];
+      const date = getCurrentTime();
+      const dateStr = toPKTISO(date).split('T')[0];
       const existing = timeEntries.find(
         (entry: TimeEntry) => entry.employee_id === employeeId && entry.date === dateStr
       );
@@ -166,7 +168,7 @@ export function LocalDataProvider({ children }: { children: React.ReactNode }) {
         return existing;
       }
 
-      const timestamp = date.toISOString();
+      const timestamp = toPKTISO(date);
       const newEntry: TimeEntry = {
         id: generateId('time'),
         employee_id: employeeId,
@@ -180,7 +182,7 @@ export function LocalDataProvider({ children }: { children: React.ReactNode }) {
         notes: '',
         created_at: timestamp,
         updated_at: timestamp,
-      };    
+      };
 
       setTimeEntries((prev: TimeEntry[]) => [newEntry, ...prev]);
       return newEntry;
@@ -196,7 +198,7 @@ export function LocalDataProvider({ children }: { children: React.ReactNode }) {
       standardShiftEnd: string;
     }) => {
       let updatedEntry: TimeEntry | null = null;
-      const timestamp = new Date().toISOString();
+      const timestamp = toPKTISO(getCurrentTime());
 
       setTimeEntries((prev: TimeEntry[]) =>
         prev.map((entry: TimeEntry) => {

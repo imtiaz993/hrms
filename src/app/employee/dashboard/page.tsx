@@ -5,7 +5,6 @@ import {
   startOfMonth,
   endOfMonth,
   eachDayOfInterval,
-  parseISO,
   isWeekend,
 } from "date-fns";
 import { Eye } from "lucide-react";
@@ -14,6 +13,7 @@ import { useAppSelector } from "@/store/hooks";
 import UpcomingHoliday from "./component/UpcomingHolidays";
 import { AttendanceKPICards } from "@/components/attendance/attendance-kpi-cards";
 import { supabase } from "@/lib/supabaseUser";
+import { getCurrentTime, parsePKT, toPKTISO } from "@/lib/time-utils";
 import UpcommingEvents from "./component/UpcommingEvents";
 import AttendanceTodayCard from "./component/Attendance";
 import { AttendanceAnalytics, DailyAttendance } from "@/types";
@@ -25,6 +25,7 @@ import CompanyPolicy from "./component/CompanyPolicy";
 import Leaves from "./component/Leaves";
 import Salary from "./component/Salary";
 import TodayEvents from "./component/TodayEvents";
+import ExemptionRequests from "./component/ExemptionRequests";
 import AnnouceMent from "@/app/admin/dashboard/annoucement/page";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
@@ -79,8 +80,8 @@ export default function EmployeeDashboardPage() {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<any | null>(null);
 
 
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentTime().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(getCurrentTime().getFullYear());
   const [todayStatus, setTodayStatus] = useState<TodayStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
   const [sickLeaves, setSickLeaves] = useState(0);
@@ -122,7 +123,7 @@ export default function EmployeeDashboardPage() {
   }, []);
 
   const fetchUpcomingEvents = async () => {
-    const today = new Date();
+    const today = getCurrentTime();
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth();
     const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
@@ -196,7 +197,7 @@ export default function EmployeeDashboardPage() {
   };
 
   const fetchTodayEvents = async () => {
-    const today = new Date();
+    const today = getCurrentTime();
     const todayMonth = today.getMonth();
     const todayDate = today.getDate();
     const currentYear = today.getFullYear();
@@ -316,7 +317,7 @@ export default function EmployeeDashboardPage() {
       return;
     }
 
-    const today = format(new Date(), "yyyy-MM-dd");
+    const today = format(getCurrentTime(), "yyyy-MM-dd");
 
     const { data: entries, error } = await supabase
       .from("time_entries")
@@ -413,7 +414,7 @@ export default function EmployeeDashboardPage() {
     setIsLoading(false);
   };
   const fetchHolidays = async () => {
-    const today = new Date();
+    const today = getCurrentTime();
     today.setHours(0, 0, 0, 0);
 
     const currentYear = today.getFullYear();
@@ -481,7 +482,7 @@ export default function EmployeeDashboardPage() {
 
   const months = useMemo(() => {
     if (!entries.length) {
-      const now = new Date();
+      const now = getCurrentTime();
       return [
         {
           month: now.getMonth() + 1,
@@ -493,7 +494,7 @@ export default function EmployeeDashboardPage() {
 
     const monthsSet = new Set<string>();
     entries.forEach((entry) => {
-      const date = parseISO(entry.date);
+      const date = parsePKT(entry.date);
       monthsSet.add(format(date, "yyyy-MM"));
     });
 
@@ -518,7 +519,7 @@ export default function EmployeeDashboardPage() {
     if (
       months &&
       months.length > 0 &&
-      selectedMonth === new Date().getMonth() + 1
+      selectedMonth === getCurrentTime().getMonth() + 1
     ) {
       setSelectedMonth(months[0].month);
       setSelectedYear(months[0].year);
@@ -557,7 +558,7 @@ export default function EmployeeDashboardPage() {
     const start = startOfMonth(monthDate);
     const end = endOfMonth(monthDate);
 
-    const todayStr = format(new Date(), "yyyy-MM-dd");
+    const todayStr = format(getCurrentTime(), "yyyy-MM-dd");
 
     const entriesMap = new Map<string, TimeEntry>();
     entries.forEach((entry) => {
@@ -691,7 +692,7 @@ export default function EmployeeDashboardPage() {
         </div>
 
         <div className=" grid grid-cols-2 gap-4">
-          <CompanyPolicy cardBase={cardBase} />
+
           <Leaves
             cardBase={cardBase}
             sickLeaves={sickLeaves}
@@ -703,99 +704,102 @@ export default function EmployeeDashboardPage() {
             setLeaveRequests={setLeaveRequests}
             isLoading={isLoading}
           />
+          <ExemptionRequests currentUser={currentUser} cardBase={cardBase} />
+
         </div>
         <div className="grid grid-cols-2 gap-4">
+          <CompanyPolicy cardBase={cardBase} />
           <Salary cardBase={cardBase} currentUser={currentUser} />
 
-          <div className={`${cardBase} p-4`}>
-            <h3 className="mb-4 text-lg font-semibold text-slate-800">
-              Announcements
-            </h3>
+        </div>
+
+        <div className={`${cardBase} p-4`}>
+          <h3 className="mb-4 text-lg font-semibold text-slate-800">
+            Announcements
+          </h3>
 
 
 
-            <div className="space-y-4">
-              {announcements.length === 0 ? (
-                <p className="text-sm text-slate-400">
-                  No announcements available
-                </p>
-              ) : (
-                announcements.map((a) => (
-                  <div
-                    key={a.id}
-                    className="border rounded-lg p-3 hover:bg-slate-50 transition flex justify-between items-start"
-                  >
-                    {/* Left Content */}
-                    <div className="flex-1 pr-3 min-w-0">
-                      {/* Title */}
-                      <h4 className="text-sm font-semibold text-slate-800 truncate">
-                        {a.title}
-                      </h4>
-
-
-                      <p
-                        className="text-sm text-slate-600 mt-1 overflow-hidden text-ellipsis"
-                        style={{
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                        }}
-                      >
-                        {a.description}
-                      </p>
-
-                      {/* Date */}
-                      <p className="mt-1 text-xs text-slate-400">
-                        {new Date(a.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-
-                    {/* Eye Button Right Side */}
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => setSelectedAnnouncement(a)}
-                      className="shrink-0"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
-
-          </div>
-          <Dialog
-            open={!!selectedAnnouncement}
-            onOpenChange={() => setSelectedAnnouncement(null)}
-          >
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>
-                  {selectedAnnouncement?.title}
-                </DialogTitle>
-                <DialogDescription className="text-sm text-slate-500">
-                  {selectedAnnouncement &&
-                    new Date(selectedAnnouncement.created_at).toLocaleDateString()}
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="mt-4 text-sm text-slate-700 whitespace-pre-line">
-                {selectedAnnouncement?.description}
-              </div>
-
-              <DialogFooter className="mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setSelectedAnnouncement(null)}
+          <div className="space-y-4">
+            {announcements.length === 0 ? (
+              <p className="text-sm text-slate-400">
+                No announcements available
+              </p>
+            ) : (
+              announcements.map((a) => (
+                <div
+                  key={a.id}
+                  className="border rounded-lg p-3 hover:bg-slate-50 transition flex justify-between items-start"
                 >
-                  Close
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                  {/* Left Content */}
+                  <div className="flex-1 pr-3 min-w-0">
+                    {/* Title */}
+                    <h4 className="text-sm font-semibold text-slate-800 truncate">
+                      {a.title}
+                    </h4>
+
+
+                    <p
+                      className="text-sm text-slate-600 mt-1 overflow-hidden text-ellipsis"
+                      style={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                      }}
+                    >
+                      {a.description}
+                    </p>
+
+                    {/* Date */}
+                    <p className="mt-1 text-xs text-slate-400">
+                      {format(parsePKT(a.created_at), "PPP")}
+                    </p>
+                  </div>
+
+                  {/* Eye Button Right Side */}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setSelectedAnnouncement(a)}
+                    className="shrink-0"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
 
         </div>
+        <Dialog
+          open={!!selectedAnnouncement}
+          onOpenChange={() => setSelectedAnnouncement(null)}
+        >
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedAnnouncement?.title}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-slate-500">
+                {selectedAnnouncement &&
+                  format(parsePKT(selectedAnnouncement.created_at), "PPP")}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="mt-4 text-sm text-slate-700 whitespace-pre-line">
+              {selectedAnnouncement?.description}
+            </div>
+
+            <DialogFooter className="mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setSelectedAnnouncement(null)}
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

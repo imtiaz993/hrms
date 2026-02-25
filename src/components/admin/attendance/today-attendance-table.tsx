@@ -14,11 +14,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TodayAttendanceRecord, useGetEmployeeMonthlyAttendance } from '@/hooks/admin/useAttendance';
 import { formatTime, formatHours } from '@/lib/time-utils';
-import { Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Eye, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { AttendanceKPICards } from '@/components/attendance/attendance-kpi-cards';
 import { Employee } from '@/types';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import QuickOverview from '@/app/employee/dashboard/component/QuickOverview';
+import { getCurrentTime, parsePKT } from '@/lib/time-utils';
+
 
 interface TodayAttendanceTableProps {
   /** Filter 1: for table only (Search, Department, Status) */
@@ -43,14 +45,15 @@ export function TodayAttendanceTable({
   tableRecords,
   allRecords,
   allEmployees = [],
-  selectedMonth = new Date().getMonth() + 1,
-  selectedYear = new Date().getFullYear(),
+  selectedMonth = getCurrentTime().getMonth() + 1,
+  selectedYear = getCurrentTime().getFullYear(),
   onMonthChange,
 }: TodayAttendanceTableProps) {
   const router = useRouter();
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
+
 
   // Use all employees for dropdown (exclude admins - only show employees)
   const employees = useMemo(() => {
@@ -181,7 +184,7 @@ export function TodayAttendanceTable({
                       {record.timeEntry?.clock_in ? (
                         <div>
                           <div className="text-sm text-gray-900">{formatTime(record.timeEntry.clock_in)}</div>
-                         
+
                         </div>
                       ) : (
                         <span className="text-sm text-gray-400">Missing</span>
@@ -206,7 +209,7 @@ export function TodayAttendanceTable({
                     <TableCell>
                       <Badge variant={config.variant}>{config.label}</Badge>
                     </TableCell>
-                   
+
                   </TableRow>
                 );
               })}
@@ -270,7 +273,7 @@ export function TodayAttendanceTable({
 
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
-                    <label className="font-medium">Select Employee:</label>
+          <label className="font-medium">Select Employee:</label>
           <select
             className="border rounded px-3 py-1 min-w-[180px]"
             value={selectedEmployeeId || ''}
@@ -303,7 +306,7 @@ export function TodayAttendanceTable({
               value={selectedYear}
               onChange={(e) => onMonthChange(selectedMonth, Number(e.target.value))}
             >
-              {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(y => (
+              {Array.from({ length: 10 }, (_, i) => getCurrentTime().getFullYear() - i).map(y => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
@@ -311,18 +314,22 @@ export function TodayAttendanceTable({
         )}
       </div>
 
-           {/* KPIs - zero when no employee; employee data when selected */}
+      {/* KPIs - zero when no employee; employee data when selected */}
       {
-        (selectedEmployeeId)&&(
-            <AttendanceKPICards
-        analytics={analytics}
-        cardBase={cardBase}
-        isLoading={cardsLoading}
-      />
+        (selectedEmployeeId) && (
+          <AttendanceKPICards
+            analytics={analytics}
+            cardBase={cardBase}
+            isLoading={cardsLoading}
+          />
         )
       }
 
-        {/* Quick Attendance Overview - shows chart for selected employee */}
+
+
+
+
+      {/* Quick Attendance Overview - shows chart for selected employee */}
       {selectedEmployeeId ? (
         <QuickOverview
           cardBase={cardBase}
@@ -341,13 +348,13 @@ export function TodayAttendanceTable({
         </div>
       )}
 
- 
-    
 
-    
 
-   
-   
+
+
+
+
+
     </div>
   );
 }

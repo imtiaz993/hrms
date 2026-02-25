@@ -10,7 +10,8 @@ import { LeaveRequest, LeaveStatus, LeaveType } from "@/types";
 import { supabase } from "@/lib/supabaseUser";
 import { formatDate } from "@/lib/time-utils";
 import { Calendar, AlertCircle, X, Eye } from "lucide-react";
-import { isAfter, parseISO } from "date-fns";
+import { isAfter } from "date-fns";
+import { getCurrentTime, parsePKT } from "@/lib/time-utils";
 
 interface LeaveRequestsListProps {
   requests: LeaveRequest[];
@@ -160,14 +161,12 @@ export function LeaveRequestsList({
 
   const canCancelRequest = (request: LeaveRequest): boolean => {
     if (request.status !== "pending") return false;
-    const startDate = parseISO(request.start_date);
-    const today = new Date();
+    const startDate = parsePKT(request.start_date);
+    const today = getCurrentTime();
     return (
       isAfter(startDate, today) ||
       startDate.toDateString() === today.toDateString()
     );
-
-    console.log("canCancelRequest", canCancelRequest);
   };
 
   const formatDuration = (request: LeaveRequest): string => {
@@ -210,12 +209,8 @@ export function LeaveRequestsList({
 
   return (
     <>
-      <Card className={cardBase}>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold text-slate-900">
-            My Leave Requests
-          </CardTitle>
-        </CardHeader>
+      <div>
+
         <CardContent>
           {error && (
             <Alert
@@ -287,7 +282,7 @@ export function LeaveRequestsList({
             </table>
           </div>
         </CardContent>
-      </Card>
+      </div>
 
       {/* Standalone popup for Leave Details rendered at document.body level */}
       {selectedLeave &&

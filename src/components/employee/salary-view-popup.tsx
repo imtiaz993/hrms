@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from "@/lib/supabaseUser";
 import { format } from 'date-fns';
+import { getCurrentTime, parsePKT } from "@/lib/time-utils";
 
 import {
   Card,
@@ -41,10 +42,10 @@ export function SalaryViewPopup({ employeeId, onClose }: SalaryViewPopupProps) {
   >([]);
 
   const [selectedMonth, setSelectedMonth] = useState(
-    new Date().getMonth() + 1
+    getCurrentTime().getMonth() + 1
   );
   const [selectedYear, setSelectedYear] = useState(
-    new Date().getFullYear()
+    getCurrentTime().getFullYear()
   );
 
 
@@ -74,7 +75,7 @@ export function SalaryViewPopup({ employeeId, onClose }: SalaryViewPopupProps) {
     setIsAuthenticated(true);
   };
 
- 
+
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -91,7 +92,7 @@ export function SalaryViewPopup({ employeeId, onClose }: SalaryViewPopupProps) {
     fetchSalaryConfig();
   }, [employeeId, isAuthenticated]);
 
- 
+
   useEffect(() => {
     if (!isAuthenticated) return;
 

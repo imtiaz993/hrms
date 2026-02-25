@@ -12,10 +12,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Settings, AlertCircle, DollarSign, TrendingUp, Users } from 'lucide-react';
+import { getCurrentTime } from '@/lib/time-utils';
 
 export default function PayrollDashboardPage() {
   const router = useRouter();
-  const currentDate = new Date();
+  const currentDate = getCurrentTime();
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
 

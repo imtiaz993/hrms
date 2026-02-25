@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   format,
-  parseISO,
   isSunday,
   isSaturday,
   isFuture,
@@ -12,6 +11,7 @@ import {
   isBefore,
 } from "date-fns";
 import { cn } from "@/lib/utils";
+import { getCurrentTime, parsePKT } from "@/lib/time-utils";
 
 const statusLabels: any = {
   present: "Present",
@@ -147,10 +147,10 @@ export function WorkingHoursChartCard({
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
 
   const totals = useMemo(() => {
-    const today = startOfDay(new Date());
+    const today = startOfDay(getCurrentTime());
 
     const scheduled = chartData.reduce((sum: number, item: any) => {
-      const d = startOfDay(new Date(item.date)); // item.date can be "yyyy-MM-dd"
+      const d = startOfDay(parsePKT(item.date)); // item.date can be "yyyy-MM-dd"
       const isWeekend = isSaturday(d) || isSunday(d);
 
       if (isWeekend) return sum;
@@ -170,10 +170,10 @@ export function WorkingHoursChartCard({
   const tooltip = useMemo((): TooltipLine[] | null => {
     if (!hovered) return null;
 
-    const weekend = isSaturday(hovered.date) || isSunday(hovered.date);
-    const future = isFuture(hovered.date);
+    const weekend = isSaturday(parsePKT(hovered.date)) || isSunday(parsePKT(hovered.date));
+    const future = isFuture(parsePKT(hovered.date));
 
-    const dateStr = format(parseISO(hovered.date), "MMM dd, yyyy");
+    const dateStr = format(parsePKT(hovered.date), "MMM dd, yyyy");
 
     // off/absent if no clock_in (and not weekend/future)
     const isAbsent = !weekend && !future && !hovered?.clock_in;
@@ -201,12 +201,12 @@ export function WorkingHoursChartCard({
     if (hovered.clock_in)
       lines.push({
         k: "Clock In",
-        v: format(new Date(hovered.clock_in), "h:mm a"),
+        v: format(parsePKT(hovered.clock_in), "h:mm a"),
       });
     if (hovered.clock_out)
       lines.push({
         k: "Clock Out",
-        v: format(new Date(hovered.clock_out), "h:mm a"),
+        v: format(parsePKT(hovered.clock_out), "h:mm a"),
       });
 
     // Only show worked hours if clock_out exists
@@ -239,22 +239,20 @@ export function WorkingHoursChartCard({
       <div className="space-y-3">
         <div className="relative h-36 flex items-end justify-between gap-1 rounded-2xl">
           {chartData.map((item: any, index: any) => {
-            const weekend = isSunday(item.date) || isSaturday(item.date);
-            const future = isFuture(item.date);
+            const weekend = isSunday(parsePKT(item.date)) || isSaturday(parsePKT(item.date));
+            const future = isFuture(parsePKT(item.date));
 
             const actualHeight = (item.total_hours / item.standard_hours) * 100;
 
-            const baseHeight = `${
-              future || weekend
+            const baseHeight = `${future || weekend
+              ? 33
+              : !item.clock_in || !item.clock_out
                 ? 33
-                : !item.clock_in || !item.clock_out
-                  ? 33
-                  : (item.standard_hours / standardHoursPerDay) * 100
-            }%`;
+                : (item.standard_hours / standardHoursPerDay) * 100
+              }%`;
 
-            const fillHeight = `${
-              item?.clock_in && item?.clock_out ? actualHeight : 100
-            }%`;
+            const fillHeight = `${item?.clock_in && item?.clock_out ? actualHeight : 100
+              }%`;
 
             const fillColor = item.is_late
               ? "bg-yellow-400"
@@ -274,9 +272,8 @@ export function WorkingHoursChartCard({
                 className="relative flex flex-1 flex-col justify-end items-center h-full"
               >
                 <div
-                  className={`relative bottom-0 w-full rounded-t-sm cursor-pointer ${
-                    weekend ? "bg-black" : "bg-slate-200/80"
-                  }`}
+                  className={`relative bottom-0 w-full rounded-t-sm cursor-pointer ${weekend ? "bg-black" : "bg-slate-200/80"
+                    }`}
                   onMouseEnter={(e) => {
                     setHovered(item);
                     setAnchorRect(
@@ -340,9 +337,8 @@ export function WorkingHoursChartCard({
         <div>
           <p className="text-xs text-slate-500">Difference</p>
           <p
-            className={`text-lg font-semibold ${
-              totals.difference >= 0 ? "text-emerald-600" : "text-rose-600"
-            }`}
+            className={`text-lg font-semibold ${totals.difference >= 0 ? "text-emerald-600" : "text-rose-600"
+              }`}
           >
             {totals.difference >= 0 ? "+" : ""}
             {totals.difference.toFixed(1)}h

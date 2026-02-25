@@ -1,5 +1,35 @@
-import { format, parseISO, differenceInMinutes } from "date-fns";
+import { format, parseISO, differenceInMinutes, addHours } from "date-fns";
 import { TimeEntry, TodayStatus, AttendanceRow } from "@/types";
+
+// PKT is UTC+5
+const PKT_OFFSET = 5;
+
+/** 
+ * Returns the current date/time adjusted to PKT (UTC+5) 
+ */
+export function getCurrentTime(): Date {
+  const now = new Date();
+  // If the environment is already in PKT (like local dev in Pakistan), this might be redundant 
+  // but to be safe across servers (UTC), we manually adjust.
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  return new Date(utc + (3600000 * PKT_OFFSET));
+}
+
+/**
+ * Formats a PKT date to ISO string for storage
+ */
+export function toPKTISO(date: Date): string {
+  return format(date, "yyyy-MM-dd'T'HH:mm:ss");
+}
+
+/**
+ * Parses a string and ensures it's treated as PKT if it doesn't have a timezone
+ */
+export function parsePKT(timestamp: string): Date {
+  // If it's just "2024-02-24T10:00:00", we assume it's PKT.
+  // If it's ISO UTC "2024-02-24T05:00:00Z", parseISO handles it.
+  return parseISO(timestamp);
+}
 
 export function calculateTotalHours(
   timeIn?: string | null,
@@ -91,7 +121,8 @@ export function isEarlyLeave(
 export function formatTime(timestamp?: string | null): string {
   if (!timestamp) return "—";
   try {
-    return format(parseISO(timestamp), "h:mm a");
+    // We assume the timestamp in DB is already PKT or we treat it as such for display
+    return format(parsePKT(timestamp), "h:mm a");
   } catch (e) {
     console.error("Error in formatTime:", timestamp, e);
     return "—";
@@ -101,7 +132,7 @@ export function formatTime(timestamp?: string | null): string {
 export function formatDate(date?: string | null): string {
   if (!date) return "—";
   try {
-    return format(parseISO(date), "EEE, MMM d");
+    return format(parsePKT(date), "EEE, MMM d");
   } catch (e) {
     console.error("Error in formatDate:", date, e);
     return "—";
@@ -111,7 +142,7 @@ export function formatDate(date?: string | null): string {
 export function formatDateFull(date?: string | null): string {
   if (!date) return "—";
   try {
-    return format(parseISO(date), "EEEE, MMMM d, yyyy");
+    return format(parsePKT(date), "EEEE, MMMM d, yyyy");
   } catch (e) {
     console.error("Error in formatDateFull:", date, e);
     return "—";
@@ -129,8 +160,8 @@ export function calculateElapsedHours(timeIn?: string | null): number | null {
   if (!timeIn) return null;
 
   try {
-    const start = parseISO(timeIn);
-    const now = new Date();
+    const start = parsePKT(timeIn);
+    const now = getCurrentTime();
     const minutes = differenceInMinutes(now, start);
     return Math.round((minutes / 60) * 100) / 100;
   } catch (e) {
@@ -169,8 +200,8 @@ export function mapTimeEntryToTodayStatus(
       status: "clocked_in",
       timeEntryId: entry.id,
       clockIn: entry.clock_in,
-      clockOut:"",
-       totalHours: 0,
+      clockOut: "",
+      totalHours: 0,
       date: "",
 
       timeIn: null,
@@ -185,19 +216,19 @@ export function mapTimeEntryToTodayStatus(
 
   return {
     status: "not_clocked_in",
-    
-      timeEntryId: NaN,
-      clockIn: "",
-      clockOut:"",
-     totalHours: 0,
-      date: "",
-      timeIn: null,
-      timeOut: null,
-      elapsedHours: null,
 
-      overtimeHours: 0,
-      isLate: false,
-      lateByMinutes: null,
+    timeEntryId: NaN,
+    clockIn: "",
+    clockOut: "",
+    totalHours: 0,
+    date: "",
+    timeIn: null,
+    timeOut: null,
+    elapsedHours: null,
+
+    overtimeHours: 0,
+    isLate: false,
+    lateByMinutes: null,
   };
 }
 

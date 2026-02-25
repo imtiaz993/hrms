@@ -83,9 +83,9 @@ export interface TodayStatus {
   overtimeHours: number;
   isLate: boolean;
   lateByMinutes: number | null;
-  timeEntryId:number
-  clockIn:string|null;
-clockOut:string;
+  timeEntryId: number
+  clockIn: string | null;
+  clockOut: string;
 
 }
 
@@ -252,6 +252,24 @@ export interface ExtraWork {
   reason?: string;
   status: "pending" | "approved" | "rejected";
   approver_comment?: string;
+  created_at: string;
+  updated_at: string;
+}
+export type ExemptionStatus = "pending" | "approved" | "rejected";
+
+export interface ExemptionRequest {
+  id: string;
+  employee_id: string;
+  date: string;
+  old_clock_in: string | null;
+  new_clock_in: string;
+  old_clock_out: string | null;
+  new_clock_out: string;
+  is_late: boolean;
+  is_early_leave: boolean;
+  reason: string;
+  status: ExemptionStatus;
+  admin_comment?: string;
   created_at: string;
   updated_at: string;
 }
