@@ -70,6 +70,7 @@ export interface TimeEntry {
   is_early_leave: boolean;
   notes?: string;
   created_at: string;
+  standard_hours: number
   updated_at: string;
 }
 

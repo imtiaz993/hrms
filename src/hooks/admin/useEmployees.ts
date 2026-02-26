@@ -1,6 +1,5 @@
 import { Employee } from "@/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocalData } from "@/lib/local-data";
 import { supabase } from "@/lib/supabaseUser";
 
 export function useGetAllEmployees() {
