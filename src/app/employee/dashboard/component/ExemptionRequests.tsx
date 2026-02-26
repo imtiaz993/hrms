@@ -12,9 +12,10 @@ import { ExemptionRequestsList } from "@/components/employee/exemption-requests-
 interface ExemptionRequestsProps {
   currentUser: any;
   cardBase: string;
+  refreshKey?: number;
 }
 
-export default function ExemptionRequests({ currentUser, cardBase }: ExemptionRequestsProps) {
+export default function ExemptionRequests({ currentUser, cardBase, refreshKey }: ExemptionRequestsProps) {
   const [requests, setRequests] = useState<ExemptionRequest[]>([]);
   const [showPopup, setShowPopup] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -41,7 +42,7 @@ export default function ExemptionRequests({ currentUser, cardBase }: ExemptionRe
     if (currentUser?.id) {
       fetchRequests();
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, refreshKey]);
 
 
   return (

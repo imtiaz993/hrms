@@ -70,37 +70,42 @@ const Leaves = ({
         />
       )}
 
-      <Card className={cardBase}>
-        <CardHeader>
-          <CardTitle className="text-base font-semibold text-slate-900">
+      <Card className={cardBase} >
+        <div className="flex flex-row justify-between" >
+             <CardHeader className="flex  items-start justify-between pb-2">
+          <CardTitle className="text-base font-semibold text-slate-900 ">
             Leaves
           </CardTitle>
-
-          {/* Counts */}
-          <div className="text-sm text-slate-400 grid grid-cols-2 gap-y-1">
-            <p>
+           <p className="text-[11px] text-slate-400">
               Sick Leaves:{" "}
               <span className="text-slate-700 font-medium">
                 {localSickLeaves}/{totalSickLeaves}
               </span>
             </p>
-            <p>
+            <p className="text-[11px] text-slate-400">
               Casual Leaves:{" "}
               <span className="text-slate-700 font-medium">
                 {localCasualLeaves}/{totalCasualLeaves}
               </span>
             </p>
-          </div>
 
-          <Button
-            onClick={() => setShowLeaveRequest(true)}
-            className="mt-4 rounded-full px-3 text-sm"
-            variant="outline"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Request leave
-          </Button>
+          
         </CardHeader>
+        <div className="flex flex-col items-end gap-2 space-y-1.5  p-6">
+           
+            <Button
+              onClick={() => setShowLeaveRequest(true)}
+              size="sm"
+              variant="outline"
+              className="rounded-full px-3 text-xs h-8"
+            >
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              Request leave
+            </Button>
+            
+          </div>
+        </div>
+     
 
         <CardContent>
           {/* Loading */}
