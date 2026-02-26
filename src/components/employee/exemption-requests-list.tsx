@@ -47,9 +47,12 @@ export function ExemptionRequestsList({
     setRequests,
 }: ExemptionRequestsListProps) {
     const [selectedRequest, setSelectedRequest] = useState<ExemptionRequest | null>(null);
+    const [cancellingId, setCancellingId] = useState<string | null>(null);
     const { addToast } = useToast();
 
     const handleCancel = async (requestId: string) => {
+        if (cancellingId) return;
+        setCancellingId(requestId);
         try {
             const { error } = await supabase
                 .from("exemption_requests")
@@ -84,6 +87,8 @@ export function ExemptionRequestsList({
                 description: err.message || "Failed to cancel request",
                 variant: "destructive",
             });
+        } finally {
+            setCancellingId(null);
         }
     };
 
@@ -103,7 +108,7 @@ export function ExemptionRequestsList({
     return (
         <>
             <div className="space-y-4">
-                <div className="overflow-x-auto rounded-xl border border-slate-100">
+                <div className="overflow-x-auto rounded-xl border border-slate-100 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
                     <table className="min-w-full text-sm">
                         <thead className="bg-slate-50/80">
                             <tr>
@@ -170,6 +175,7 @@ export function ExemptionRequestsList({
                                                 variant="ghost"
                                                 className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
                                                 onClick={() => handleCancel(req.id)}
+                                                disabled={cancellingId === req.id}
                                             >
                                                 <XCircle className="h-4 w-4" />
                                             </Button>
@@ -207,109 +213,109 @@ export function ExemptionRequestsList({
                                 </Button>
                             </CardHeader>
                             <CardContent className="p-6">
-    <div className="space-y-8">
+                                <div className="space-y-8">
 
-        {/* Header Info Section */}
-        <div className="flex items-start justify-between gap-6 pb-4 border-b border-slate-100">
-            <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                    Date
-                </p>
-                <p className="mt-1 text-base font-semibold text-slate-900">
-                    {format(parsePKT(selectedRequest.date), "EEEE, MMM dd, yyyy")}
-                </p>
-            </div>
+                                    {/* Header Info Section */}
+                                    <div className="flex items-start justify-between gap-6 pb-4 border-b border-slate-100">
+                                        <div>
+                                            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                                                Date
+                                            </p>
+                                            <p className="mt-1 text-base font-semibold text-slate-900">
+                                                {format(parsePKT(selectedRequest.date), "EEEE, MMM dd, yyyy")}
+                                            </p>
+                                        </div>
 
-            <div className="text-right">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                    Status
-                </p>
-                <div className="mt-1">
-                    <Badge
-                        variant={statusConfig[selectedRequest.status].variant}
-                        className="rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
-                    >
-                        {statusConfig[selectedRequest.status].label}
-                    </Badge>
-                </div>
-            </div>
-        </div>
+                                        <div className="text-right">
+                                            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                                                Status
+                                            </p>
+                                            <div className="mt-1">
+                                                <Badge
+                                                    variant={statusConfig[selectedRequest.status].variant}
+                                                    className="rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
+                                                >
+                                                    {statusConfig[selectedRequest.status].label}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    </div>
 
-        {/* Time Comparison Section */}
-        <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-                <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                    Old Times
-                </p>
-                <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                        <span className="text-slate-500">Clock In</span>
-                        <span className="font-medium text-slate-900">
-                            {selectedRequest.old_clock_in
-                                ? format(parsePKT(selectedRequest.old_clock_in), "HH:mm")
-                                : "--:--"}
-                        </span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-slate-500">Clock Out</span>
-                        <span className="font-medium text-slate-900">
-                            {selectedRequest.old_clock_out
-                                ? format(parsePKT(selectedRequest.old_clock_out), "HH:mm")
-                                : "--:--"}
-                        </span>
-                    </div>
-                </div>
-            </div>
+                                    {/* Time Comparison Section */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                                            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                                                Old Times
+                                            </p>
+                                            <div className="space-y-2 text-sm">
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-500">Clock In</span>
+                                                    <span className="font-medium text-slate-900">
+                                                        {selectedRequest.old_clock_in
+                                                            ? format(parsePKT(selectedRequest.old_clock_in), "HH:mm")
+                                                            : "--:--"}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-500">Clock Out</span>
+                                                    <span className="font-medium text-slate-900">
+                                                        {selectedRequest.old_clock_out
+                                                            ? format(parsePKT(selectedRequest.old_clock_out), "HH:mm")
+                                                            : "--:--"}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
 
-            <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4">
-                <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-blue-400">
-                    New Times
-                </p>
-                <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                        <span className="text-blue-500 font-medium">Clock In</span>
-                        <span className="font-bold text-blue-700">
-                            {selectedRequest.new_clock_in
-                                ? format(parsePKT(selectedRequest.new_clock_in), "HH:mm")
-                                : "--:--"}
-                        </span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-blue-500 font-medium">Clock Out</span>
-                        <span className="font-bold text-blue-700">
-                            {selectedRequest.new_clock_out
-                                ? format(parsePKT(selectedRequest.new_clock_out), "HH:mm")
-                                : "--:--"}
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </div>
+                                        <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4">
+                                            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-blue-400">
+                                                New Times
+                                            </p>
+                                            <div className="space-y-2 text-sm">
+                                                <div className="flex justify-between">
+                                                    <span className="text-blue-500 font-medium">Clock In</span>
+                                                    <span className="font-bold text-blue-700">
+                                                        {selectedRequest.new_clock_in
+                                                            ? format(parsePKT(selectedRequest.new_clock_in), "HH:mm")
+                                                            : "--:--"}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-blue-500 font-medium">Clock Out</span>
+                                                    <span className="font-bold text-blue-700">
+                                                        {selectedRequest.new_clock_out
+                                                            ? format(parsePKT(selectedRequest.new_clock_out), "HH:mm")
+                                                            : "--:--"}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
 
-        {/* Reason Section */}
-        <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                Reason
-            </p>
-            <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 p-4 text-sm text-slate-700 leading-relaxed shadow-inner">
-                {selectedRequest.reason}
-            </div>
-        </div>
+                                    {/* Reason Section */}
+                                    <div>
+                                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                                            Reason
+                                        </p>
+                                        <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 p-4 text-sm text-slate-700 leading-relaxed shadow-inner">
+                                            {selectedRequest.reason}
+                                        </div>
+                                    </div>
 
-        {/* Admin Comment (Optional) */}
-        {selectedRequest.admin_comment && (
-            <div>
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-amber-500">
-                    Admin Comment
-                </p>
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 italic shadow-sm">
-                    {selectedRequest.admin_comment}
-                </div>
-            </div>
-        )}
+                                    {/* Admin Comment (Optional) */}
+                                    {selectedRequest.admin_comment && (
+                                        <div>
+                                            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-amber-500">
+                                                Admin Comment
+                                            </p>
+                                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 italic shadow-sm">
+                                                {selectedRequest.admin_comment}
+                                            </div>
+                                        </div>
+                                    )}
 
-    </div>
-</CardContent>
+                                </div>
+                            </CardContent>
 
                         </Card>
                     </div>,

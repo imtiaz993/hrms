@@ -362,7 +362,7 @@ export default function LeaveRequestsPage() {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <Badge
                               variant={statusInfo.variant}
-                              className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider shadow-sm"
+                              className="rounded-md px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider shadow-sm"
                             >
                               {statusInfo.label}
                             </Badge>
@@ -408,16 +408,25 @@ export default function LeaveRequestsPage() {
                                       onClick={() => handleAction(request.id.toString(), "rejected")}
                                       disabled={!!processingId}
                                     >
+                                      {processingId === request.id.toString() ? (
+                                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                      ) : (
+                                        <XCircle className="h-3 w-3 mr-1" />
+                                      )}
                                       Reject
                                     </Button>
                                   ) : request.status === "rejected" ? (
                                     <Button
                                       size="sm"
-                                      variant="outline"
-                                      className="h-7 px-2 border-slate-200 rounded-lg hover:bg-green-50 hover:text-green-600 hover:border-green-200 transition-colors text-[10px]"
+                                      className="h-7 px-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm text-[10px]"
                                       onClick={() => handleAction(request.id.toString(), "approved")}
                                       disabled={!!processingId}
                                     >
+                                      {processingId === request.id.toString() ? (
+                                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                      ) : (
+                                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                                      )}
                                       Approve
                                     </Button>
                                   ) : null}

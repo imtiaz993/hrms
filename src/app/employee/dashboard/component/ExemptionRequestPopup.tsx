@@ -99,7 +99,16 @@ export function ExemptionRequestPopup({
   };
 
   const handleSubmit = async () => {
-    if (error) return;
+    setError("");
+
+
+    const hasPending = existingRequests.some(
+      (r) => r.date === selectedDate && r.status === "pending"
+    );
+    if (hasPending) {
+      setError("You already have a pending request for this date.");
+      return;
+    }
 
     if (!reason.trim()) {
       setError("Please provide a reason for the exemption.");
@@ -248,11 +257,10 @@ export function ExemptionRequestPopup({
 
           <Button
             onClick={handleSubmit}
-         
+            disabled={loading}
             className="bg-blue-600 hover:bg-blue-700 text-white"
           >
-          
-            Submit Request
+            {loading ? "Submitting..." : "Submit Request"}
           </Button>
         </div>
       </DialogContent>
