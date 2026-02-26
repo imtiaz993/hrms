@@ -248,10 +248,10 @@ export function ExemptionRequestPopup({
 
           <Button
             onClick={handleSubmit}
-            disabled={loading || !!error || fetchingEntry}
+         
             className="bg-blue-600 hover:bg-blue-700 text-white"
           >
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          
             Submit Request
           </Button>
         </div>
