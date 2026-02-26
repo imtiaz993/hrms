@@ -106,6 +106,7 @@ export default function EmployeeDashboardPage() {
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const fetchAnnouncements = async () => {
     setIsLoading(true);
@@ -461,6 +462,8 @@ export default function EmployeeDashboardPage() {
     fetchLeaves();
     fetchEntries();
     fetchHolidays();
+    fetchAnnouncements();
+    setRefreshKey(prev => prev + 1);
   };
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -704,19 +707,19 @@ export default function EmployeeDashboardPage() {
             setLeaveRequests={setLeaveRequests}
             isLoading={isLoading}
           />
-          <ExemptionRequests currentUser={currentUser} cardBase={cardBase} />
+          <ExemptionRequests currentUser={currentUser} cardBase={cardBase} refreshKey={refreshKey} />
 
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <CompanyPolicy cardBase={cardBase} />
+          <CompanyPolicy cardBase={cardBase} refreshKey={refreshKey} />
           <Salary cardBase={cardBase} currentUser={currentUser} />
-          
+
         </div>
 
-          <div className={`${cardBase} p-4`}>
-            <h3 className="mb-4 text-lg font-semibold text-slate-800">
-              Announcements
-            </h3>
+        <div className={`${cardBase} p-4`}>
+          <h3 className="mb-4 text-lg font-semibold text-slate-800">
+            Announcements
+          </h3>
 
 
 
@@ -750,11 +753,11 @@ export default function EmployeeDashboardPage() {
                       {a.description}
                     </p>
 
-                      {/* Date */}
-                      <p className="mt-1 text-xs text-slate-400">
-                        {new Date(a.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
+                    {/* Date */}
+                    <p className="mt-1 text-xs text-slate-400">
+                      {new Date(a.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
 
                   {/* Eye Button Right Side */}
                   <Button
@@ -770,21 +773,21 @@ export default function EmployeeDashboardPage() {
             )}
           </div>
 
-          </div>
-          <Dialog
-            open={!!selectedAnnouncement}
-            onOpenChange={() => setSelectedAnnouncement(null)}
-          >
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>
-                  {selectedAnnouncement?.title}
-                </DialogTitle>
-                <DialogDescription className="text-sm text-slate-500">
-                  {selectedAnnouncement &&
-                    new Date(selectedAnnouncement.created_at).toLocaleDateString()}
-                </DialogDescription>
-              </DialogHeader>
+        </div>
+        <Dialog
+          open={!!selectedAnnouncement}
+          onOpenChange={() => setSelectedAnnouncement(null)}
+        >
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedAnnouncement?.title}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-slate-500">
+                {selectedAnnouncement &&
+                  new Date(selectedAnnouncement.created_at).toLocaleDateString()}
+              </DialogDescription>
+            </DialogHeader>
 
             <div className="mt-4 text-sm text-slate-700 whitespace-pre-line">
               {selectedAnnouncement?.description}

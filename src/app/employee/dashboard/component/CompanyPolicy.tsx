@@ -13,7 +13,7 @@ type CompanyPolicyRow = {
   doc_name: string | null;
 };
 
-const CompanyPolicy = ({ cardBase }: any) => {
+const CompanyPolicy = ({ cardBase, refreshKey }: any) => {
   const [loading, setLoading] = useState(true);
   const [policy, setPolicy] = useState<CompanyPolicyRow | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +40,7 @@ const CompanyPolicy = ({ cardBase }: any) => {
 
   useEffect(() => {
     fetchPolicy();
-  }, []);
+  }, [refreshKey]);
 
   return (
     <Card className={`${cardBase} h-auto`}>

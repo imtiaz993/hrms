@@ -42,7 +42,7 @@ const navItems: NavItem[] = [
   },
 
    {
-    label: "exemption-requests",
+    label: "Exemption Requests",
     href: "/admin/dashboard/attendance/exemption-requests",
     icon: CalendarCheck,
   

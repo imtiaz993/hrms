@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LeaveRequest, LeaveStatus, LeaveType } from "@/types";
 import { supabase } from "@/lib/supabaseUser";
 import { formatDate } from "@/lib/time-utils";
-import { Calendar, AlertCircle, X, Eye } from "lucide-react";
+import { Calendar, AlertCircle, X, Eye, XCircle } from "lucide-react";
 import { isAfter } from "date-fns";
 import { getCurrentTime, parsePKT } from "@/lib/time-utils";
 
@@ -185,106 +185,85 @@ export function LeaveRequestsList({
     "relative overflow-hidden rounded-2xl border border-slate-100 bg-white/85 backdrop-blur-sm shadow-sm";
 
   if (requests.length === 0) {
-    return (
-      <Card className={cardBase}>
-        <CardHeader>
-          <CardTitle className="text-base font-semibold text-slate-900">
-            My Leave Requests
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center rounded-2xl bg-slate-50 py-8 text-center">
-            <Calendar className="mb-3 h-10 w-10 text-slate-300" />
-            <p className="text-sm font-medium text-slate-700">
-              You haven&apos;t requested any leave yet.
-            </p>
-            <p className="mt-1 text-xs text-slate-400">
-              Use the form above to submit your first leave request.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return null; // Parent handles empty state
   }
 
   return (
     <>
-      <div>
+      <div className="space-y-4">
 
-        <CardContent>
-          {error && (
-            <Alert
-              variant="destructive"
-              className="mb-4 border-rose-200 bg-rose-50 text-sm"
-            >
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+        {error && (
+          <Alert
+            variant="destructive"
+            className="mb-4 border-rose-200 bg-rose-50 text-sm"
+          >
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-          <div className="overflow-x-auto rounded-xl border border-slate-100">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50/80">
-                <tr>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                    Dates
-                  </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
+        <div className="overflow-x-auto rounded-xl border border-slate-100">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-50/80">
+              <tr>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Dates
+                </th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Actions
+                </th>
+              </tr>
+            </thead>
 
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {requests.map((request) => (
-                  <tr
-                    key={request.id}
-                    className="transition-colors hover:bg-slate-50/70"
-                  >
-                    <td className="px-4 py-3 align-top text-sm text-slate-900">
-                      {formatDateRange(request)}
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <Badge
-                        variant={statusConfig[request.status].variant}
-                        className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-                      >
-                        {statusConfig[request.status].label}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 align-top text-sm space-x-2">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setSelectedLeave(request)}
-                      >
-                        <Eye className="h-4 w-4 text-slate-600" />
-                      </Button>
-                      {/* 
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {requests.map((request) => (
+                <tr
+                  key={request.id}
+                  className="transition-colors hover:bg-slate-50/70"
+                >
+                  <td className="px-4 py-3 align-top text-sm text-slate-900">
+                    {formatDateRange(request)}
+                  </td>
+                  <td className="px-4 py-3 align-top">
+                    <Badge
+                      variant={statusConfig[request.status].variant}
+                      className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                    >
+                      {statusConfig[request.status].label}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 align-top text-sm space-x-2">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setSelectedLeave(request)}
+                    >
+                      <Eye className="h-4 w-4 text-slate-600" />
+                    </Button>
+                    {/* 
                        {canCancelRequest(request) && ( */}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleCancel(request.id)}
-                        disabled={cancellingId === request.id}
-                      >
-                        <X className="h-4 w-4 text-rose-500" />
-                      </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleCancel(request.id)}
+                      disabled={cancellingId === request.id}
+                      className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </Button>
 
-                      {/* )} */}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
+                    {/* )} */}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Standalone popup for Leave Details rendered at document.body level */}
       {selectedLeave &&
         typeof window !== "undefined" &&
         createPortal(

@@ -205,9 +205,8 @@ export default function AdminExemptionRequestsPage() {
       </Card>
 
       {loading ? (
-        <div className="flex items-center justify-center h-64 bg-white/50 rounded-2xl border border-slate-100 italic text-slate-400">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mr-3" />
-          Fetching requests...
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : total === 0 ? (
         <Card className="p-16 text-center border-slate-200/60 shadow-sm bg-white/50">
