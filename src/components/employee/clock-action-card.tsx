@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabaseUser";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TodayStatus } from "@/types";
 import { format } from "date-fns";
+import { getCurrentTime, toPKTISO, parsePKT } from "@/lib/time-utils";
 import {
   Clock,
   Timer,
@@ -72,11 +73,11 @@ export function ClockActionCard({
     text: string;
   } | null>(null);
   const [isClockOutLoading, setIsClockOutLoading] = useState(false);
-  const [clocking, setClocking]=useState(false)
+  const [clocking, setClocking] = useState(false)
   const [tick, setTick] = useState(0);
 
   const isWeekend = () => {
-    const day = new Date().getDay();
+    const day = getCurrentTime().getDay();
     return day === 0 || day === 6;
   };
 
@@ -114,159 +115,163 @@ export function ClockActionCard({
 
   const elapsedLabel = useMemo(() => {
     if (status?.status !== "clocked_in" || !clockInValue) return "00:00:00";
-    const start = new Date(clockInValue).getTime();
-    const diffMs = Math.max(0, Date.now() - start);
+    const start = parsePKT(clockInValue).getTime();
+    const diffMs = Math.max(0, getCurrentTime().getTime() - start);
     return formatDuration(diffMs);
   }, [status?.status, clockInValue, tick]);
 
   const workedLabel = useMemo(() => {
     if (!clockInValue || !clockOutValue) return null;
-    const start = new Date(clockInValue).getTime();
-    const end = new Date(clockOutValue).getTime();
+    const start = parsePKT(clockInValue).getTime();
+    const end = parsePKT(clockOutValue).getTime();
     if (Number.isNaN(start) || Number.isNaN(end)) return null;
     return formatDuration(Math.max(0, end - start));
   }, [clockInValue, clockOutValue]);
 
-const handleClockIn = async () => {
-  setClocking(true);
-  setMessage(null);
+  const handleClockIn = async () => {
+    setClocking(true);
+    setMessage(null);
 
-  try {
-    const now = Date.now();
+    try {
+      const pktNow = getCurrentTime();
+      const nowMs = pktNow.getTime();
 
-    const { data } = await supabase
-      .from("employees")
-      .select("standard_shift_start,first_name")
-      .eq("id", employeeId)
-      .single();
+      const { data } = await supabase
+        .from("employees")
+        .select("standard_shift_start,first_name")
+        .eq("id", employeeId)
+        .single();
 
-    if (!data?.standard_shift_start) {
-      throw new Error("Shift start not found");
-    }
- const  employeeName=data.first_name
-   
-    const [h, m] = data.standard_shift_start.split(":").map(Number);
-    const shiftStart = new Date().setHours(h, m, 0, 0);
+      if (!data?.standard_shift_start) {
+        throw new Error("Shift start not found");
+      }
+      const employeeName = data.first_name
 
-    const isLate = now > shiftStart + 30 * 60 * 1000;
+      const [h, m] = data.standard_shift_start.split(":").map(Number);
+      const shiftStart = getCurrentTime();
+      shiftStart.setHours(h, m, 0, 0);
 
-  
-    await supabase.from("time_entries").insert({
-      employee_id: employeeId,
-      clock_in: new Date(now).toISOString(),
-      is_late: isLate,
-      standard_hours: standardHours,
-    });
+      const isLate = nowMs > shiftStart.getTime() + 30 * 60 * 1000;
 
-    
-    const { data: settings } = await supabase
-      .from("admin_settings")
-      .select("clock_in_notification")
-      .single();
 
-    if (settings?.clock_in_notification) {
-      await fetch("/api/send-notification/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employeeId,
-          title: "Clock-in Alert",
-          body: `${employeeName} has clocked in.`,
-        }),
+      await supabase.from("time_entries").insert({
+        employee_id: employeeId,
+        clock_in: toPKTISO(pktNow),
+        is_late: isLate,
+        standard_hours: standardHours,
+      });
+
+
+      const { data: settings } = await supabase
+        .from("admin_settings")
+        .select("clock_in_notification")
+        .single();
+
+      if (settings?.clock_in_notification) {
+        await fetch("/api/send-notification/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            employeeId,
+            title: "Clock-in Alert",
+            body: `${employeeName} has clocked in.`,
+          }),
+        });
+      }
+
+      onActionComplete?.();
+    } catch (err: any) {
+      setMessage({
+        type: "error",
+        text: err.message || "Failed to clock in",
       });
     }
-
-    onActionComplete?.();
-  } catch (err: any) {
-    setMessage({
-      type: "error",
-      text: err.message || "Failed to clock in",
-    });
-  }
-};
+  };
 
 
 
- const handleClockOut = async () => {
-  if (!status) {
-    setMessage({ type: "error", text: "No active time entry found." });
-    return;
-  }
-
-  setIsClockOutLoading(true);
-  setMessage(null);
-
-  try {
-    const now = Date.now();
-
-  
-    const { data: employee } = await supabase
-      .from("employees")
-      .select("standard_shift_end")
-      .eq("id", employeeId)
-      .single();
-
-    if (!employee?.standard_shift_end) {
-      throw new Error("Shift end time not found");
+  const handleClockOut = async () => {
+    if (!status) {
+      setMessage({ type: "error", text: "No active time entry found." });
+      return;
     }
 
- 
-    const [h, m] = employee.standard_shift_end.split(":").map(Number);
-    const shiftEnd = new Date().setHours(h, m, 0, 0);
+    setIsClockOutLoading(true);
+    setMessage(null);
 
-    
-    const isEarly = now < shiftEnd - 5 * 60 * 1000;
-
-
-    const { error } = await supabase.rpc("calculate_total_hours", {
-      p_time_entry_id: status.timeEntryId,
-    });
-    if (error) throw error;
+    try {
+      const pktNow = getCurrentTime();
+      const nowMs = pktNow.getTime();
 
 
-    await supabase
-      .from("time_entries")
-      .update({
-        clock_out: new Date(now).toISOString(),
-        is_early_leave: isEarly,
-      })
-      .eq("id", status.timeEntryId);
+      const { data: employee } = await supabase
+        .from("employees")
+        .select("standard_shift_end")
+        .eq("id", employeeId)
+        .single();
 
-    onActionComplete?.();
+      if (!employee?.standard_shift_end) {
+        throw new Error("Shift end time not found");
+      }
 
 
-    const { data: settings, error: settingsError } = await supabase
-      .from("admin_settings")
-      .select("clock_in_notification")
-      .single();
+      const [h, m] = employee.standard_shift_end.split(":").map(Number);
+      const shiftEnd = getCurrentTime();
+      shiftEnd.setHours(h, m, 0, 0);
 
-    if (settingsError) {
-      console.error("Settings fetch error:", settingsError);
-    }
 
-    if (settings?.clock_in_notification) {
-      await fetch("/api/send-notification/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employeeId,
-          title: "Clock-out Alert",
-          body: `${employeeName} has clocked out.`,
-        }),
+      const isEarly = nowMs < shiftEnd.getTime() - 5 * 60 * 1000;
+
+
+      const { error } = await supabase.rpc("calculate_total_hours", {
+        p_time_entry_id: status.timeEntryId,
       });
+      if (error) throw error;
+
+
+      await supabase
+        .from("time_entries")
+        .update({
+          clock_out: toPKTISO(pktNow),
+          is_early_leave: isEarly,
+        })
+        .eq("id", status.timeEntryId);
+
+      onActionComplete?.();
+
+
+      const { data: settings, error: settingsError } = await supabase
+        .from("admin_settings")
+        .select("clock_in_notification")
+        .single();
+
+      if (settingsError) {
+        console.error("Settings fetch error:", settingsError);
+      }
+
+      if (settings?.clock_in_notification) {
+        await fetch("/api/send-notification/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            employeeId,
+            title: "Clock-out Alert",
+            body: `${employeeName} has clocked out.`,
+          }),
+        });
+      }
+    } catch (error: any) {
+      setMessage({
+        type: "error",
+        text: error.message || "Failed to clock out",
+      });
+    } finally {
+      setIsClockOutLoading(false);
     }
-  } catch (error: any) {
-    setMessage({
-      type: "error",
-      text: error.message || "Failed to clock out",
-    });
-  } finally {
-    setIsClockOutLoading(false);
-  }
-};
+  };
 
 
-  const todayLabel = format(new Date(), "EEE, dd MMM");
+  const todayLabel = format(getCurrentTime(), "EEE, dd MMM");
 
   const statusPill = useMemo(() => {
     const base =
@@ -362,7 +367,7 @@ const handleClockIn = async () => {
                     <p className="text-[11px] text-gray-700/70">Clock In</p>
                     <p className="mt-1 text-sm font-semibold text-gray-900">
                       {clockInValue
-                        ? format(new Date(clockInValue), "h:mm a")
+                        ? format(parsePKT(clockInValue), "h:mm a")
                         : "—"}
                     </p>
                   </div>
@@ -396,7 +401,7 @@ const handleClockIn = async () => {
                     <p className="text-[11px] text-emerald-700/70">Clock Out</p>
                     <p className="mt-1 text-sm font-semibold text-emerald-900">
                       {clockOutValue
-                        ? format(new Date(clockOutValue), "h:mm a")
+                        ? format(parsePKT(clockOutValue), "h:mm a")
                         : "—"}
                     </p>
                   </div>

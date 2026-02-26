@@ -38,10 +38,14 @@ const navItems: NavItem[] = [
     label: "Attendance",
     href: "/admin/dashboard/attendance",
     icon: CalendarCheck,
-    subItems: [
-      { label: "Overview", href: "/admin/dashboard/attendance" },
-      { label: "Exemption Requests", href: "/admin/dashboard/attendance/exemption-requests" },
-    ],
+   
+  },
+
+   {
+    label: "exemption-requests",
+    href: "/admin/dashboard/attendance/exemption-requests",
+    icon: CalendarCheck,
+  
   },
   {
     label: "Leave Requests",

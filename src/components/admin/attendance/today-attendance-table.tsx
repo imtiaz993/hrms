@@ -19,7 +19,12 @@ import { AttendanceKPICards } from '@/components/attendance/attendance-kpi-cards
 import { Employee } from '@/types';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import QuickOverview from '@/app/employee/dashboard/component/QuickOverview';
-import { AdjustEntryPopup } from './adjust-entry-popup';
+
+import { getCurrentTime, parsePKT } from '@/lib/time-utils';
+
+
+
+
 
 interface TodayAttendanceTableProps {
   /** Filter 1: for table only (Search, Department, Status) */
@@ -44,8 +49,8 @@ export function TodayAttendanceTable({
   tableRecords,
   allRecords,
   allEmployees = [],
-  selectedMonth = new Date().getMonth() + 1,
-  selectedYear = new Date().getFullYear(),
+  selectedMonth = getCurrentTime().getMonth() + 1,
+  selectedYear = getCurrentTime().getFullYear(),
   onMonthChange,
 }: TodayAttendanceTableProps) {
   const router = useRouter();
@@ -53,6 +58,7 @@ export function TodayAttendanceTable({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(10);
   const [showAdjustPopup, setShowAdjustPopup] = useState(false);
+
 
   // Use all employees for dropdown (exclude admins - only show employees)
   const employees = useMemo(() => {
@@ -305,7 +311,7 @@ export function TodayAttendanceTable({
               value={selectedYear}
               onChange={(e) => onMonthChange(selectedMonth, Number(e.target.value))}
             >
-              {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(y => (
+              {Array.from({ length: 10 }, (_, i) => getCurrentTime().getFullYear() - i).map(y => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>
@@ -324,25 +330,9 @@ export function TodayAttendanceTable({
         )
       }
 
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-slate-900">Attendance Details & Chart</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          className="bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100"
-          onClick={() => setShowAdjustPopup(true)}
-        >
-          <Clock className="mr-2 h-4 w-4" />
-          Adjust Entry
-        </Button>
-      </div>
 
-      {showAdjustPopup && (
-        <AdjustEntryPopup
-          onClose={() => setShowAdjustPopup(false)}
-          employees={employees}
-        />
-      )}
+    
+
 
       {/* Quick Attendance Overview - shows chart for selected employee */}
       {selectedEmployeeId ? (

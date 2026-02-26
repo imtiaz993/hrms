@@ -29,6 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, MoreVertical, Edit, Trash2, Plus, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { getCurrentTime } from "@/lib/time-utils";
 
 interface Holiday {
   id: string;
@@ -76,7 +77,7 @@ const Holidays = () => {
       newErrors.date = "Holiday date is required";
     } else {
       const selectedDate = new Date(date);
-      const today = new Date();
+      const today = getCurrentTime();
       today.setHours(0, 0, 0, 0);
 
       if (selectedDate < today) {
@@ -104,7 +105,7 @@ const Holidays = () => {
   }, []);
 
   const filteredHolidays = useMemo(() => {
-    const today = new Date();
+    const today = getCurrentTime();
     today.setHours(0, 0, 0, 0);
 
     return holidays.filter((h) => {
@@ -260,121 +261,121 @@ const Holidays = () => {
         </Card>
       ) : (
         <>
-        <div className="border rounded-lg bg-white">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Holiday</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Year</TableHead>
-                <TableHead className="w-[70px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
+          <div className="border rounded-lg bg-white">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Holiday</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Year</TableHead>
+                  <TableHead className="w-[70px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
 
-            <TableBody>
-              {paginatedHolidays.map((h) => {
-                const d = new Date(h.date);
-                return (
-                  <TableRow key={h.id}>
-                    <TableCell className="font-medium">{h.name}</TableCell>
-                    <TableCell>{d.toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      {h.is_recurring ? "Recurring" : "One-time"}
-                    </TableCell>
-                    <TableCell>{d.getFullYear()}</TableCell>
+              <TableBody>
+                {paginatedHolidays.map((h) => {
+                  const d = new Date(h.date);
+                  return (
+                    <TableRow key={h.id}>
+                      <TableCell className="font-medium">{h.name}</TableCell>
+                      <TableCell>{d.toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {h.is_recurring ? "Recurring" : "One-time"}
+                      </TableCell>
+                      <TableCell>{d.getFullYear()}</TableCell>
 
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
 
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setEditDialog({ open: true, holiday: h });
-                              setName(h.name);
-                              setDate(h.date);
-                              setRecurring(h.is_recurring);
-                            }}
-                          >
-                            <Edit className="mr-2 h-4 w-4" /> Edit
-                          </DropdownMenuItem>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditDialog({ open: true, holiday: h });
+                                setName(h.name);
+                                setDate(h.date);
+                                setRecurring(h.is_recurring);
+                              }}
+                            >
+                              <Edit className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
 
-                          <DropdownMenuSeparator />
+                            <DropdownMenuSeparator />
 
-                          <DropdownMenuItem
-                            destructive
-                            onClick={() =>
-                              setDeleteDialog({
-                                open: true,
-                                holidayId: h.id,
-                              })
-                            }
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4">
-          <div className="text-sm text-gray-600">
-            Showing <span className="font-medium text-gray-900">{showingFrom}</span>–
-            <span className="font-medium text-gray-900">{showingTo}</span> of{" "}
-            <span className="font-medium text-gray-900">{total}</span>
+                            <DropdownMenuItem
+                              destructive
+                              onClick={() =>
+                                setDeleteDialog({
+                                  open: true,
+                                  holidayId: h.id,
+                                })
+                              }
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </div>
-          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-            <div className="flex items-center justify-between gap-2 sm:justify-start">
-              <span className="text-sm text-gray-600">Rows</span>
-              <select
-                value={pageSize}
-                onChange={(e) => setPageSize(Number(e.target.value))}
-                className="flex h-9 w-[96px] rounded-md border border-gray-300 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-              >
-                {[5, 10, 20, 50, 100].map((n) => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </select>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4">
+            <div className="text-sm text-gray-600">
+              Showing <span className="font-medium text-gray-900">{showingFrom}</span>–
+              <span className="font-medium text-gray-900">{showingTo}</span> of{" "}
+              <span className="font-medium text-gray-900">{total}</span>
             </div>
-            <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={safePage <= 1}
-                className="flex-1 sm:flex-none"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                <span className="ml-1 hidden sm:inline">Prev</span>
-              </Button>
-              <div className="text-sm text-gray-700 text-center px-2 whitespace-nowrap">
-                Page <span className="font-medium">{safePage}</span> /{" "}
-                <span className="font-medium">{totalPages}</span>
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+              <div className="flex items-center justify-between gap-2 sm:justify-start">
+                <span className="text-sm text-gray-600">Rows</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  className="flex h-9 w-[96px] rounded-md border border-gray-300 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                >
+                  {[5, 10, 20, 50, 100].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={safePage >= totalPages}
-                className="flex-1 sm:flex-none"
-              >
-                <span className="mr-1 hidden sm:inline">Next</span>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                  className="flex-1 sm:flex-none"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="ml-1 hidden sm:inline">Prev</span>
+                </Button>
+                <div className="text-sm text-gray-700 text-center px-2 whitespace-nowrap">
+                  Page <span className="font-medium">{safePage}</span> /{" "}
+                  <span className="font-medium">{totalPages}</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                  className="flex-1 sm:flex-none"
+                >
+                  <span className="mr-1 hidden sm:inline">Next</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
         </>
       )}
 

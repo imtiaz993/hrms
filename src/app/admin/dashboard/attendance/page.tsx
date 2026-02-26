@@ -14,16 +14,19 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Search, RefreshCw, AlertCircle, Calendar, Users, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabaseUser';
+import { AdjustEntryPopup } from '@/components/admin/attendance/adjust-entry-popup';
+import { getCurrentTime } from '@/lib/time-utils';
 
 export default function AttendanceOverviewPage() {
- 
+
   const [searchQuery, setSearchQuery] = useState('');
   const [department, setDepartment] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  
+  const [lastUpdated, setLastUpdated] = useState(getCurrentTime());
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentTime().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(getCurrentTime().getFullYear());
+  const [showAdjustPopup, setShowAdjustPopup] = useState(false);
+
 
   const {
     data,
@@ -37,14 +40,14 @@ export default function AttendanceOverviewPage() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setLastUpdated(new Date());
+      setLastUpdated(getCurrentTime());
     }, 30000);
     return () => clearInterval(interval);
   }, []);
 
   const handleRefresh = () => {
     refetchData();
-    setLastUpdated(new Date());
+    setLastUpdated(getCurrentTime());
   };
 
 
@@ -53,7 +56,7 @@ export default function AttendanceOverviewPage() {
     setSelectedMonth(month);
     setSelectedYear(year);
   };
-    const cardBase =
+  const cardBase =
     "relative overflow-hidden rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm";
 
   return (
@@ -64,13 +67,35 @@ export default function AttendanceOverviewPage() {
           <p className="text-gray-600 mt-1">Real-time attendance monitoring for today</p>
         </div>
         <div className="flex items-center space-x-3">
-        
+
           <Button variant="outline" size="sm" onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
+          <div className="flex items-center justify-between">
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100"
+              onClick={() => setShowAdjustPopup(true)}
+            >
+              <Clock className="mr-2 h-4 w-4" />
+              Adjust Entry
+            </Button>
+          </div>
+
+          {showAdjustPopup && (
+            <AdjustEntryPopup
+              onClose={() => setShowAdjustPopup(false)}
+              employees={employees}
+            />
+          )}
         </div>
       </div>
+
+
+
 
       {error ? (
         <Alert variant="destructive">
@@ -132,7 +157,7 @@ export default function AttendanceOverviewPage() {
                   </select>
                 </div>
               </div>
-             
+
             </CardContent>
           </Card>
           <TodayAttendanceTable
@@ -144,7 +169,7 @@ export default function AttendanceOverviewPage() {
             onMonthChange={handleMonthChange}
           />
 
-          
+
         </>
       ) : null}
     </div>

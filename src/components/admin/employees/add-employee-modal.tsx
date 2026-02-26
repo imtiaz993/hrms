@@ -16,6 +16,7 @@ import { CheckCircle2, AlertCircle, UserPlus, Pencil } from "lucide-react";
 import { supabase } from "@/lib/supabaseUser";
 import { cn } from "@/lib/utils";
 import type { Employee } from "@/types";
+import { parsePKT, toPKTISO } from "@/lib/time-utils";
 
 type Mode = "create" | "edit";
 
@@ -52,9 +53,9 @@ type FormState = {
 function toISODate(value?: string | null) {
   if (!value) return "";
   if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
-  const d = new Date(value);
+  const d = parsePKT(value);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toISOString().slice(0, 10);
+  return toPKTISO(d).slice(0, 10);
 }
 
 function initialForm(): FormState {
@@ -309,8 +310,8 @@ export function AddEmployeeModal({
       if (!mailRes.ok || mailJson?.error) {
         setSubmitError(
           mailJson?.error?.message ||
-            mailJson?.error ||
-            "Failed to send password email."
+          mailJson?.error ||
+          "Failed to send password email."
         );
         return;
       }
@@ -738,8 +739,8 @@ export function AddEmployeeModal({
                     ? "Saving..."
                     : "Creating..."
                   : isEdit
-                  ? "Save Changes"
-                  : "Save Employee"}
+                    ? "Save Changes"
+                    : "Save Employee"}
               </Button>
             </div>
           </form>
