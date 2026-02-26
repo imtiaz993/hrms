@@ -202,7 +202,7 @@ export function LeaveRequestsList({
           </Alert>
         )}
 
-        <div className="overflow-x-auto rounded-xl border border-slate-100">
+        <div className="overflow-x-auto rounded-xl border border-slate-100 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
           <table className="min-w-full text-sm">
             <thead className="bg-slate-50/80">
               <tr>
@@ -212,7 +212,7 @@ export function LeaveRequestsList({
                 <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   Status
                 </th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   Actions
                 </th>
               </tr>
@@ -235,7 +235,7 @@ export function LeaveRequestsList({
                       {statusConfig[request.status].label}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 align-top text-sm space-x-2">
+                  <td className="px-4 py-3 align-top text-right space-x-2">
                     <Button
                       size="icon"
                       variant="ghost"

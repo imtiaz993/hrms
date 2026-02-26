@@ -694,7 +694,7 @@ export default function EmployeeDashboardPage() {
           />
         </div>
 
-        <div className=" grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 items-start">
 
           <Leaves
             cardBase={cardBase}
@@ -710,7 +710,7 @@ export default function EmployeeDashboardPage() {
           <ExemptionRequests currentUser={currentUser} cardBase={cardBase} refreshKey={refreshKey} />
 
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 items-start">
           <CompanyPolicy cardBase={cardBase} refreshKey={refreshKey} />
           <Salary cardBase={cardBase} currentUser={currentUser} />
 
