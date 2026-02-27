@@ -8,7 +8,7 @@ import {
 import { isWeekend } from "date-fns";
 import { useMemo, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseUser";
-import { getCurrentTime, parsePKT } from "@/lib/time-utils";
+import { getCurrentDate, parseISOPlain } from "@/lib/time-utils";
 export interface TodayAttendanceRecord {
   employee: Employee;
   timeEntry: TimeEntry | null;
@@ -36,10 +36,10 @@ export function useGetTodayAttendanceOverview(
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<any>(null);
-  const [now, setNow] = useState(getCurrentTime());
+  const [now, setNow] = useState(getCurrentDate());
   useEffect(() => {
     const interval = setInterval(() => {
-      setNow(getCurrentTime());
+      setNow(getCurrentDate());
     }, 60000);
 
     return () => clearInterval(interval);
@@ -48,7 +48,7 @@ export function useGetTodayAttendanceOverview(
   const refetchData = async () => {
     try {
       setIsLoading(true);
-      const today = format(getCurrentTime(), "yyyy-MM-dd");
+      const today = format(getCurrentDate(), "yyyy-MM-dd");
 
       //  Get active employees
       let employeeQuery = supabase
@@ -87,7 +87,7 @@ export function useGetTodayAttendanceOverview(
   }, []);
 
   const data = useMemo(() => {
-    const today = format(getCurrentTime(), "yyyy-MM-dd");
+    const today = format(getCurrentDate(), "yyyy-MM-dd");
 
     let filteredEmployees = [...employees];
 
@@ -153,15 +153,15 @@ export function useGetTodayAttendanceOverview(
         if (entry.clock_out) {
           totalHours = entry.total_hours ?? null;
         } else if (entry.clock_in) {
-          const clockInTime = parsePKT(entry.clock_in);
+          const clockInTime = parseISOPlain(entry.clock_in);
           const diffMs = now.getTime() - clockInTime.getTime();
           totalHours = diffMs > 0 ? diffMs / (1000 * 60 * 60) : null;
         }
 
         if (isLate && entry.clock_in) {
-          const timeIn = parsePKT(entry.clock_in);
-          // Standard start on the specific day in PKT
-          const standardStart = parsePKT(`${today}T${employee.standard_shift_start}:00+05:00`);
+          const timeIn = parseISOPlain(entry.clock_in);
+          // Standard start on the specific day in plain
+          const standardStart = parseISOPlain(`${today}T${employee.standard_shift_start}:00`);
           const minutesDiff = Math.floor(
             (timeIn.getTime() - standardStart.getTime()) / 60000,
           );
@@ -213,7 +213,7 @@ export function useGetTodayAttendanceOverview(
           if (entry.clock_out) {
             totalHours = entry.total_hours ?? null;
           } else if (entry.clock_in) {
-            const clockInTime = parsePKT(entry.clock_in);
+            const clockInTime = parseISOPlain(entry.clock_in);
             const diffMs = now.getTime() - clockInTime.getTime();
             totalHours = diffMs > 0 ? diffMs / (1000 * 60 * 60) : null;
           }
@@ -266,11 +266,11 @@ export function useGetEmployeeMonthlyAttendance(
       setError(null);
       try {
         const start = format(
-          startOfMonth(parsePKT(`${year}-${String(month).padStart(2, "0")}-01T00:00:00+05:00`)),
+          startOfMonth(parseISOPlain(`${year}-${String(month).padStart(2, "0")}-01T00:00:00`)),
           "yyyy-MM-dd",
         );
         const end = format(
-          endOfMonth(parsePKT(`${year}-${String(month).padStart(2, "0")}-01T00:00:00+05:00`)),
+          endOfMonth(parseISOPlain(`${year}-${String(month).padStart(2, "0")}-01T00:00:00`)),
           "yyyy-MM-dd"
         );
 
@@ -299,10 +299,10 @@ export function useGetEmployeeMonthlyAttendance(
   const analytics = useMemo<AttendanceAnalytics | null>(() => {
     if (!employeeId) return null;
 
-    const monthDate = parsePKT(`${year}-${String(month).padStart(2, "0")}-01T00:00:00+05:00`);
+    const monthDate = parseISOPlain(`${year}-${String(month).padStart(2, "0")}-01T00:00:00`);
     const start = startOfMonth(monthDate);
     const end = endOfMonth(monthDate);
-    const todayStr = format(getCurrentTime(), "yyyy-MM-dd");
+    const todayStr = format(getCurrentDate(), "yyyy-MM-dd");
 
     const entriesMap = new Map<string, TimeEntry>();
     entries.forEach((entry) => {

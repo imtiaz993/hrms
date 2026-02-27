@@ -18,7 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { getCurrentTime, toPKTISO, parsePKT } from "@/lib/time-utils";
+import { getCurrentDate, formatISOPlain, parseISOPlain } from "@/lib/time-utils";
 
 export default function AdminExemptionRequestsPage() {
   const [requests, setRequests] = useState<(ExemptionRequest & { employees: Employee })[]>([]);
@@ -79,7 +79,7 @@ export default function AdminExemptionRequestsPage() {
           is_late: request.is_late,
           is_early_leave: request.is_early_leave,
           total_hours,
-          updated_at: toPKTISO(getCurrentTime()),
+          updated_at: formatISOPlain(getCurrentDate()),
         };
 
         if (existingEntry) {
@@ -87,14 +87,14 @@ export default function AdminExemptionRequestsPage() {
         } else {
           await supabase
             .from("time_entries")
-            .insert([{ ...entryPayload, created_at: toPKTISO(getCurrentTime()) }]);
+            .insert([{ ...entryPayload, created_at: formatISOPlain(getCurrentDate()) }]);
         }
       }
 
       // 3) Update request status
       const { error: updateError } = await supabase
         .from("exemption_requests")
-        .update({ status: action, updated_at: toPKTISO(getCurrentTime()) })
+        .update({ status: action, updated_at: formatISOPlain(getCurrentDate()) })
         .eq("id", requestId);
 
       if (updateError) throw updateError;
@@ -270,10 +270,10 @@ export default function AdminExemptionRequestsPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex flex-col">
                           <span className="font-medium text-slate-900">
-                            {format(parsePKT(req.date), "MMM dd, yyyy")}
+                            {format(parseISOPlain(req.date), "MMM dd, yyyy")}
                           </span>
                           <span className="text-[11px] text-slate-500">
-                            {format(parsePKT(req.date), "EEEE")}
+                            {format(parseISOPlain(req.date), "EEEE")}
                           </span>
                         </div>
                       </td>
@@ -283,15 +283,15 @@ export default function AdminExemptionRequestsPage() {
                           <div className="flex items-center gap-2 text-[11px]">
                             <span className="text-slate-400 w-7">New:</span>
                             <span className="font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
-                              {req.new_clock_in ? format(parsePKT(req.new_clock_in), "HH:mm") : "--"} -{" "}
-                              {req.new_clock_out ? format(parsePKT(req.new_clock_out), "HH:mm") : "--"}
+                              {req.new_clock_in ? format(parseISOPlain(req.new_clock_in), "HH:mm") : "--"} -{" "}
+                              {req.new_clock_out ? format(parseISOPlain(req.new_clock_out), "HH:mm") : "--"}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 text-[10px] opacity-60 group-hover:opacity-100 transition-opacity">
                             <span className="text-slate-400 w-7">Old:</span>
                             <span className="text-slate-500 line-through">
-                              {req.old_clock_in ? format(parsePKT(req.old_clock_in), "HH:mm") : "N/A"} -{" "}
-                              {req.old_clock_out ? format(parsePKT(req.old_clock_out), "HH:mm") : "N/A"}
+                              {req.old_clock_in ? format(parseISOPlain(req.old_clock_in), "HH:mm") : "N/A"} -{" "}
+                              {req.old_clock_out ? format(parseISOPlain(req.old_clock_out), "HH:mm") : "N/A"}
                             </span>
                           </div>
                         </div>
@@ -345,7 +345,7 @@ export default function AdminExemptionRequestsPage() {
                           </div>
                         ) : (
                           <div className="text-[11px] text-slate-400 italic">
-                            Processed on {format(parsePKT((req as any).updated_at || (req as any).created_at), "MMM dd")}
+                            Processed on {format(parseISOPlain((req as any).updated_at || (req as any).created_at), "MMM dd")}
                           </div>
                         )}
                       </td>

@@ -15,16 +15,16 @@ import { Search, RefreshCw, AlertCircle, Calendar, Users, Clock } from 'lucide-r
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabaseUser';
 import { AdjustEntryPopup } from '@/components/admin/attendance/adjust-entry-popup';
-import { getCurrentTime } from '@/lib/time-utils';
+import { getCurrentDate } from '@/lib/time-utils';
 
 export default function AttendanceOverviewPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [department, setDepartment] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [lastUpdated, setLastUpdated] = useState(getCurrentTime());
-  const [selectedMonth, setSelectedMonth] = useState(getCurrentTime().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(getCurrentTime().getFullYear());
+  const [lastUpdated, setLastUpdated] = useState(getCurrentDate());
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentDate().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(getCurrentDate().getFullYear());
   const [showAdjustPopup, setShowAdjustPopup] = useState(false);
 
 
@@ -40,14 +40,14 @@ export default function AttendanceOverviewPage() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setLastUpdated(getCurrentTime());
+      setLastUpdated(getCurrentDate());
     }, 30000);
     return () => clearInterval(interval);
   }, []);
 
   const handleRefresh = () => {
     refetchData();
-    setLastUpdated(getCurrentTime());
+    setLastUpdated(getCurrentDate());
   };
 
 

@@ -13,7 +13,7 @@ import { supabase } from "@/lib/supabaseUser";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { TodayStatus } from "@/types";
 import { format } from "date-fns";
-import { getCurrentTime, toPKTISO, parsePKT } from "@/lib/time-utils";
+import { getCurrentDate, formatISOPlain, parseISOPlain } from "@/lib/time-utils";
 import {
   Clock,
   Timer,
@@ -77,7 +77,7 @@ export function ClockActionCard({
   const [tick, setTick] = useState(0);
 
   const isWeekend = () => {
-    const day = getCurrentTime().getDay();
+    const day = getCurrentDate().getDay();
     return day === 0 || day === 6;
   };
 
@@ -115,15 +115,15 @@ export function ClockActionCard({
 
   const elapsedLabel = useMemo(() => {
     if (status?.status !== "clocked_in" || !clockInValue) return "00:00:00";
-    const start = parsePKT(clockInValue).getTime();
-    const diffMs = Math.max(0, getCurrentTime().getTime() - start);
+    const start = parseISOPlain(clockInValue).getTime();
+    const diffMs = Math.max(0, getCurrentDate().getTime() - start);
     return formatDuration(diffMs);
   }, [status?.status, clockInValue, tick]);
 
   const workedLabel = useMemo(() => {
     if (!clockInValue || !clockOutValue) return null;
-    const start = parsePKT(clockInValue).getTime();
-    const end = parsePKT(clockOutValue).getTime();
+    const start = parseISOPlain(clockInValue).getTime();
+    const end = parseISOPlain(clockOutValue).getTime();
     if (Number.isNaN(start) || Number.isNaN(end)) return null;
     return formatDuration(Math.max(0, end - start));
   }, [clockInValue, clockOutValue]);
@@ -133,8 +133,8 @@ export function ClockActionCard({
     setMessage(null);
 
     try {
-      const pktNow = getCurrentTime();
-      const nowMs = pktNow.getTime();
+      const now = getCurrentDate();
+      const nowMs = now.getTime();
 
       const { data } = await supabase
         .from("employees")
@@ -148,7 +148,7 @@ export function ClockActionCard({
       const employeeName = data.first_name
 
       const [h, m] = data.standard_shift_start.split(":").map(Number);
-      const shiftStart = getCurrentTime();
+      const shiftStart = getCurrentDate();
       shiftStart.setHours(h, m, 0, 0);
 
       const isLate = nowMs > shiftStart.getTime() + 30 * 60 * 1000;
@@ -156,7 +156,7 @@ export function ClockActionCard({
 
       await supabase.from("time_entries").insert({
         employee_id: employeeId,
-        clock_in: toPKTISO(pktNow),
+        clock_in: formatISOPlain(now),
         is_late: isLate,
         standard_hours: standardHours,
       });
@@ -200,8 +200,8 @@ export function ClockActionCard({
     setMessage(null);
 
     try {
-      const pktNow = getCurrentTime();
-      const nowMs = pktNow.getTime();
+      const now = getCurrentDate();
+      const nowMs = now.getTime();
 
 
       const { data: employee } = await supabase
@@ -216,7 +216,7 @@ export function ClockActionCard({
 
 
       const [h, m] = employee.standard_shift_end.split(":").map(Number);
-      const shiftEnd = getCurrentTime();
+      const shiftEnd = getCurrentDate();
       shiftEnd.setHours(h, m, 0, 0);
 
 
@@ -232,7 +232,7 @@ export function ClockActionCard({
       await supabase
         .from("time_entries")
         .update({
-          clock_out: toPKTISO(pktNow),
+          clock_out: formatISOPlain(now),
           is_early_leave: isEarly,
         })
         .eq("id", status.timeEntryId);
@@ -271,7 +271,7 @@ export function ClockActionCard({
   };
 
 
-  const todayLabel = format(getCurrentTime(), "EEE, dd MMM");
+  const todayLabel = format(getCurrentDate(), "EEE, dd MMM");
 
   const statusPill = useMemo(() => {
     const base =
@@ -367,7 +367,7 @@ export function ClockActionCard({
                     <p className="text-[11px] text-gray-700/70">Clock In</p>
                     <p className="mt-1 text-sm font-semibold text-gray-900">
                       {clockInValue
-                        ? format(parsePKT(clockInValue), "h:mm a")
+                        ? format(parseISOPlain(clockInValue), "h:mm a")
                         : "—"}
                     </p>
                   </div>
@@ -401,7 +401,7 @@ export function ClockActionCard({
                     <p className="text-[11px] text-emerald-700/70">Clock Out</p>
                     <p className="mt-1 text-sm font-semibold text-emerald-900">
                       {clockOutValue
-                        ? format(parsePKT(clockOutValue), "h:mm a")
+                        ? format(parseISOPlain(clockOutValue), "h:mm a")
                         : "—"}
                     </p>
                   </div>

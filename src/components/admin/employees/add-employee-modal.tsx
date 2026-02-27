@@ -16,7 +16,7 @@ import { CheckCircle2, AlertCircle, UserPlus, Pencil } from "lucide-react";
 import { supabase } from "@/lib/supabaseUser";
 import { cn } from "@/lib/utils";
 import type { Employee } from "@/types";
-import { parsePKT, toPKTISO } from "@/lib/time-utils";
+import { parseISOPlain, formatISOPlain } from "@/lib/time-utils";
 
 type Mode = "create" | "edit";
 
@@ -53,9 +53,9 @@ type FormState = {
 function toISODate(value?: string | null) {
   if (!value) return "";
   if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
-  const d = parsePKT(value);
+  const d = parseISOPlain(value);
   if (Number.isNaN(d.getTime())) return "";
-  return toPKTISO(d).slice(0, 10);
+  return formatISOPlain(d).slice(0, 10);
 }
 
 function initialForm(): FormState {

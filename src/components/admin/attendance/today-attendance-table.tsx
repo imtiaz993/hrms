@@ -20,7 +20,7 @@ import { Employee } from '@/types';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import QuickOverview from '@/app/employee/dashboard/component/QuickOverview';
 
-import { getCurrentTime, parsePKT } from '@/lib/time-utils';
+import { getCurrentDate, parseISOPlain } from '@/lib/time-utils';
 
 
 
@@ -49,8 +49,8 @@ export function TodayAttendanceTable({
   tableRecords,
   allRecords,
   allEmployees = [],
-  selectedMonth = getCurrentTime().getMonth() + 1,
-  selectedYear = getCurrentTime().getFullYear(),
+  selectedMonth = getCurrentDate().getMonth() + 1,
+  selectedYear = getCurrentDate().getFullYear(),
   onMonthChange,
 }: TodayAttendanceTableProps) {
   const router = useRouter();
@@ -311,7 +311,7 @@ export function TodayAttendanceTable({
               value={selectedYear}
               onChange={(e) => onMonthChange(selectedMonth, Number(e.target.value))}
             >
-              {Array.from({ length: 10 }, (_, i) => getCurrentTime().getFullYear() - i).map(y => (
+              {Array.from({ length: 10 }, (_, i) => getCurrentDate().getFullYear() - i).map(y => (
                 <option key={y} value={y}>{y}</option>
               ))}
             </select>

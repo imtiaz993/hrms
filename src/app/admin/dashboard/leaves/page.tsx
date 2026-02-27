@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatDate } from '@/lib/time-utils';
 import { Search, AlertCircle, Eye, CheckCircle2, XCircle, Clock, UserCircle, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseUser';
-import { getCurrentTime, toPKTISO } from '@/lib/time-utils';
+import { getCurrentDate, formatISOPlain } from '@/lib/time-utils';
 import { useToast } from '@/components/ui/toast';
 
 const leaveTypeLabels: Record<string, string> = {

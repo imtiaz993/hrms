@@ -10,7 +10,7 @@ import { Employee, TimeEntry } from "@/types";
 import { format, isAfter } from "date-fns";
 import { useToast } from "@/components/ui/toast";
 import { Loader2 } from "lucide-react";
-import { getCurrentTime, toPKTISO, parsePKT } from "@/lib/time-utils";
+import { getCurrentDate, formatISOPlain, parseISOPlain } from "@/lib/time-utils";
 
 interface AdjustEntryPopupProps {
   onClose: () => void;
@@ -19,7 +19,7 @@ interface AdjustEntryPopupProps {
 
 export function AdjustEntryPopup({ onClose, employees }: AdjustEntryPopupProps) {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
-  const [selectedDate, setSelectedDate] = useState(format(getCurrentTime(), "yyyy-MM-dd"));
+  const [selectedDate, setSelectedDate] = useState(format(getCurrentDate(), "yyyy-MM-dd"));
   const [loading, setLoading] = useState(false);
   const [fetchingEntry, setFetchingEntry] = useState(false);
   const [entry, setEntry] = useState<TimeEntry | null>(null);
@@ -54,8 +54,8 @@ export function AdjustEntryPopup({ onClose, employees }: AdjustEntryPopupProps) 
 
       if (data) {
         setEntry(data);
-        setClockIn(data.clock_in ? format(parsePKT(data.clock_in), "HH:mm") : "");
-        setClockOut(data.clock_out ? format(parsePKT(data.clock_out), "HH:mm") : "");
+        setClockIn(data.clock_in ? format(parseISOPlain(data.clock_in), "HH:mm") : "");
+        setClockOut(data.clock_out ? format(parseISOPlain(data.clock_out), "HH:mm") : "");
       }
     } catch (err) {
       console.error("Error fetching entry:", err);
@@ -95,21 +95,21 @@ export function AdjustEntryPopup({ onClose, employees }: AdjustEntryPopupProps) 
 
       let total_hours = null;
       if (fullClockIn && fullClockOut) {
-        // Parse as PKT consistently
-        const start = parsePKT(fullClockIn.replace(" ", "T") + "+05:00");
-        const end = parsePKT(fullClockOut.replace(" ", "T") + "+05:00");
+        // Parse as plain consistently
+        const start = parseISOPlain(fullClockIn.replace(" ", "T"));
+        const end = parseISOPlain(fullClockOut.replace(" ", "T"));
         total_hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
       }
 
       const payload = {
         employee_id: selectedEmployeeId,
         date: selectedDate,
-        clock_in: fullClockIn ? fullClockIn.replace(" ", "T") + "+05:00" : null,
-        clock_out: fullClockOut ? fullClockOut.replace(" ", "T") + "+05:00" : null,
+        clock_in: fullClockIn ? fullClockIn.replace(" ", "T") : null,
+        clock_out: fullClockOut ? fullClockOut.replace(" ", "T") : null,
         is_late,
         is_early_leave,
         total_hours: total_hours && total_hours > 0 ? total_hours : 0,
-        updated_at: toPKTISO(getCurrentTime()),
+        updated_at: formatISOPlain(getCurrentDate()),
       };
 
       let error;
@@ -119,7 +119,7 @@ export function AdjustEntryPopup({ onClose, employees }: AdjustEntryPopupProps) 
       } else {
         const { error: insertError } = await supabase
           .from("time_entries")
-          .insert([{ ...payload, created_at: toPKTISO(getCurrentTime()) }]);
+          .insert([{ ...payload, created_at: formatISOPlain(getCurrentDate()) }]);
         error = insertError;
       }
 

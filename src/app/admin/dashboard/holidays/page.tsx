@@ -29,7 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, MoreVertical, Edit, Trash2, Plus, Clock, ChevronLeft, ChevronRight } from "lucide-react";
-import { getCurrentTime } from "@/lib/time-utils";
+import { getCurrentDate } from "@/lib/time-utils";
 
 interface Holiday {
   id: string;
@@ -77,7 +77,7 @@ const Holidays = () => {
       newErrors.date = "Holiday date is required";
     } else {
       const selectedDate = new Date(date);
-      const today = getCurrentTime();
+      const today = getCurrentDate();
       today.setHours(0, 0, 0, 0);
 
       if (selectedDate < today) {
@@ -105,7 +105,7 @@ const Holidays = () => {
   }, []);
 
   const filteredHolidays = useMemo(() => {
-    const today = getCurrentTime();
+    const today = getCurrentDate();
     today.setHours(0, 0, 0, 0);
 
     return holidays.filter((h) => {

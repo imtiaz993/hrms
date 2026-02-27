@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from "@/lib/supabaseUser";
 import { format } from 'date-fns';
-import { getCurrentTime, parsePKT } from "@/lib/time-utils";
+import { getCurrentDate, parseISOPlain } from "@/lib/time-utils";
 
 import {
   Card,
@@ -42,10 +42,10 @@ export function SalaryViewPopup({ employeeId, onClose }: SalaryViewPopupProps) {
   >([]);
 
   const [selectedMonth, setSelectedMonth] = useState(
-    getCurrentTime().getMonth() + 1
+    getCurrentDate().getMonth() + 1
   );
   const [selectedYear, setSelectedYear] = useState(
-    getCurrentTime().getFullYear()
+    getCurrentDate().getFullYear()
   );
 
 

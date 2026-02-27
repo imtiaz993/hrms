@@ -11,7 +11,7 @@ import {
   isBefore,
 } from "date-fns";
 import { cn } from "@/lib/utils";
-import { getCurrentTime, parsePKT } from "@/lib/time-utils";
+import { getCurrentDate, parseISOPlain } from "@/lib/time-utils";
 
 const statusLabels: any = {
   present: "Present",
@@ -147,10 +147,10 @@ export function WorkingHoursChartCard({
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
 
   const totals = useMemo(() => {
-    const today = startOfDay(getCurrentTime());
+    const today = startOfDay(getCurrentDate());
 
     const scheduled = chartData.reduce((sum: number, item: any) => {
-      const d = startOfDay(parsePKT(item.date)); // item.date can be "yyyy-MM-dd"
+      const d = startOfDay(parseISOPlain(item.date)); // item.date can be "yyyy-MM-dd"
       const isWeekend = isSaturday(d) || isSunday(d);
 
       if (isWeekend) return sum;
@@ -170,10 +170,10 @@ export function WorkingHoursChartCard({
   const tooltip = useMemo((): TooltipLine[] | null => {
     if (!hovered) return null;
 
-    const weekend = isSaturday(parsePKT(hovered.date)) || isSunday(parsePKT(hovered.date));
-    const future = isFuture(parsePKT(hovered.date));
+    const weekend = isSaturday(parseISOPlain(hovered.date)) || isSunday(parseISOPlain(hovered.date));
+    const future = isFuture(parseISOPlain(hovered.date));
 
-    const dateStr = format(parsePKT(hovered.date), "MMM dd, yyyy");
+    const dateStr = format(parseISOPlain(hovered.date), "MMM dd, yyyy");
 
     // off/absent if no clock_in (and not weekend/future)
     const isAbsent = !weekend && !future && !hovered?.clock_in;
@@ -201,12 +201,12 @@ export function WorkingHoursChartCard({
     if (hovered.clock_in)
       lines.push({
         k: "Clock In",
-        v: format(parsePKT(hovered.clock_in), "h:mm a"),
+        v: format(parseISOPlain(hovered.clock_in), "h:mm a"),
       });
     if (hovered.clock_out)
       lines.push({
         k: "Clock Out",
-        v: format(parsePKT(hovered.clock_out), "h:mm a"),
+        v: format(parseISOPlain(hovered.clock_out), "h:mm a"),
       });
 
     // Only show worked hours if clock_out exists
@@ -239,8 +239,8 @@ export function WorkingHoursChartCard({
       <div className="space-y-3">
         <div className="relative h-36 flex items-end justify-between gap-1 rounded-2xl">
           {chartData.map((item: any, index: any) => {
-            const weekend = isSunday(parsePKT(item.date)) || isSaturday(parsePKT(item.date));
-            const future = isFuture(parsePKT(item.date));
+            const weekend = isSunday(parseISOPlain(item.date)) || isSaturday(parseISOPlain(item.date));
+            const future = isFuture(parseISOPlain(item.date));
 
             const actualHeight = (item.total_hours / item.standard_hours) * 100;
 

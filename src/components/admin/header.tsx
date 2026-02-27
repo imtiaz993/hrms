@@ -47,9 +47,9 @@ export function AdminHeader({
 
     setLoading(false);
   };
-   const filternotification=[...notification].sort(
-    (a,b)=> new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-   );
+  const filternotification = [...notification].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
   const handleLogout = async () => {
     await supabase.auth.signOut();
     localStorage.removeItem("hrmsCurrentUser");
@@ -124,8 +124,7 @@ export function AdminHeader({
                               {n.body || n.message}
                             </p>
                             <p className="mt-1 text-xs text-slate-400">
-                              {new Date(n.created_at).toLocaleString("en-PK", {
-                                timeZone: "Asia/Karachi",
+                              {new Date(n.created_at).toLocaleString(undefined, {
                                 dateStyle: "medium",
                                 timeStyle: "short",
                               })}
