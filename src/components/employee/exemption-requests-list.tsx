@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ExemptionRequest, ExemptionStatus } from "@/types";
 import { supabase } from "@/lib/supabaseUser";
 import { format } from "date-fns";
-import { parsePKT } from "@/lib/time-utils";
+import { parseISOPlain } from "@/lib/time-utils";
 import { Eye, X, XCircle, ChevronRight } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 
@@ -133,20 +133,20 @@ export function ExemptionRequestsList({
                                     className="transition-colors hover:bg-slate-50/70"
                                 >
                                     <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-900 font-medium">
-                                        {format(parsePKT(req.date), "MMM dd, yyyy")}
+                                        {format(parseISOPlain(req.date), "MMM dd, yyyy")}
                                     </td>
                                     <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600">
                                         <div className="flex flex-col">
                                             <span>
                                                 In:{" "}
                                                 {req.new_clock_in
-                                                    ? format(parsePKT(req.new_clock_in), "HH:mm")
+                                                    ? format(parseISOPlain(req.new_clock_in), "HH:mm")
                                                     : "--:--"}
                                             </span>
                                             <span>
                                                 Out:{" "}
                                                 {req.new_clock_out
-                                                    ? format(parsePKT(req.new_clock_out), "HH:mm")
+                                                    ? format(parseISOPlain(req.new_clock_out), "HH:mm")
                                                     : "--:--"}
                                             </span>
                                         </div>
@@ -222,7 +222,7 @@ export function ExemptionRequestsList({
                                                 Date
                                             </p>
                                             <p className="mt-1 text-base font-semibold text-slate-900">
-                                                {format(parsePKT(selectedRequest.date), "EEEE, MMM dd, yyyy")}
+                                                {format(parseISOPlain(selectedRequest.date), "EEEE, MMM dd, yyyy")}
                                             </p>
                                         </div>
 
@@ -252,7 +252,7 @@ export function ExemptionRequestsList({
                                                     <span className="text-slate-500">Clock In</span>
                                                     <span className="font-medium text-slate-900">
                                                         {selectedRequest.old_clock_in
-                                                            ? format(parsePKT(selectedRequest.old_clock_in), "HH:mm")
+                                                            ? format(parseISOPlain(selectedRequest.old_clock_in), "HH:mm")
                                                             : "--:--"}
                                                     </span>
                                                 </div>
@@ -260,7 +260,7 @@ export function ExemptionRequestsList({
                                                     <span className="text-slate-500">Clock Out</span>
                                                     <span className="font-medium text-slate-900">
                                                         {selectedRequest.old_clock_out
-                                                            ? format(parsePKT(selectedRequest.old_clock_out), "HH:mm")
+                                                            ? format(parseISOPlain(selectedRequest.old_clock_out), "HH:mm")
                                                             : "--:--"}
                                                     </span>
                                                 </div>
@@ -276,7 +276,7 @@ export function ExemptionRequestsList({
                                                     <span className="text-blue-500 font-medium">Clock In</span>
                                                     <span className="font-bold text-blue-700">
                                                         {selectedRequest.new_clock_in
-                                                            ? format(parsePKT(selectedRequest.new_clock_in), "HH:mm")
+                                                            ? format(parseISOPlain(selectedRequest.new_clock_in), "HH:mm")
                                                             : "--:--"}
                                                     </span>
                                                 </div>
@@ -284,7 +284,7 @@ export function ExemptionRequestsList({
                                                     <span className="text-blue-500 font-medium">Clock Out</span>
                                                     <span className="font-bold text-blue-700">
                                                         {selectedRequest.new_clock_out
-                                                            ? format(parsePKT(selectedRequest.new_clock_out), "HH:mm")
+                                                            ? format(parseISOPlain(selectedRequest.new_clock_out), "HH:mm")
                                                             : "--:--"}
                                                     </span>
                                                 </div>

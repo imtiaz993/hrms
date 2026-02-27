@@ -11,7 +11,7 @@ import { TimeEntry, ExemptionRequest } from "@/types";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/toast";
 import { Loader2, AlertCircle } from "lucide-react";
-import { getCurrentTime, toPKTISO, parsePKT } from "@/lib/time-utils";
+import { getCurrentDate, formatISOPlain, parseISOPlain } from "@/lib/time-utils";
 
 interface ExemptionRequestPopupProps {
   currentUser: any;
@@ -26,7 +26,7 @@ export function ExemptionRequestPopup({
   onSuccess,
   existingRequests,
 }: ExemptionRequestPopupProps) {
-  const [selectedDate, setSelectedDate] = useState(format(getCurrentTime(), "yyyy-MM-dd"));
+  const [selectedDate, setSelectedDate] = useState(format(getCurrentDate(), "yyyy-MM-dd"));
   const [loading, setLoading] = useState(false);
 
   const [fetchingEntry, setFetchingEntry] = useState(false);
@@ -70,8 +70,8 @@ export function ExemptionRequestPopup({
 
       if (data) {
         setEntry(data);
-        setNewClockIn(data.clock_in ? format(parsePKT(data.clock_in), "HH:mm") : "");
-        setNewClockOut(data.clock_out ? format(parsePKT(data.clock_out), "HH:mm") : "");
+        setNewClockIn(data.clock_in ? format(parseISOPlain(data.clock_in), "HH:mm") : "");
+        setNewClockOut(data.clock_out ? format(parseISOPlain(data.clock_out), "HH:mm") : "");
       } else {
         setNewClockIn("");
         setNewClockOut("");
@@ -117,13 +117,13 @@ export function ExemptionRequestPopup({
 
     setLoading(true);
     try {
-      // Store in PKT offset format
-      const fullNewIn = newClockIn ? `${selectedDate}T${newClockIn}:00+05:00` : null;
-      const fullNewOut = newClockOut ? `${selectedDate}T${newClockOut}:00+05:00` : null;
+      // Store in plain offset format
+      const fullNewIn = newClockIn ? `${selectedDate}T${newClockIn}:00` : null;
+      const fullNewOut = newClockOut ? `${selectedDate}T${newClockOut}:00` : null;
 
       const { is_late, is_early_leave } = calculateFlags(newClockIn, newClockOut);
 
-      const nowPKT = toPKTISO(getCurrentTime());
+      const nowplain = formatISOPlain(getCurrentDate());
 
       const payload = {
         employee_id: currentUser.id,
@@ -136,8 +136,8 @@ export function ExemptionRequestPopup({
         is_early_leave,
         reason,
         status: "pending",
-        created_at: nowPKT,
-        updated_at: nowPKT,
+        created_at: nowplain,
+        updated_at: nowplain,
       };
 
       const { error: insertError } = await supabase.from("exemption_requests").insert([payload]);
@@ -187,7 +187,7 @@ export function ExemptionRequestPopup({
             <Input
               id="date"
               type="date"
-              max={format(getCurrentTime(), "yyyy-MM-dd")}
+              max={format(getCurrentDate(), "yyyy-MM-dd")}
               value={selectedDate}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedDate(e.target.value)}
             />
@@ -217,7 +217,7 @@ export function ExemptionRequestPopup({
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewClockIn(e.target.value)}
                     />
                     <div className="text-[10px] text-slate-400">
-                      Current: {entry?.clock_in ? format(parsePKT(entry.clock_in), "HH:mm") : "N/A"}
+                      Current: {entry?.clock_in ? format(parseISOPlain(entry.clock_in), "HH:mm") : "N/A"}
                     </div>
                   </div>
 
@@ -230,7 +230,7 @@ export function ExemptionRequestPopup({
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewClockOut(e.target.value)}
                     />
                     <div className="text-[10px] text-slate-400">
-                      Current: {entry?.clock_out ? format(parsePKT(entry.clock_out), "HH:mm") : "N/A"}
+                      Current: {entry?.clock_out ? format(parseISOPlain(entry.clock_out), "HH:mm") : "N/A"}
                     </div>
                   </div>
                 </div>

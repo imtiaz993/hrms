@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabaseUser";
 import { formatDate } from "@/lib/time-utils";
 import { Calendar, AlertCircle, X, Eye, XCircle } from "lucide-react";
 import { isAfter } from "date-fns";
-import { getCurrentTime, parsePKT } from "@/lib/time-utils";
+import { getCurrentDate, parseISOPlain } from "@/lib/time-utils";
 
 interface LeaveRequestsListProps {
   requests: LeaveRequest[];
@@ -161,8 +161,8 @@ export function LeaveRequestsList({
 
   const canCancelRequest = (request: LeaveRequest): boolean => {
     if (request.status !== "pending") return false;
-    const startDate = parsePKT(request.start_date);
-    const today = getCurrentTime();
+    const startDate = parseISOPlain(request.start_date);
+    const today = getCurrentDate();
     return (
       isAfter(startDate, today) ||
       startDate.toDateString() === today.toDateString()

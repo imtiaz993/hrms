@@ -16,7 +16,7 @@ import {
   differenceInCalendarDays,
   isAfter,
 } from "date-fns";
-import { getCurrentTime, parsePKT, toPKTISO } from "@/lib/time-utils";
+import { getCurrentDate, parseISOPlain, formatISOPlain } from "@/lib/time-utils";
 
 interface LeaveRequestPopupProps {
   employeeId: string;
@@ -56,8 +56,8 @@ export function LeaveRequestPopup({
   ): number {
     if (isHalfDay) return 0.5;
 
-    const start = startOfDay(parsePKT(startDate));
-    const end = startOfDay(parsePKT(endDate));
+    const start = startOfDay(parseISOPlain(startDate));
+    const end = startOfDay(parseISOPlain(endDate));
     const days = differenceInCalendarDays(end, start) + 1;
 
     return days;
@@ -68,14 +68,14 @@ export function LeaveRequestPopup({
     startDate: string,
     endDate: string,
   ): boolean {
-    const newStart = parsePKT(startDate);
-    const newEnd = parsePKT(endDate);
+    const newStart = parseISOPlain(startDate);
+    const newEnd = parseISOPlain(endDate);
 
     return requests.some((req) => {
       if (req.status === "rejected") return false;
 
-      const reqStart = parsePKT(req.start_date);
-      const reqEnd = parsePKT(req.end_date);
+      const reqStart = parseISOPlain(req.start_date);
+      const reqEnd = parseISOPlain(req.end_date);
 
       return (
         ((isAfter(newStart, reqStart) ||
@@ -102,9 +102,9 @@ export function LeaveRequestPopup({
       return;
     }
 
-    const start = startOfDay(parsePKT(startDate));
-    const end = startOfDay(parsePKT(endDate));
-    const today = startOfDay(getCurrentTime());
+    const start = startOfDay(parseISOPlain(startDate));
+    const end = startOfDay(parseISOPlain(endDate));
+    const today = startOfDay(getCurrentDate());
 
     if (isBefore(start, today)) {
       setError("Start date cannot be in the past.");
@@ -271,7 +271,7 @@ export function LeaveRequestPopup({
                     setStartDate(e.target.value);
                     if (!endDate) setEndDate(e.target.value);
                   }}
-                  min={toPKTISO(getCurrentTime()).split("T")[0]}
+                  min={formatISOPlain(getCurrentDate()).split("T")[0]}
                 />
               </div>
               <div>
@@ -280,7 +280,7 @@ export function LeaveRequestPopup({
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  min={startDate || toPKTISO(getCurrentTime()).split("T")[0]}
+                  min={startDate || formatISOPlain(getCurrentDate()).split("T")[0]}
                 />
               </div>
             </div>

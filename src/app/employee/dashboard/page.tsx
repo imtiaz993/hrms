@@ -13,7 +13,7 @@ import { useAppSelector } from "@/store/hooks";
 import UpcomingHoliday from "./component/UpcomingHolidays";
 import { AttendanceKPICards } from "@/components/attendance/attendance-kpi-cards";
 import { supabase } from "@/lib/supabaseUser";
-import { getCurrentTime, parsePKT, toPKTISO } from "@/lib/time-utils";
+import { getCurrentDate, parseISOPlain, formatISOPlain } from "@/lib/time-utils";
 import UpcommingEvents from "./component/UpcommingEvents";
 import AttendanceTodayCard from "./component/Attendance";
 import { AttendanceAnalytics, DailyAttendance } from "@/types";
@@ -80,8 +80,8 @@ export default function EmployeeDashboardPage() {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<any | null>(null);
 
 
-  const [selectedMonth, setSelectedMonth] = useState(getCurrentTime().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(getCurrentTime().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentDate().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(getCurrentDate().getFullYear());
   const [todayStatus, setTodayStatus] = useState<TodayStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
   const [sickLeaves, setSickLeaves] = useState(0);
@@ -124,7 +124,7 @@ export default function EmployeeDashboardPage() {
   }, []);
 
   const fetchUpcomingEvents = async () => {
-    const today = getCurrentTime();
+    const today = getCurrentDate();
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth();
     const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
@@ -198,7 +198,7 @@ export default function EmployeeDashboardPage() {
   };
 
   const fetchTodayEvents = async () => {
-    const today = getCurrentTime();
+    const today = getCurrentDate();
     const todayMonth = today.getMonth();
     const todayDate = today.getDate();
     const currentYear = today.getFullYear();
@@ -318,7 +318,7 @@ export default function EmployeeDashboardPage() {
       return;
     }
 
-    const today = format(getCurrentTime(), "yyyy-MM-dd");
+    const today = format(getCurrentDate(), "yyyy-MM-dd");
 
     const { data: entries, error } = await supabase
       .from("time_entries")
@@ -415,7 +415,7 @@ export default function EmployeeDashboardPage() {
     setIsLoading(false);
   };
   const fetchHolidays = async () => {
-    const today = getCurrentTime();
+    const today = getCurrentDate();
     today.setHours(0, 0, 0, 0);
 
     const currentYear = today.getFullYear();
@@ -485,7 +485,7 @@ export default function EmployeeDashboardPage() {
 
   const months = useMemo(() => {
     if (!entries.length) {
-      const now = getCurrentTime();
+      const now = getCurrentDate();
       return [
         {
           month: now.getMonth() + 1,
@@ -497,7 +497,7 @@ export default function EmployeeDashboardPage() {
 
     const monthsSet = new Set<string>();
     entries.forEach((entry) => {
-      const date = parsePKT(entry.date);
+      const date = parseISOPlain(entry.date);
       monthsSet.add(format(date, "yyyy-MM"));
     });
 
@@ -522,7 +522,7 @@ export default function EmployeeDashboardPage() {
     if (
       months &&
       months.length > 0 &&
-      selectedMonth === getCurrentTime().getMonth() + 1
+      selectedMonth === getCurrentDate().getMonth() + 1
     ) {
       setSelectedMonth(months[0].month);
       setSelectedYear(months[0].year);
@@ -561,7 +561,7 @@ export default function EmployeeDashboardPage() {
     const start = startOfMonth(monthDate);
     const end = endOfMonth(monthDate);
 
-    const todayStr = format(getCurrentTime(), "yyyy-MM-dd");
+    const todayStr = format(getCurrentDate(), "yyyy-MM-dd");
 
     const entriesMap = new Map<string, TimeEntry>();
     entries.forEach((entry) => {
@@ -723,7 +723,7 @@ export default function EmployeeDashboardPage() {
 
 
 
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
             {announcements.length === 0 ? (
               <p className="text-sm text-slate-400">
                 No announcements available
@@ -789,7 +789,7 @@ export default function EmployeeDashboardPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="mt-4 text-sm text-slate-700 whitespace-pre-line">
+            <div className="mt-4 text-sm text-slate-700 whitespace-pre-line max-h-72 overflow-y-auto pr-2">
               {selectedAnnouncement?.description}
             </div>
 

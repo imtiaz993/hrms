@@ -24,7 +24,7 @@ import { supabase } from "@/lib/supabaseUser";
 import UpcomingHoliday from "@/app/employee/dashboard/component/UpcomingHolidays";
 import UpcommingEvents from "@/app/employee/dashboard/component/UpcommingEvents";
 import TodayEvents from "@/app/employee/dashboard/component/TodayEvents";
-import { getCurrentTime, toPKTISO, parsePKT } from "@/lib/time-utils";
+import { getCurrentDate, formatISOPlain, parseISOPlain } from "@/lib/time-utils";
 
 interface Holiday {
   id: string;
@@ -80,14 +80,14 @@ export default function AdminDashboardPage() {
   // }, [anniversaries]);
 
   const fetchHolidays = async () => {
-    const today = getCurrentTime();
+    const today = getCurrentDate();
     today.setHours(0, 0, 0, 0);
 
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth();
 
-   
-    const endOfMonth = parsePKT(`${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01T00:00:00+05:00`);
+
+    const endOfMonth = parseISOPlain(`${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01T00:00:00`);
     endOfMonth.setMonth(endOfMonth.getMonth() + 1);
     endOfMonth.setDate(0);
     endOfMonth.setHours(23, 59, 59, 999);
@@ -121,7 +121,7 @@ export default function AdminDashboardPage() {
   };
 
   const fetchUpcomingEvents = async () => {
-    const today = getCurrentTime();
+    const today = getCurrentDate();
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth();
     const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
@@ -194,7 +194,7 @@ export default function AdminDashboardPage() {
     setUpcomingAnniversaries(upcomingAnniversaries);
   };
   const fetchTodayEvents = async () => {
-    const today = getCurrentTime();
+    const today = getCurrentDate();
     const todayMonth = today.getMonth();
     const todayDate = today.getDate();
     const currentYear = today.getFullYear();
@@ -253,7 +253,7 @@ export default function AdminDashboardPage() {
   }, [currentUser]);
 
   const fetchAdminAttendanceToday = async () => {
-    const today = format(getCurrentTime(), "yyyy-MM-dd");
+    const today = format(getCurrentDate(), "yyyy-MM-dd");
 
     const { data: employees } = await supabase
       .from("employees")

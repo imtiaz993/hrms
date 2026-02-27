@@ -105,9 +105,9 @@ const Header = () => {
     setLoading(false);
   };
 
-    const filternotification=[...notification].sort(
-    (a,b)=> new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-   );
+  const filternotification = [...notification].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 
   return (
     <>
@@ -181,9 +181,8 @@ const Header = () => {
                       filternotification.map((n: any) => (
                         <div
                           key={n.id}
-                          className={`px-4 py-3 border-b last:border-b-0 cursor-pointer transition hover:bg-slate-50 ${
-                            !n.read ? "bg-blue-50/50" : ""
-                          }`}
+                          className={`px-4 py-3 border-b last:border-b-0 cursor-pointer transition hover:bg-slate-50 ${!n.read ? "bg-blue-50/50" : ""
+                            }`}
                         >
                           <div className="flex items-start gap-2">
                             {!n.read && (
@@ -198,9 +197,8 @@ const Header = () => {
                               </p>
                               <p className="mt-1 text-xs text-slate-400">
                                 {new Date(n.created_at).toLocaleString(
-                                  "en-PK",
+                                  undefined,
                                   {
-                                    timeZone: "Asia/Karachi",
                                     dateStyle: "medium",
                                     timeStyle: "short",
                                   }
