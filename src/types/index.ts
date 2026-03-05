@@ -274,3 +274,17 @@ export interface ExemptionRequest {
   created_at: string;
   updated_at: string;
 }
+
+export interface WorkSchedule {
+  id: string;
+  employee_id: string;
+  date: string;
+  day_of_week: string;
+  shift_start: string;
+  shift_end: string;
+  is_off_day: boolean;
+  status: "scheduled" | "leave" | "holiday" | "off";
+  created_at: string;
+  updated_at: string;
+}
+
