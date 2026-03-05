@@ -157,7 +157,7 @@ export default function AddEmployeePage() {
         setSubmitError(insertError.message || "Failed to create employee.");
         return;
       }
-      --
+      // --- STEP 4: AUTOMATIC SCHEDULE GENERATION ---
       try {
         const joinDateObj = new Date(formData.join_date);
         const year = joinDateObj.getFullYear();
