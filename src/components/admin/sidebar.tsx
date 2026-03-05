@@ -47,6 +47,7 @@ const navItems: NavItem[] = [
     icon: CalendarCheck,
   
   },
+ 
   {
     label: "Leave Requests",
     href: "/admin/dashboard/leaves",
@@ -60,6 +61,11 @@ const navItems: NavItem[] = [
   {
     label: "Annoucement",
     href: "/admin/dashboard/annoucement",
+    icon: Calendar,
+  },
+  {
+    label: "Schedule",
+    href: "/admin/dashboard/schedules",
     icon: Calendar,
   },
   {

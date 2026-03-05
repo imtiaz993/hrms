@@ -157,6 +157,84 @@ export default function AddEmployeePage() {
         setSubmitError(insertError.message || "Failed to create employee.");
         return;
       }
+      --
+      try {
+        const joinDateObj = new Date(formData.join_date);
+        const year = joinDateObj.getFullYear();
+        const monthNum = joinDateObj.getMonth();
+        const daysCount = new Date(year, monthNum + 1, 0).getDate();
+        const monthStr = String(monthNum + 1).padStart(2, '0');
+
+        // 1. Fetch Holidays for this month
+        const startOfMonth = `${year}-${monthStr}-01`;
+        const endOfMonth = `${year}-${monthStr}-${daysCount}`;
+
+        const { data: holidays } = await supabase
+          .from('holidays')
+          .select('date')
+          .gte('date', startOfMonth)
+          .lte('date', endOfMonth);
+
+        const holidayList = holidays?.map(h => h.date) || [];
+        const syncBatch = [];
+
+        // 2. Loop through the ENTIRE month
+        for (let d = 1; d <= daysCount; d++) {
+          const dayStr = String(d).padStart(2, '0');
+          const dateStr = `${year}-${monthStr}-${dayStr}`;
+          const currentLoopDate = new Date(year, monthNum, d);
+          const dayNum = currentLoopDate.getDay();
+
+          let status: any = "scheduled";
+          let isOff = false;
+
+          const isBeforeJoin = dateStr < formData.join_date;
+          const isHoliday = holidayList.includes(dateStr);
+          const isWeekend = (dayNum === 0 || dayNum === 6);
+
+          if (isBeforeJoin) { status = "off"; isOff = true; }
+          else if (isHoliday) { status = "holiday"; isOff = true; }
+          else if (isWeekend) { status = "weekend"; isOff = true; }
+
+          // Format times properly (Adding seconds if missing)
+          const startTime = formData.standard_shift_start.includes(':') && formData.standard_shift_start.split(':').length === 2
+            ? formData.standard_shift_start + ":00"
+            : formData.standard_shift_start;
+
+          const endTime = formData.standard_shift_end.includes(':') && formData.standard_shift_end.split(':').length === 2
+            ? formData.standard_shift_end + ":00"
+            : formData.standard_shift_end;
+
+          syncBatch.push({
+            id: `${authUserId}_${dateStr}`,
+            employee_id: authUserId,
+            date: dateStr,
+            day_of_week: currentLoopDate.toLocaleDateString('en-US', { weekday: 'long' }),
+            shift_start: startTime || '09:00:00',
+            shift_end: endTime || '18:00:00',
+            standard_hours: Number(formData.standard_hours_per_day) || 8,
+            grace_time: 15,
+            is_off_day: isOff,
+            status: status
+          });
+        }
+
+        // 3. Save to work_schedules
+        if (syncBatch.length > 0) {
+          const { error: scheduleError } = await supabase.from('work_schedules').upsert(syncBatch);
+          if (scheduleError) {
+            console.error("Critical: Schedule Upsert Failed!", scheduleError.message);
+          } else {
+            console.log("Success: Auto-Schedule created for new employee!");
+          }
+        }
+      } catch (scheduleErr: any) {
+        console.error("Critical: Schedule Generation Logic Error:", scheduleErr.message);
+      }
+
+
+
+
 
       // 3) Send create-password email (server route)
       const mailRes = await fetch("/api/admin/send-create-password-email", {
@@ -170,8 +248,8 @@ export default function AddEmployeePage() {
       if (!mailRes.ok || mailJson?.error) {
         setSubmitError(
           mailJson?.error?.message ||
-            mailJson?.error ||
-            "Failed to send password email."
+          mailJson?.error ||
+          "Failed to send password email."
         );
         return;
       }
@@ -185,8 +263,8 @@ export default function AddEmployeePage() {
       setIsInviting(false);
     }
   };
-  console.log("submitError",submitError);
-  
+  console.log("submitError", submitError);
+
 
   return (
     <div className="space-y-6 max-w-4xl">

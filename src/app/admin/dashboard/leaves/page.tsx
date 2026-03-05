@@ -166,6 +166,69 @@ export default function LeaveRequestsPage() {
 
       if (updateError) throw updateError;
 
+      // --- Automatic Schedule Sync ---
+      try {
+        const startDate = new Date(request.start_date);
+        const endDate = new Date(request.end_date);
+        const scheduleBatch = [];
+
+        // Fetch Holidays and Employee data for status recalculation
+        const { data: holidays } = await supabase
+          .from('holidays')
+          .select('date')
+          .gte('date', request.start_date)
+          .lte('date', request.end_date);
+
+        const { data: empInfo } = await supabase
+          .from('employees')
+          .select('*')
+          .eq('id', request.employee_id)
+          .single();
+
+        const holidayList = holidays?.map(h => h.date) || [];
+
+        // Loop through each day of the leave
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+          const dateStr = d.toISOString().split('T')[0];
+          const dayNum = d.getDay();
+
+          let scheduleStatus: any = "scheduled";
+          let isOff = false;
+
+          if (action === "approved") {
+            scheduleStatus = "leave";
+            isOff = true;
+          } else {
+            // Rejection: Recalculate original status (Work, Holiday, or Weekend)
+            const isHoliday = holidayList.includes(dateStr);
+            const isWeekend = (dayNum === 0 || dayNum === 6);
+
+            if (isHoliday) { scheduleStatus = "holiday"; isOff = true; }
+            else if (isWeekend) { scheduleStatus = "weekend"; isOff = true; }
+          }
+
+          scheduleBatch.push({
+            id: `${request.employee_id}_${dateStr}`,
+            employee_id: request.employee_id,
+            date: dateStr,
+            day_of_week: d.toLocaleDateString('en-US', { weekday: 'long' }),
+            shift_start: empInfo?.standard_shift_start || '09:00:00',
+            shift_end: empInfo?.standard_shift_end || '18:00:00',
+            standard_hours: empInfo?.standard_hours_per_day || 8,
+            grace_time: 15,
+            is_off_day: isOff,
+            status: scheduleStatus
+          });
+        }
+
+        // Apply updates to work_schedules
+        const { error: batchError } = await supabase.from('work_schedules').upsert(scheduleBatch);
+        if (batchError) console.error("Schedule Sync Error:", batchError);
+      } catch (syncErr) {
+        console.error("Schedule Sync Failed:", syncErr);
+      }
+      // --- End of Sync ---
+
       // 3. Notification
       await fetch("/api/admin/send-notification-admin/", {
         method: "POST",
@@ -319,7 +382,11 @@ export default function LeaveRequestsPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-200/60">
                     {paginatedLeaves.map((request: LeaveRequest) => {
-                      const statusInfo = statusConfig[request.status];
+                      const statusInfo = statusConfig[request.status] || {
+                        label: request.status || 'Unknown',
+                        variant: 'outline' as const,
+                        color: 'gray-100'
+                      };
                       const fullName = `${request.employee?.first_name || ''} ${request.employee?.last_name || ''}`.trim();
                       const initials = `${request.employee?.first_name?.charAt(0) || ''}${request.employee?.last_name?.charAt(0) || ''}`.toUpperCase() || '??';
 

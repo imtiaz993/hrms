@@ -152,6 +152,35 @@ const Holidays = () => {
 
     if (!error && data) {
       setHolidays((p) => [...p, data]);
+
+      // --- Automatic Schedule Sync ---
+      try {
+        const { data: emps } = await supabase.from('employees').select('id, standard_shift_start, standard_shift_end, standard_hours_per_day').eq('is_active', true).eq('is_admin', false);
+        const { data: leaves } = await supabase.from('leave_requests').select('employee_id').eq('status', 'approved').eq('start_date', date).lte('start_date', date).gte('end_date', date);
+        // Note: Simple overlap check for the specific holiday date
+        const { data: overlappingLeaves } = await supabase.from('leave_requests').select('employee_id').eq('status', 'approved').lte('start_date', date).gte('end_date', date);
+
+        if (emps) {
+          const batch = emps.map(emp => {
+            const hasLeave = overlappingLeaves?.some(l => l.employee_id === emp.id);
+            return {
+              id: `${emp.id}_${date}`,
+              employee_id: emp.id,
+              date: date,
+              day_of_week: new Date(date).toLocaleDateString('en-US', { weekday: 'long' }),
+              shift_start: emp.standard_shift_start || '09:00:00',
+              shift_end: emp.standard_shift_end || '18:00:00',
+              standard_hours: emp.standard_hours_per_day || 8,
+              is_off_day: true,
+              status: hasLeave ? 'leave' : 'holiday'
+            };
+          });
+          await supabase.from('work_schedules').upsert(batch);
+        }
+      } catch (syncErr) {
+        console.error("Holiday Sync Error:", syncErr);
+      }
+
       setCreateDialog(false);
       setName("");
       setDate("");
@@ -170,6 +199,9 @@ const Holidays = () => {
       .eq("id", editDialog.holiday.id);
 
     if (!error) {
+      const oldDate = editDialog.holiday.date;
+      const newDate = date;
+
       setHolidays((p) =>
         p.map((h) =>
           h.id === editDialog.holiday?.id
@@ -177,13 +209,113 @@ const Holidays = () => {
             : h,
         ),
       );
+
+      // --- Automatic Schedule Sync ---
+      try {
+        const { data: emps } = await supabase.from('employees').select('id, standard_shift_start, standard_shift_end, standard_hours_per_day').eq('is_active', true).eq('is_admin', false);
+
+        if (emps) {
+          // 1. Revert Old Date if it changed
+          if (oldDate !== newDate) {
+            const revertBatch = await Promise.all(emps.map(async emp => {
+              const d = new Date(oldDate);
+              const dayNum = d.getDay();
+              const isWeekend = (dayNum === 0 || dayNum === 6);
+
+              // Check if employee has leave on old date
+              const { data: leave } = await supabase.from('leave_requests').select('id').eq('employee_id', emp.id).eq('status', 'approved').lte('start_date', oldDate).gte('end_date', oldDate).maybeSingle();
+
+              let status: any = "scheduled";
+              let isOff = false;
+              if (leave) { status = "leave"; isOff = true; }
+              else if (isWeekend) { status = "weekend"; isOff = true; }
+
+              return {
+                id: `${emp.id}_${oldDate}`,
+                employee_id: emp.id,
+                date: oldDate,
+                day_of_week: d.toLocaleDateString('en-US', { weekday: 'long' }),
+                shift_start: emp.standard_shift_start || '09:00:00',
+                shift_end: emp.standard_shift_end || '18:00:00',
+                standard_hours: emp.standard_hours_per_day || 8,
+                is_off_day: isOff,
+                status: status
+              };
+            }));
+            await supabase.from('work_schedules').upsert(revertBatch);
+          }
+
+          // 2. Apply New Date (or updated status)
+          const { data: overlappingLeaves } = await supabase.from('leave_requests').select('employee_id').eq('status', 'approved').lte('start_date', newDate).gte('end_date', newDate);
+
+          const updateBatch = emps.map(emp => {
+            const hasLeave = overlappingLeaves?.some(l => l.employee_id === emp.id);
+            return {
+              id: `${emp.id}_${newDate}`,
+              employee_id: emp.id,
+              date: newDate,
+              day_of_week: new Date(newDate).toLocaleDateString('en-US', { weekday: 'long' }),
+              shift_start: emp.standard_shift_start || '09:00:00',
+              shift_end: emp.standard_shift_end || '18:00:00',
+              standard_hours: emp.standard_hours_per_day || 8,
+              is_off_day: true,
+              status: hasLeave ? 'leave' : 'holiday'
+            };
+          });
+          await supabase.from('work_schedules').upsert(updateBatch);
+        }
+      } catch (syncErr) {
+        console.error("Holiday Edit Sync Error:", syncErr);
+      }
+
       setEditDialog({ open: false, holiday: null });
       setErrors({});
     }
   };
 
   const handleDelete = async () => {
-    await supabase.from("holidays").delete().eq("id", deleteDialog.holidayId);
+    const holidayToDelete = holidays.find(h => h.id === deleteDialog.holidayId);
+    if (!holidayToDelete) return;
+
+    const { error } = await supabase.from("holidays").delete().eq("id", deleteDialog.holidayId);
+    if (error) return alert("Failed to delete holiday");
+
+    // --- Automatic Schedule Sync (Revert) ---
+    try {
+      const { data: emps } = await supabase.from('employees').select('id, standard_shift_start, standard_shift_end, standard_hours_per_day').eq('is_active', true).eq('is_admin', false);
+      const targetDate = holidayToDelete.date;
+
+      if (emps) {
+        const revertBatch = await Promise.all(emps.map(async emp => {
+          const d = new Date(targetDate);
+          const dayNum = d.getDay();
+          const isWeekend = (dayNum === 0 || dayNum === 6);
+
+          // Check if employee has leave on this date
+          const { data: leave } = await supabase.from('leave_requests').select('id').eq('employee_id', emp.id).eq('status', 'approved').lte('start_date', targetDate).gte('end_date', targetDate).maybeSingle();
+
+          let status: any = "scheduled";
+          let isOff = false;
+          if (leave) { status = "leave"; isOff = true; }
+          else if (isWeekend) { status = "weekend"; isOff = true; }
+
+          return {
+            id: `${emp.id}_${targetDate}`,
+            employee_id: emp.id,
+            date: targetDate,
+            day_of_week: d.toLocaleDateString('en-US', { weekday: 'long' }),
+            shift_start: emp.standard_shift_start || '09:00:00',
+            shift_end: emp.standard_shift_end || '18:00:00',
+            standard_hours: emp.standard_hours_per_day || 8,
+            is_off_day: isOff,
+            status: status
+          };
+        }));
+        await supabase.from('work_schedules').upsert(revertBatch);
+      }
+    } catch (syncErr) {
+      console.error("Holiday Delete Sync Error:", syncErr);
+    }
 
     setHolidays((p) => p.filter((h) => h.id !== deleteDialog.holidayId));
     setDeleteDialog({ open: false, holidayId: null });
