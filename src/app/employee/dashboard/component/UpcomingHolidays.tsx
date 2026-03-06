@@ -22,7 +22,7 @@ const HolidaySkeleton = () => {
 
 const UpcomingHoliday = ({ cardBase, holidays, isLoading = false }: Props) => {
   return (
-    <Card className={`${cardBase} flex-1 md:full lg:w-full`}>
+    <Card className={`${cardBase}  flex-1 md:full lg:w-full`}>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
           <span>Upcoming Holidays</span>
@@ -37,27 +37,28 @@ const UpcomingHoliday = ({ cardBase, holidays, isLoading = false }: Props) => {
       )}
 
       {/* Data */}
-      {!isLoading &&
-        holidays &&
-        holidays.length > 0 &&
-        holidays.map((h: any) => (
-          <Card key={h.id} className={cardBase}>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
-                {h.name}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-slate-700">
-                {new Date(h.date).toLocaleDateString(undefined, {
-                  weekday: "short",
-                  day: "numeric",
-                  month: "short",
-                })}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+      {!isLoading && holidays && holidays.length > 0 && (
+        <CardContent className="space-y-3 py-4">
+          {holidays.map((h: any) => (
+            <Card key={h.id} className={cardBase}>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
+                  {h.name}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-slate-700">
+                  {new Date(h.date).toLocaleDateString(undefined, {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                  })}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </CardContent>
+      )}
 
       {/* Empty */}
       {!isLoading && (!holidays || holidays.length === 0) && (

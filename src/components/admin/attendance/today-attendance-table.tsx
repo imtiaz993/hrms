@@ -35,6 +35,7 @@ interface TodayAttendanceTableProps {
   selectedMonth?: number;
   selectedYear?: number;
   onMonthChange?: (month: number, year: number) => void;
+  refreshTrigger?: number;
 }
 
 const statusConfig = {
@@ -52,6 +53,7 @@ export function TodayAttendanceTable({
   selectedMonth = getCurrentDate().getMonth() + 1,
   selectedYear = getCurrentDate().getFullYear(),
   onMonthChange,
+  refreshTrigger,
 }: TodayAttendanceTableProps) {
   const router = useRouter();
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
@@ -68,11 +70,17 @@ export function TodayAttendanceTable({
   }, [allRecords, allEmployees]);
 
   // Fetch employee's monthly attendance from DB when selected
-  const { analytics: fetchedAnalytics, entries: monthlyEntries, isLoading: analyticsLoading } = useGetEmployeeMonthlyAttendance(
+  const { analytics: fetchedAnalytics, entries: monthlyEntries, isLoading: analyticsLoading, refetch } = useGetEmployeeMonthlyAttendance(
     selectedEmployeeId,
     selectedMonth,
     selectedYear
   );
+
+  useEffect(() => {
+    if (refreshTrigger) {
+      refetch();
+    }
+  }, [refreshTrigger, refetch]);
 
   // Selected employee for standard_hours_per_day (chart)
   const selectedEmployee = useMemo(() =>

@@ -215,7 +215,10 @@ export function LeaveApprovalModal({
   const isPending = request.status === "pending";
   const isRejected = request.status === "rejected";
   const isApproved = request.status === "approved";
-  const statusInfo = statusConfig[request.status];
+  const statusInfo = statusConfig[request.status] || {
+    label: request.status || "Unknown",
+    variant: "outline" as const,
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
