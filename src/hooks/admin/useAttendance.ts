@@ -254,6 +254,9 @@ export function useGetEmployeeMonthlyAttendance(
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const refetch = () => setRefreshTrigger(prev => prev + 1);
 
   useEffect(() => {
     if (!employeeId) {
@@ -294,7 +297,7 @@ export function useGetEmployeeMonthlyAttendance(
     };
 
     fetchEntries();
-  }, [employeeId, month, year]);
+  }, [employeeId, month, year, refreshTrigger]);
 
   const analytics = useMemo<AttendanceAnalytics | null>(() => {
     if (!employeeId) return null;
@@ -348,5 +351,5 @@ export function useGetEmployeeMonthlyAttendance(
     };
   }, [employeeId, month, year, entries]);
 
-  return { analytics, entries, isLoading, error };
+  return { analytics, entries, isLoading, error, refetch };
 }

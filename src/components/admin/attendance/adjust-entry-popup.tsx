@@ -14,10 +14,11 @@ import { getCurrentDate, formatISOPlain, parseISOPlain } from "@/lib/time-utils"
 
 interface AdjustEntryPopupProps {
   onClose: () => void;
+  onUpdate?: (date: string) => void;
   employees: Employee[];
 }
 
-export function AdjustEntryPopup({ onClose, employees }: AdjustEntryPopupProps) {
+export function AdjustEntryPopup({ onClose, employees, onUpdate }: AdjustEntryPopupProps) {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [selectedDate, setSelectedDate] = useState(format(getCurrentDate(), "yyyy-MM-dd"));
   const [loading, setLoading] = useState(false);
@@ -143,6 +144,7 @@ export function AdjustEntryPopup({ onClose, employees }: AdjustEntryPopupProps) 
         variant: "success",
       });
 
+      onUpdate?.(selectedDate);
       onClose();
     } catch (err: any) {
       addToast({

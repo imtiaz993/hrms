@@ -26,6 +26,7 @@ export default function AttendanceOverviewPage() {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentDate().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(getCurrentDate().getFullYear());
   const [showAdjustPopup, setShowAdjustPopup] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
 
   const {
@@ -55,6 +56,16 @@ export default function AttendanceOverviewPage() {
   const handleMonthChange = (month: number, year: number) => {
     setSelectedMonth(month);
     setSelectedYear(year);
+  };
+
+  const onAdjustUpdate = (selectedDate: string) => {
+    // If today, refetch today table + chart
+    const todayStr = format(getCurrentDate(), 'yyyy-MM-dd');
+    if (selectedDate === todayStr) {
+      refetchData();
+    }
+    // Always trigger chart refresh (past or today)
+    setRefreshTrigger(prev => prev + 1);
   };
   const cardBase =
     "relative overflow-hidden rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm";
@@ -88,6 +99,7 @@ export default function AttendanceOverviewPage() {
           {showAdjustPopup && (
             <AdjustEntryPopup
               onClose={() => setShowAdjustPopup(false)}
+              onUpdate={onAdjustUpdate}
               employees={employees}
             />
           )}
@@ -167,6 +179,7 @@ export default function AttendanceOverviewPage() {
             selectedMonth={selectedMonth}
             selectedYear={selectedYear}
             onMonthChange={handleMonthChange}
+            refreshTrigger={refreshTrigger}
           />
 
 

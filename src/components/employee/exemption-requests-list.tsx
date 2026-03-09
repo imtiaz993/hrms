@@ -20,7 +20,7 @@ interface ExemptionRequestsListProps {
 }
 
 const statusConfig: Record<
-    ExemptionStatus,
+    string,
     {
         label: string;
         variant: "default" | "secondary" | "destructive" | "success" | "warning";
@@ -153,10 +153,10 @@ export function ExemptionRequestsList({
                                     </td>
                                     <td className="px-4 py-4 whitespace-nowrap">
                                         <Badge
-                                            variant={statusConfig[req.status].variant}
+                                            variant={statusConfig[req.status]?.variant || "default"}
                                             className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
                                         >
-                                            {statusConfig[req.status].label}
+                                            {statusConfig[req.status]?.label || req.status}
                                         </Badge>
                                     </td>
                                     <td className="px-4 py-4 whitespace-nowrap text-right space-x-1">
@@ -232,10 +232,10 @@ export function ExemptionRequestsList({
                                             </p>
                                             <div className="mt-1">
                                                 <Badge
-                                                    variant={statusConfig[selectedRequest.status].variant}
+                                                    variant={statusConfig[selectedRequest.status]?.variant || "default"}
                                                     className="rounded-full px-3 py-1 text-xs font-semibold shadow-sm"
                                                 >
-                                                    {statusConfig[selectedRequest.status].label}
+                                                    {statusConfig[selectedRequest.status]?.label || selectedRequest.status}
                                                 </Badge>
                                             </div>
                                         </div>

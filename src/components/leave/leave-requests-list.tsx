@@ -22,7 +22,7 @@ interface LeaveRequestsListProps {
 }
 
 const statusConfig: Record<
-  LeaveStatus,
+  string,
   {
     label: string;
     variant: "default" | "secondary" | "destructive" | "success" | "warning";
@@ -39,6 +39,10 @@ const statusConfig: Record<
   rejected: {
     label: "Rejected",
     variant: "destructive",
+  },
+  cancelled: {
+    label: "Cancelled",
+    variant: "default",
   },
 };
 
@@ -229,10 +233,10 @@ export function LeaveRequestsList({
                   </td>
                   <td className="px-4 py-3 align-top">
                     <Badge
-                      variant={statusConfig[request.status].variant}
+                      variant={statusConfig[request.status]?.variant || "default"}
                       className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
                     >
-                      {statusConfig[request.status].label}
+                      {statusConfig[request.status]?.label || request.status}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 align-top text-right space-x-2">
@@ -303,7 +307,7 @@ export function LeaveRequestsList({
                   </div>
                   <div>
                     <span className="font-medium">Status: </span>
-                    {statusConfig[selectedLeave.status].label}
+                    {statusConfig[selectedLeave.status]?.label || selectedLeave.status}
                   </div>
                   <div>
                     <span className="font-medium">Reason: </span>
