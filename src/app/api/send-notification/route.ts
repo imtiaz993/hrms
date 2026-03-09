@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseUser";
 import admin from "firebase-admin";
+import { sendEmail } from "@/lib/nodemailer";
 
 if (!admin.apps.length) {
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // This endpoint is used for EMPLOYEE -> ADMIN notifications
+    // 1. Save to DB
     const { error: dbError } = await supabase.from("notifications").insert([
       {
         employee_id: employeeId,
@@ -49,6 +50,39 @@ export async function POST(req: Request) {
       );
     }
 
+    // 2. Send Email (Skip for Clock-in/Clock-out)
+    const isClockAlert = title?.toLowerCase().includes("clock-in") || title?.toLowerCase().includes("clock-out");
+
+    if (!isClockAlert) {
+      try {
+        // Fetch all active admin emails
+        const { data: adminEmployees } = await supabase
+          .from("employees")
+          .select("email")
+          .eq("is_admin", true)
+          .eq("is_active", true);
+
+        const adminEmails = adminEmployees?.map(a => a.email).filter(Boolean) as string[];
+
+        if (adminEmails?.length) {
+          await sendEmail({
+            to: adminEmails.join(", "),
+            subject: title,
+            text: body,
+            html: `<div style="font-family: sans-serif; padding: 20px; color: #333;">
+              <h2 style="color: #2563eb;">${title}</h2>
+              <p>${body}</p>
+              <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+              <p style="font-size: 12px; color: #666;">This is an automated notification from HRMS.</p>
+            </div>`
+          });
+        }
+      } catch (emailErr) {
+        console.error("Failed to send admin notification emails:", emailErr);
+      }
+    }
+
+    // 3. Send FCM (Push)
     const { data: adminTokens, error } = await supabase
       .from("fcm_tokens")
       .select("*")
@@ -64,15 +98,14 @@ export async function POST(req: Request) {
 
     if (!adminTokens || adminTokens.length === 0) {
       return NextResponse.json(
-        { message: "No admin tokens found" },
-        { status: 400 }
+        { message: "Notification saved, but no admin tokens found for push" },
+        { status: 200 }
       );
     }
 
     const tokens = adminTokens.map((t) => t.token);
 
-
-    // 🔹 Send notification via Firebase Admin
+    // Send push via Firebase Admin
     const response = await admin.messaging().sendEachForMulticast({
       tokens: tokens,
       notification: {
@@ -81,8 +114,7 @@ export async function POST(req: Request) {
       },
     });
 
-    console.log(" Notifications sent:", response.successCount);
-    console.log(" Failed:", response.failureCount);
+    console.log(" Push Notifications sent:", response.successCount);
 
     return NextResponse.json(
       { message: "Notification sent", response },
