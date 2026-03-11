@@ -203,26 +203,26 @@ export function LeaveRequestPopup({
       onLeaveSubmitted?.({ leaveType, totalDays });
       setTimeout(onClose, 1500);
 
-      const { data: settings, error: settingsError } = await supabase
-        .from("admin_settings")
-        .select("leave_notification")
-        .single();
+      const leaveDetails = {
+        startDate,
+        endDate,
+        totalDays,
+        leaveType,
+        reason: reason || "No reason provided",
+        status: "pending",
+        employeeName
+      };
 
-      if (settingsError) {
-        console.error("Settings fetch error:", settingsError);
-      }
-
-      if (settings?.leave_notification) {
-        await fetch("/api/send-notification/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            employeeId,
-            title: "Leave Request Submitted",
-            body: `A new leave request has been submitted by ${employeeName}.`,
-          }),
-        });
-      }
+      await fetch("/api/send-notification/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employeeId,
+          title: "Leave Request Submitted",
+          body: `A new leave request has been submitted by ${employeeName}.`,
+          leaveDetails
+        }),
+      });
     } catch (err: any) {
       console.error("Error submitting leave request:", err);
       setError(err.message || "Failed to submit leave request.");

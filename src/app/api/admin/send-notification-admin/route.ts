@@ -21,7 +21,8 @@ if (!admin.apps.length) {
 
 export async function POST(req: Request) {
   try {
-    const { employeeId, title, body, adminNotification } = await req.json();
+    const bodyData = await req.json();
+    const { employeeId, title, body, adminNotification, leaveDetails, exemptionDetails } = bodyData;
 
     if (!title) return NextResponse.json({ message: "Missing title" }, { status: 400 });
     if (!body) return NextResponse.json({ message: "Missing body" }, { status: 400 });
@@ -76,16 +77,86 @@ export async function POST(req: Request) {
 
       if (shouldSendEmail && adminEmails.length > 0) {
         try {
-          await sendEmail({
-            to: adminEmails.join(", "),
-            subject: title,
-            text: body,
-            html: `<div style="font-family: sans-serif; padding: 20px; color: #333;">
+          let htmlContent = "";
+
+          if (isLeave && leaveDetails) {
+            htmlContent = `<div style="font-family: sans-serif; padding: 20px; color: #333; line-height: 1.5;">
+              <h2 style="color: #2563eb; margin-bottom: 20px;">${title}</h2>
+              <p style="font-size: 16px;">A new request has been submitted by <strong>${leaveDetails.employeeName}</strong>.</p>
+              
+              <div style="background-color: #f8fafc; border-radius: 8px; padding: 15px; border: 1px solid #e2e8f0; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Leave Details</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; color: #64748b; width: 120px;"><strong>Dates:</strong></td>
+                    <td style="padding: 8px 0; color: #1e293b;">${leaveDetails.startDate} to ${leaveDetails.endDate}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #64748b;"><strong>Duration:</strong></td>
+                    <td style="padding: 8px 0; color: #1e293b;">${leaveDetails.totalDays} day(s)</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #64748b;"><strong>Type:</strong></td>
+                    <td style="padding: 8px 0; color: #1e293b; text-transform: capitalize;">${leaveDetails.leaveType}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #64748b;"><strong>Status:</strong></td>
+                    <td style="padding: 8px 0; color: #1e293b;">
+                      <span style="background-color: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+                        ${leaveDetails.status.toUpperCase()}
+                      </span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #64748b; vertical-align: top;"><strong>Reason:</strong></td>
+                    <td style="padding: 8px 0; color: #1e293b;">${leaveDetails.reason}</td>
+                  </tr>
+                </table>
+              </div>
+              <p style="font-size: 12px; color: #666;">This is an automated notification from HRMS.</p>
+            </div>`;
+          } else if (isExemption && exemptionDetails) {
+            htmlContent = `<div style="font-family: sans-serif; padding: 20px; color: #333; line-height: 1.5;">
+              <h2 style="color: #2563eb; margin-bottom: 20px;">${title}</h2>
+              <p style="font-size: 16px;">A new exemption request has been submitted by <strong>${exemptionDetails.employeeName}</strong>.</p>
+              
+              <div style="background-color: #fffaf0; border-radius: 8px; padding: 15px; border: 1px solid #feebc8; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #7b341e; border-bottom: 1px solid #feebc8; padding-bottom: 8px;">Exemption Details</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; color: #64748b; width: 140px;"><strong>Date:</strong></td>
+                    <td style="padding: 8px 0; color: #1e293b;">${exemptionDetails.date}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #64748b;"><strong>Requested In:</strong></td>
+                    <td style="padding: 8px 0; color: #1e293b;">${exemptionDetails.requestedClockIn}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #64748b;"><strong>Requested Out:</strong></td>
+                    <td style="padding: 8px 0; color: #1e293b;">${exemptionDetails.requestedClockOut}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #64748b; vertical-align: top;"><strong>Reason:</strong></td>
+                    <td style="padding: 8px 0; color: #1e293b;">${exemptionDetails.reason}</td>
+                  </tr>
+                </table>
+              </div>
+              <p style="font-size: 12px; color: #666;">This is an automated notification from HRMS.</p>
+            </div>`;
+          } else {
+            htmlContent = `<div style="font-family: sans-serif; padding: 20px; color: #333;">
               <h2 style="color: #2563eb;">${title}</h2>
               <p>${body}</p>
               <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
               <p style="font-size: 12px; color: #666;">This is an automated notification from HRMS.</p>
-            </div>`
+            </div>`;
+          }
+
+          await sendEmail({
+            to: adminEmails.join(", "),
+            subject: title,
+            text: body,
+            html: htmlContent
           });
         } catch (emailErr) {
           console.error("Email send error for admins:", emailErr);

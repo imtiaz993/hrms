@@ -144,14 +144,23 @@ export function ExemptionRequestPopup({
       if (insertError) throw insertError;
 
       // Notification to admin
+      const exemptionDetails = {
+        date: selectedDate,
+        requestedClockIn: newClockIn || "N/A",
+        requestedClockOut: newClockOut || "N/A",
+        reason: reason || "No reason provided",
+        employeeName: `${currentUser.first_name} ${currentUser.last_name}`
+      };
+
       await fetch("/api/admin/send-notification-admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           adminNotification: true,
-          employeeId: "", // explicit blank to avoid "missing field" logic if any
+          employeeId: currentUser.id,
           title: "New Exemption Request",
           body: `${currentUser.first_name} ${currentUser.last_name} has submitted an exemption request for ${selectedDate}.`,
+          exemptionDetails
         }),
       });
 
