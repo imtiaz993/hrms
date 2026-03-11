@@ -32,7 +32,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1. Save to DB
+    // 1. Fetch Admin Settings
+    const { data: settings } = await supabase
+      .from("admin_settings")
+      .select("*")
+      .single();
+
+    // 2. Save to DB (Always save notification for history)
     const { error: dbError } = await supabase.from("notifications").insert([
       {
         employee_id: employeeId,
@@ -50,12 +56,17 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2. Send Email (Skip for Clock-in/Clock-out)
-    const isClockAlert = title?.toLowerCase().includes("clock-in") || title?.toLowerCase().includes("clock-out");
+    // 3. Determine Notification Type
+    const titleLower = title.toLowerCase();
+    const isLeave = titleLower.includes("leave");
+    const isExemption = titleLower.includes("exemption");
+    const isClock = titleLower.includes("clock-in") || titleLower.includes("clock-out");
 
-    if (!isClockAlert) {
+    // 4. Send Email (If enabled in settings)
+    const shouldSendEmail = (isLeave && settings?.leave_email) || (isExemption && settings?.exemption_email);
+
+    if (shouldSendEmail) {
       try {
-        // Fetch all active admin emails
         const { data: adminEmployees } = await supabase
           .from("employees")
           .select("email")
@@ -82,45 +93,35 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3. Send FCM (Push)
-    const { data: adminTokens, error } = await supabase
-      .from("fcm_tokens")
-      .select("*")
-      .eq("type", "admin");
+    // 5. Send FCM (Push) (If enabled in settings)
+    const shouldSendPush =
+      (isLeave && settings?.leave_notification) ||
+      (isExemption && settings?.exemption_notification) ||
+      (isClock && settings?.clock_in_notification);
 
-    if (error) {
-      console.error("Error fetching tokens:", error);
-      return NextResponse.json(
-        { message: "Error fetching tokens" },
-        { status: 400 }
-      );
+    if (shouldSendPush) {
+      const { data: adminTokens, error } = await supabase
+        .from("fcm_tokens")
+        .select("*")
+        .eq("type", "admin");
+
+      if (error) {
+        console.error("Error fetching tokens:", error);
+      } else if (adminTokens && adminTokens.length > 0) {
+        const tokens = adminTokens.map((t) => t.token);
+        await admin.messaging().sendEachForMulticast({
+          tokens: tokens,
+          notification: { title, body },
+        });
+        console.log(" Push Notifications sent");
+      }
     }
-
-    if (!adminTokens || adminTokens.length === 0) {
-      return NextResponse.json(
-        { message: "Notification saved, but no admin tokens found for push" },
-        { status: 200 }
-      );
-    }
-
-    const tokens = adminTokens.map((t) => t.token);
-
-    // Send push via Firebase Admin
-    const response = await admin.messaging().sendEachForMulticast({
-      tokens: tokens,
-      notification: {
-        title,
-        body,
-      },
-    });
-
-    console.log(" Push Notifications sent:", response.successCount);
 
     return NextResponse.json(
-      { message: "Notification sent", response },
+      { message: "Notification processed" },
       { status: 200 }
     );
-  } catch (err) {
+  } catch (err: any) {
     console.error(" Error sending notification:", err);
     return NextResponse.json(
       { message: "Internal server error", error: err },

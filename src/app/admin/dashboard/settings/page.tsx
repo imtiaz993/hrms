@@ -7,8 +7,11 @@ import { Switch } from "@/components/ui/switch";
 
 const SettingsPage = () => {
   const [currentAdminId, setCurrentAdminId] = useState<number | null>(null);
-  const [clockInNotify, setClockInNotify] = useState<boolean | null>(null);
-  const [leavesNotify, setleavesNotify] = useState<boolean | null>(null);
+  const [clockInNotify, setClockInNotify] = useState<boolean>(false);
+  const [leavesNotify, setLeavesNotify] = useState<boolean>(false);
+  const [exemptionNotify, setExemptionNotify] = useState<boolean>(false);
+  const [leaveEmail, setLeaveEmail] = useState<boolean>(false);
+  const [exemptionEmail, setExemptionEmail] = useState<boolean>(false);
 
   useEffect(() => {
     setCurrentAdminId(1);
@@ -27,25 +30,43 @@ const SettingsPage = () => {
       .eq("admin_id", 1);
   };
 
-  const updateholidays = async (value: boolean) => {
-    setleavesNotify(value);
-
-    const { data, error } = await supabase
+  const updateLeavesNotify = async (value: boolean) => {
+    setLeavesNotify(value);
+    await supabase
       .from("admin_settings")
       .update({ leave_notification: value })
-      .eq("admin_id", 1)
+      .eq("admin_id", 1);
+  };
 
-      .select();
+  const updateExemptionNotify = async (value: boolean) => {
+    setExemptionNotify(value);
+    await supabase
+      .from("admin_settings")
+      .update({ exemption_notification: value })
+      .eq("admin_id", 1);
+  };
 
-    console.log("Leave update result:", data);
-    console.log("Leave update error:", error);
+  const updateLeaveEmail = async (value: boolean) => {
+    setLeaveEmail(value);
+    await supabase
+      .from("admin_settings")
+      .update({ leave_email: value })
+      .eq("admin_id", 1);
+  };
+
+  const updateExemptionEmail = async (value: boolean) => {
+    setExemptionEmail(value);
+    await supabase
+      .from("admin_settings")
+      .update({ exemption_email: value })
+      .eq("admin_id", 1);
   };
 
   useEffect(() => {
     const fetchSettings = async () => {
       const { data, error } = await supabase
         .from("admin_settings")
-        .select("clock_in_notification, leave_notification")
+        .select("clock_in_notification, leave_notification, exemption_notification, leave_email, exemption_email")
         .eq("admin_id", currentAdminId)
         .single();
 
@@ -55,8 +76,11 @@ const SettingsPage = () => {
       }
 
       if (data) {
-        setClockInNotify(data.clock_in_notification);
-        setleavesNotify(data.leave_notification);
+        setClockInNotify(!!data.clock_in_notification);
+        setLeavesNotify(!!data.leave_notification);
+        setExemptionNotify(!!data.exemption_notification);
+        setLeaveEmail(!!data.leave_email);
+        setExemptionEmail(!!data.exemption_email);
       }
     };
 
@@ -84,18 +108,16 @@ const SettingsPage = () => {
               </p>
             </div>
 
-            {clockInNotify !== null && (
-              <div className="self-start sm:self-center">
-                <Switch
-                  checked={clockInNotify}
-                  onCheckedChange={updateSetting}
-                />
-              </div>
-            )}
+            <div className="self-start sm:self-center">
+              <Switch
+                checked={clockInNotify}
+                onCheckedChange={updateSetting}
+              />
+            </div>
           </CardContent>
         </Card>
 
-        <Card className=" border ">
+        <Card className=" border mb-4">
           <CardContent
             className="
       p-6
@@ -109,9 +131,58 @@ const SettingsPage = () => {
                 rejected.
               </p>
             </div>
-            {leavesNotify !== null && (
-              <Switch checked={leavesNotify} onCheckedChange={updateholidays} />
-            )}
+            <Switch checked={leavesNotify} onCheckedChange={updateLeavesNotify} />
+          </CardContent>
+        </Card>
+
+        <Card className=" border mb-4">
+          <CardContent
+            className="
+      p-6
+      flex flex-col gap-4
+      sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div>
+              <h3 className=" text-black font-medium">Exemption Notifications</h3>
+              <p className="text-sm text-gray-400">
+                Get notified when a clock-in/out exemption is requested.
+              </p>
+            </div>
+            <Switch checked={exemptionNotify} onCheckedChange={updateExemptionNotify} />
+          </CardContent>
+        </Card>
+
+        <Card className=" border mb-4">
+          <CardContent
+            className="
+      p-6
+      flex flex-col gap-4
+      sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div>
+              <h3 className=" text-black font-medium">Leave Email Notifications</h3>
+              <p className="text-sm text-gray-400">
+                Receive an email when a leave request is submitted.
+              </p>
+            </div>
+            <Switch checked={leaveEmail} onCheckedChange={updateLeaveEmail} />
+          </CardContent>
+        </Card>
+
+        <Card className=" border ">
+          <CardContent
+            className="
+      p-6
+      flex flex-col gap-4
+      sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div>
+              <h3 className=" text-black font-medium">Exemption Email Notifications</h3>
+              <p className="text-sm text-gray-400">
+                Receive an email when an exemption is requested.
+              </p>
+            </div>
+            <Switch checked={exemptionEmail} onCheckedChange={updateExemptionEmail} />
           </CardContent>
         </Card>
       </div>

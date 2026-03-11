@@ -32,7 +32,12 @@ export async function POST(req: Request) {
     const isClockAlert = title?.toLowerCase().includes("clock-in") || title?.toLowerCase().includes("clock-out");
 
     if (adminNotification) {
-      // 1. Get all active admins
+      // 1. Fetch Admin Settings
+      const { data: settings } = await db
+        .from("admin_settings")
+        .select("*")
+        .single();
+
       const { data: admins, error: adminError } = await db
         .from("employees")
         .select("id, email")
@@ -60,8 +65,16 @@ export async function POST(req: Request) {
       const { error: dbError } = await db.from("notifications").insert(notifications);
       if (dbError) throw dbError;
 
-      // 3. Send Email
-      if (!isClockAlert && adminEmails.length > 0) {
+      // 3. Determine Notification Type
+      const titleLower = title.toLowerCase();
+      const isLeave = titleLower.includes("leave");
+      const isExemption = titleLower.includes("exemption");
+      const isClock = titleLower.includes("clock-in") || titleLower.includes("clock-out");
+
+      // 4. Send Email (If enabled in settings)
+      const shouldSendEmail = (isLeave && settings?.leave_email) || (isExemption && settings?.exemption_email);
+
+      if (shouldSendEmail && adminEmails.length > 0) {
         try {
           await sendEmail({
             to: adminEmails.join(", "),
@@ -79,22 +92,29 @@ export async function POST(req: Request) {
         }
       }
 
-      // 4. Get FCM tokens for admins
-      const { data: adminTokens } = await db
-        .from("fcm_tokens")
-        .select("token")
-        .eq("type", "admin")
-        .in("user_id", adminIds);
+      // 5. Get FCM tokens for admins (If enabled in settings)
+      const shouldSendPush =
+        (isLeave && settings?.leave_notification) ||
+        (isExemption && settings?.exemption_notification) ||
+        (isClock && settings?.clock_in_notification);
 
-      if (adminTokens?.length) {
-        const tokens = adminTokens.map((t) => t.token);
-        await admin.messaging().sendEachForMulticast({
-          tokens,
-          notification: { title, body },
-        });
+      if (shouldSendPush) {
+        const { data: adminTokens } = await db
+          .from("fcm_tokens")
+          .select("token")
+          .eq("type", "admin")
+          .in("user_id", adminIds);
+
+        if (adminTokens?.length) {
+          const tokens = adminTokens.map((t) => t.token);
+          await admin.messaging().sendEachForMulticast({
+            tokens,
+            notification: { title, body },
+          });
+        }
       }
 
-      return NextResponse.json({ message: "Notification sent to admins" }, { status: 200 });
+      return NextResponse.json({ message: "Notification processed for admins" }, { status: 200 });
     } else {
       // Flow for specific employee
       const { error: dbError } = await db.from("notifications").insert([
