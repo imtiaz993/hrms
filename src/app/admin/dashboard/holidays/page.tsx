@@ -181,6 +181,21 @@ const Holidays = () => {
         console.error("Holiday Sync Error:", syncErr);
       }
 
+      // ✅ Broadcast Notification & Email
+      await fetch("/api/admin/send-notification-admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          broadcast: true,
+          title: "New Holiday Added!",
+          body: `${name} has been announced as a holiday on ${date}. Enjoy!`,
+          holidayDetails: {
+            name: name,
+            date: date
+          }
+        }),
+      });
+
       setCreateDialog(false);
       setName("");
       setDate("");

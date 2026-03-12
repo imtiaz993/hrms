@@ -135,6 +135,12 @@ export function AdjustEntryPopup({ onClose, employees, onUpdate }: AdjustEntryPo
           adminNotification: false,
           title: "Attendance Updated",
           body: `Your attendance record for ${selectedDate} has been updated by Admin.`,
+          attendanceDetails: {
+            date: selectedDate,
+            clockIn: clockIn || "N/A",
+            clockOut: clockOut || "N/A",
+            totalHours: total_hours || 0,
+          }
         }),
       });
 

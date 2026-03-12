@@ -18,20 +18,37 @@ export const requestPermissionAndGetToken = async (data: { type: "admin" | "empl
       return;
     }
     const messaging = await getFirebaseMessaging();
-    if (!messaging) return;
+    if (!messaging) {
+      console.log("FCM Messaging not supported in this browser");
+      return;
+    }
+
+    const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+    if (!vapidKey) {
+      console.error("❌ NEXT_PUBLIC_FIREBASE_VAPID_KEY is missing in env!");
+      return;
+    }
+
     const swRegistration = await navigator.serviceWorker.register(
       "/firebase-messaging-sw.js"
     );
+
     const token = await getToken(messaging, {
-      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY!,
+      vapidKey,
       serviceWorkerRegistration: swRegistration,
     });
-    await fetch("/api/save-fcm-token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, userId: user.id, type: data.type }),
-    });
+
+    if (token) {
+      console.log("✅ FCM Token generated:", token);
+      await fetch("/api/save-fcm-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, userId: user.id, type: data.type }),
+      });
+    } else {
+      console.log("⚠️ No registration token available. Request permission to generate one.");
+    }
   } catch (err) {
-    console.error("Error generating FCM token:", err);
+    console.error("❌ Error generating FCM token:", err);
   }
 };

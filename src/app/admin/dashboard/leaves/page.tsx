@@ -237,6 +237,12 @@ export default function LeaveRequestsPage() {
           employeeId: request.employee_id,
           title: `Leave ${action === "approved" ? "Approved" : "Rejected"}`,
           body: `Your leave request for ${formatDate(request.start_date)} has been ${action}.`,
+          leaveDetails: {
+            startDate: formatDate(request.start_date),
+            endDate: formatDate(request.end_date),
+            status: action,
+            reason: request.reason || "N/A"
+          }
         }),
       });
 
