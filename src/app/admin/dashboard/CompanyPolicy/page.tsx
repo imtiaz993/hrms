@@ -63,67 +63,81 @@ const Page = () => {
   useEffect(() => {
     fetchPolicies();
   }, []);
-  
+
   const { addToast } = useToast();
- const handleSavePolicy = async () => {
- 
-  if (!validatePolicy()) return;
+  const handleSavePolicy = async () => {
 
-  try {
-    let fileUrl = editpolicy.policy?.doc_url || null;
+    if (!validatePolicy()) return;
 
-    // Remove old file if new uploaded
-    if (document && editpolicy.policy?.doc_url) {
-      const oldFilePath = editpolicy.policy.doc_url.split("/docs/")[1];
-      await supabase.storage.from("docs").remove([oldFilePath]);
+    try {
+      let fileUrl = editpolicy.policy?.doc_url || null;
+
+      // Remove old file if new uploaded
+      if (document && editpolicy.policy?.doc_url) {
+        const oldFilePath = editpolicy.policy.doc_url.split("/docs/")[1];
+        await supabase.storage.from("docs").remove([oldFilePath]);
+      }
+
+      // Upload new file
+      if (document) {
+        const fileName = `${Date.now()}-${document.name}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("docs")
+          .upload(fileName, document);
+
+        if (uploadError) throw uploadError;
+
+        fileUrl =
+          supabase.storage.from("docs").getPublicUrl(fileName).data.publicUrl;
+      }
+
+      const { error } = await supabase
+        .from("company_policy")
+        .update({
+          title: title.trim(),
+          summary: summary.trim(),
+          doc_url: fileUrl,
+        })
+        .eq("id", editpolicy.policy.id);
+
+      if (error) throw error;
+
+      // ✅ Broadcast Notification & Email
+      await fetch("/api/admin/send-notification-admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          broadcast: true,
+          title: "Company Policy Updated",
+          body: `The company policy "${title.trim()}" has been updated. Please check the HRMS portal for details.`,
+          policyDetails: {
+            title: title.trim()
+          }
+        }),
+      });
+
+      // ✅ Success Toast
+      addToast({
+        title: "Policy Updated",
+        description: "Company policy updated successfully.",
+        variant: "success",
+      });
+
+      setEditpolicy({ open: false, policy: null });
+      setDocument(null);
+      setErrors({});
+      fetchPolicies();
+    } catch (err) {
+      console.error(err);
+
+      addToast({
+        title: "Update Failed",
+        description: "Failed to update policy. Please try again.",
+        variant: "destructive",
+      });
     }
-
-    // Upload new file
-    if (document) {
-      const fileName = `${Date.now()}-${document.name}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("docs")
-        .upload(fileName, document);
-
-      if (uploadError) throw uploadError;
-
-      fileUrl =
-        supabase.storage.from("docs").getPublicUrl(fileName).data.publicUrl;
-    }
-
-    const { error } = await supabase
-      .from("company_policy")
-      .update({
-        title: title.trim(),
-        summary: summary.trim(),
-        doc_url: fileUrl,
-      })
-      .eq("id", editpolicy.policy.id);
-
-    if (error) throw error;
-
-    // ✅ Success Toast
-    addToast({
-      title: "Policy Updated",
-      description: "Company policy updated successfully.",
-      variant: "success",
-    });
-
-    setEditpolicy({ open: false, policy: null });
-    setDocument(null);
-    setErrors({});
-    fetchPolicies();
-  } catch (err) {
-    console.error(err);
-
-    addToast({
-      title: "Update Failed",
-      description: "Failed to update policy. Please try again.",
-      variant: "destructive",
-    });
-  }
-};
+  };
 
 
   return (

@@ -107,6 +107,13 @@ export default function AdminExemptionRequestsPage() {
           employeeId: request.employee_id,
           title: `Exemption Request ${action === "approved" ? "Approved" : "Rejected"}`,
           body: `Your exemption request for ${request.date} has been ${action}.`,
+          exemptionDetails: {
+            date: request.date,
+            requestedClockIn: request.new_clock_in ? format(new Date(request.new_clock_in), "HH:mm") : "N/A",
+            requestedClockOut: request.new_clock_out ? format(new Date(request.new_clock_out), "HH:mm") : "N/A",
+            status: action,
+            reason: request.reason || "N/A"
+          }
         }),
       });
 
