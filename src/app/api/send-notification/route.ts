@@ -153,11 +153,18 @@ export async function POST(req: Request) {
         console.error("Error fetching tokens:", error);
       } else if (adminTokens && adminTokens.length > 0 && admin.apps.length) {
         const tokens = Array.from(new Set(adminTokens.map((t) => t.token)));
-        admin.messaging().sendEachForMulticast({
-          tokens: tokens,
-          notification: { title, body },
-        }).then(res => console.log("Push notifications sent (employee -> admin):", res.successCount))
-          .catch(e => console.error("Push notification error:", e));
+        console.log(`[Notification API] Sending push to ${tokens.length} admin tokens.`);
+        try {
+          const res = await admin.messaging().sendEachForMulticast({
+            tokens: tokens,
+            notification: { title, body },
+          });
+          console.log("✅ Push notifications sent (employee -> admin). Success:", res.successCount, "Failure:", res.failureCount);
+        } catch (e) {
+          console.error("❌ Push notification error:", e);
+        }
+      } else {
+        console.log("[Notification API] No admin tokens found to send push.");
       }
     }
 

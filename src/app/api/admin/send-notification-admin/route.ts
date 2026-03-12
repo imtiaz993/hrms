@@ -188,11 +188,16 @@ export async function POST(req: Request) {
       // Push Logic
       if ((isLeave && settings?.leave_notification) || (isExemption && settings?.exemption_notification) || (isClock && settings?.clock_in_notification)) {
         const { data: tokens } = await db.from("fcm_tokens").select("token").in("user_id", adminIds);
+        console.log(`[Admin Notification] Found ${tokens?.length || 0} tokens for adminIds:`, adminIds);
+
         if (tokens?.length && admin.apps.length) {
           const uniqueTokens = Array.from(new Set(tokens.map(t => t.token)));
-          admin.messaging().sendEachForMulticast({ tokens: uniqueTokens, notification: { title, body } })
-            .then(res => console.log("Admin Push Sent:", res.successCount))
-            .catch(err => console.error("Admin Push Error:", err));
+          try {
+            const res = await admin.messaging().sendEachForMulticast({ tokens: uniqueTokens, notification: { title, body } });
+            console.log("✅ Admin Push Sent. Success:", res.successCount, "Failure:", res.failureCount);
+          } catch (err) {
+            console.error("❌ Admin Push Error:", err);
+          }
         }
       }
 
@@ -249,11 +254,16 @@ export async function POST(req: Request) {
 
       // Push Logic
       const { data: tokens } = await db.from("fcm_tokens").select("token").eq("user_id", employeeId);
+      console.log(`[Employee Notification] Found ${tokens?.length || 0} tokens for employeeId: ${employeeId}`);
+
       if (tokens?.length && admin.apps.length) {
         const uniqueTokens = Array.from(new Set(tokens.map(t => t.token)));
-        admin.messaging().sendEachForMulticast({ tokens: uniqueTokens, notification: { title, body } })
-          .then(res => console.log("Employee Push Sent:", res.successCount))
-          .catch(err => console.error("Employee Push Error:", err));
+        try {
+          const res = await admin.messaging().sendEachForMulticast({ tokens: uniqueTokens, notification: { title, body } });
+          console.log("✅ Employee Push Sent. Success:", res.successCount, "Failure:", res.failureCount);
+        } catch (err) {
+          console.error("❌ Employee Push Error:", err);
+        }
       }
 
       return NextResponse.json({ message: "Notification sent to employee" });
